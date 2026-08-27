@@ -1,0 +1,120 @@
+{
+  "name": "Sincronizador de Calendario",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "obtener-calendario",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook POST",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "6316f0e6-6a6e-4662-ab84-e2c3d63ac9a9",
+      "webhookId": "76b08504-d6da-4f41-9927-398bb059576e"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.body.calendarId }}",
+          "mode": "id"
+        },
+        "limit": 250,
+        "options": {
+          "timeMin": "={{ $json.body.timeMin }}",
+          "timeMax": "={{ $json.body.timeMax }}",
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        -112
+      ],
+      "id": "4f7dc9d2-0d92-4058-9e19-44fe9e11429f",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ouIxn7RFUtamHcA2",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -112
+      ],
+      "id": "b14bb2aa-ba65-4ccb-9595-e730366f2085"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook POST": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b9e77e0f-9f00-4873-b78d-33a33c2ace0b",
+  "meta": {
+    "instanceId": "412afcb0612cd9c1c6846608915aecfa6b8e416d1f4212b9bffd1c8a5d056e4f"
+  },
+  "id": "H2Hm5XO8MlVqf384",
+  "tags": []
+}

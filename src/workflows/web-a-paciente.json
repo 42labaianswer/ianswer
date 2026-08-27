@@ -1,0 +1,123 @@
+{
+  "name": "Asistente Web a Paciente",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "enviar-whatsapp-admin",
+        "options": {}
+      },
+      "name": "Webhook Meta POST",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -1168,
+        -672
+      ],
+      "typeVersion": 1.1,
+      "id": "babf23b2-7724-4c35-8f86-35f93d2da62b",
+      "webhookId": "ae8b6f5d-4407-4a26-8e70-66a0873db666"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1054272337778007",
+        "recipientPhoneNumber": "={{ $json.patient_id }}",
+        "textBody": "={{ $json.content }}",
+        "additionalFields": {}
+      },
+      "name": "WhatsApp Business Cloud",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        -32,
+        -672
+      ],
+      "typeVersion": 1,
+      "id": "6f8f2971-42b5-4f22-948d-972d394a3201",
+      "webhookId": "e19ab202-6aaf-4efc-9e45-a1dec80add87",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "sHxhxbxtaoJU9mB9",
+          "name": "WhatsApp account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $json.body.content }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "admin"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "={{ $json.body.patient_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $json.body.company_id }}"
+            }
+          ]
+        }
+      },
+      "name": "Subir mensaje",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -672
+      ],
+      "id": "b0b61978-301a-4c37-b68e-2d04751129da",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Meta POST": {
+      "main": [
+        [
+          {
+            "node": "Subir mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir mensaje": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ab4548af-863c-446d-8acd-ce0c121cf801",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "412afcb0612cd9c1c6846608915aecfa6b8e416d1f4212b9bffd1c8a5d056e4f"
+  },
+  "id": "CND6G6yBHz9x6pIG",
+  "tags": []
+}

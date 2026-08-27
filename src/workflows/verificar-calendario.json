@@ -1,0 +1,149 @@
+{
+  "name": "Verificador de Calendarios",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verificar-calendario",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d5bf7035-79a8-4a28-b658-1695f8ab6dfc",
+      "name": "Webhook POST",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        816
+      ],
+      "webhookId": "51601bf1-b0d6-446c-84ec-b2d9551703f5"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.body.calendarId }}",
+          "mode": "id"
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "id": "6f47de67-2368-4a92-a233-c63060684112",
+      "name": "Intento Lectura Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        816
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ouIxn7RFUtamHcA2",
+          "name": "Google Calendar OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"ok\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e907bfa0-0b38-46b9-9ac5-019add224e1d",
+      "name": "Respuesta Exitosa",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4e1efef2-f4be-487c-8ade-992b7489f961",
+      "name": "Respuesta Denegada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        912
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook POST": {
+      "main": [
+        [
+          {
+            "node": "Intento Lectura Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intento Lectura Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Exitosa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Denegada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "adf2967a-582c-4d84-ae1b-eba9b2201f82",
+  "meta": {
+    "instanceId": "412afcb0612cd9c1c6846608915aecfa6b8e416d1f4212b9bffd1c8a5d056e4f"
+  },
+  "id": "vR9p9UB3FCIyf1WZ",
+  "tags": []
+}

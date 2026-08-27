@@ -1,0 +1,937 @@
+{
+  "name": "Asistente Pro - Fix Multiplicador",
+  "nodes": [
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "\"Usa esta herramienta si el paciente menciona sus síntomas o razón de la visita.\"",
+        "operation": "update",
+        "tableId": "contacts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "external_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "symptoms",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        5184,
+        1136
+      ],
+      "id": "71ae8e83-1250-40bc-80be-fa811cf1eba7",
+      "name": "actualizar_sintoma",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registra la cita final en la base de datos. REQUIERE: 'fecha' (formato YYYY-MM-DD) y 'hora' (formato HH:mm). Solo úsala cuando el paciente confirme un horario disponible.",
+        "tableId": "appointments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "appointment_date",
+              "fieldValue": "={{ $fromAI('fecha') }}"
+            },
+            {
+              "fieldId": "=appointment_time",
+              "fieldValue": "={{ $fromAI('hora') }}:00"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "={{ $('5. Obtener Estado IA').first().json.id }}"
+            },
+            {
+              "fieldId": "agenda_id",
+              "fieldValue": "={{ $('3. Buscar Agendas').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        5040,
+        1136
+      ],
+      "id": "b5ac34c5-8036-41e2-97f8-a6050b3ca9c0",
+      "name": "confirmar_cita",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crea el evento en el calendario. Requiere 'start' (String ISO 8601), 'end' (String ISO 8601), y 'patient_name' (Nombre del paciente).",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $('3. Buscar Agendas').first().json.google_calendar_id }}",
+          "mode": "id"
+        },
+        "start": "={{ $fromAI('start') }}",
+        "end": "={{ $fromAI('end') }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "summary": "=Paciente: {{ $fromAI('patient_name') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        4896,
+        1136
+      ],
+      "id": "f8a93fb1-c2de-4e81-980d-89d1314a5df2",
+      "name": "agendar_cita",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Rpi5ywPJYCoRn4XM",
+          "name": "Google Calendar account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Revisa si un espacio está libre en la agenda. Requiere 'start' (String ISO 8601, ej. 2026-05-10T10:00:00-06:00) y 'end' (String ISO 8601, ej. 2026-05-10T11:00:00-06:00).",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $('3. Buscar Agendas').first().json.google_calendar_id }}",
+          "mode": "id"
+        },
+        "timeMin": "={{ $fromAI('start') }}",
+        "timeMax": "={{ $fromAI('end') }}",
+        "options": {
+          "timeZone": {
+            "__rl": true,
+            "value": "America/Mexico_City",
+            "mode": "list",
+            "cachedResultName": "America/Mexico_City"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        4768,
+        1344
+      ],
+      "id": "eb0cfb50-4664-4181-8502-70603fa12c82",
+      "name": "ver_disponibilidad",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ouIxn7RFUtamHcA2",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Usa esta herramienta SI Y SOLO SI el paciente te pide explícitamente hablar con un humano, persona o agente de soporte.",
+        "operation": "update",
+        "tableId": "contacts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "external_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "ai_active",
+              "fieldValue": "false"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        4560,
+        1264
+      ],
+      "id": "e0e82b54-6398-4b80-807c-76deb337d99f",
+      "name": "transferir_a_humano",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        4336,
+        1280
+      ],
+      "id": "12679f34-9244-49f8-b234-238bea59842c",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": "=deepseek-chat",
+        "options": {
+          "frequencyPenalty": 0.5,
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        4176,
+        1232
+      ],
+      "id": "37ed0f09-9657-4cc7-a0a4-4f7ed90d817c",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "HaeIsapYVCE0390F",
+          "name": "DeepSeek account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "working_hours",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "name": "4b. Buscar Horarios",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3536,
+        768
+      ],
+      "id": "03822002-e9ae-4f34-b0c2-16cb0b2fdb9d",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meta-webhook",
+        "options": {}
+      },
+      "name": "Webhook Meta POST",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        2544,
+        896
+      ],
+      "typeVersion": 1.1,
+      "id": "d09298ec-6b05-4667-8a7c-42db1f4cd298",
+      "webhookId": "72f0a88f-d702-4580-84b8-6b2f5c7332af"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=OK",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2736,
+        480
+      ],
+      "id": "b693c4ea-660e-44a9-a526-1d01611747aa",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "companies",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_phone_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}"
+            }
+          ]
+        }
+      },
+      "name": "1. Buscar Empresa",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2832,
+        896
+      ],
+      "id": "148d8b8d-c1b2-4e5f-9f9f-e705f63c0820",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "team",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "name": "2. Buscar Equipo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3072,
+        800
+      ],
+      "id": "815987b9-5242-4cab-a6e3-bd32b9160808",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agendas",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "company_id",
+              "condition": "eq",
+              "keyValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "name": "3. Buscar Agendas",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        976
+      ],
+      "id": "2498eee5-63d3-4255-a6bc-41a6257f4332",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "contacts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "external_id",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.contacts[0].profile.name }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "name": "4. Crear Contacto",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        576
+      ],
+      "id": "9ed170e1-7bd4-4119-a83b-3b03238a8293",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "contacts",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "external_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        }
+      },
+      "name": "5. Obtener Estado IA",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3632,
+        992
+      ],
+      "id": "3fea4d19-da72-475e-9dc8-c57aa6eef331",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].text.body }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "patient"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "name": "6. Guardar Msg Usuario",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3824,
+        816
+      ],
+      "id": "6e6a2d9b-a8cd-4492-ba15-965e489efda2",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('5. Obtener Estado IA').first().json.ai_active }}",
+              "operation": "notEqual"
+            }
+          ]
+        }
+      },
+      "name": "7. IA Activa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        656
+      ],
+      "id": "72338b6d-0109-4999-a858-503158e9fa86"
+    },
+    {
+      "parameters": {
+        "url": "https://hiicwsvjmmpnbpdjklln.supabase.co/rest/v1/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "patient_id",
+              "value": "=eq.{{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "6"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaWN3c3ZqbW1wbmJwZGprbGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Mjc4NjYsImV4cCI6MjA5MzAwMzg2Nn0.eEiRv3zBMjktoEtTwEN2mXfnTXErf0ivVd2YzAoPaxc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaWN3c3ZqbW1wbmJwZGprbGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Mjc4NjYsImV4cCI6MjA5MzAwMzg2Nn0.eEiRv3zBMjktoEtTwEN2mXfnTXErf0ivVd2YzAoPaxc"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4240,
+        896
+      ],
+      "id": "ba548e23-d6f7-4c12-a454-64566cf8395c",
+      "name": "8. Historial"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "=FECHA Y HORA ACTUAL DEL SISTEMA: {{ $now.setZone('America/Mexico_City').toISO() }}\nZONA HORARIA: America/Mexico_City\n\nERES EL SISTEMA IA DE: {{ $('1. Buscar Empresa').first().json.name }}\nUSUARIO: {{ $('5. Obtener Estado IA').first().json.name }}\n\n\nHORARIOS DE ATENCIÓN Y DESCANSOS:\n{{ $('4b. Buscar Horarios').all().map(h => { const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']; const dia = dias[h.json.day_of_week]; if (!h.json.is_active) return dia + ': CERRADO'; let t = dia + ': ' + h.json.start_time + ' a ' + h.json.end_time; if (h.json.has_break) t += ' (COMIDA: ' + h.json.break_start_time + ' a ' + h.json.break_end_time + ')'; return t; }).join('\\n') }}\n\nHISTORIAL DE CHAT:\n{{ $node[\"8. Historial\"].json.reverse().map(m => (m.sender === 'patient' ? 'Usuario' : 'Tú') + \": \" + m.content).join(\"\\n\") }}\n\n======================================\nREGLAS OBLIGATORIAS DE AGENDA:\n1. NUNCA asumas que un horario está libre. SIEMPRE usa la herramienta 'ver_disponibilidad' antes de ofrecer un espacio.\n2. Para las herramientas, usa ESTRICTAMENTE el formato ISO 8601 basado en la FECHA ACTUAL (ejemplo exacto: 2026-05-10T10:00:00-06:00).\n3. Si una herramienta falla (ej. error de calendario), NO te quedes callado. Discúlpate por la falla técnica, pide la hora deseada y anota los datos usando 'actualizar_sintoma' para que el equipo lo vea.\n======================================\nEQUIPO DISPONIBLE (Adopta esta personalidad):\n{{ $('2. Buscar Equipo').all().map(e => \"--- \" + e.json.full_name + \" ---\\n\" + e.json.system_prompt).join('\\n\\n') }}",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4544,
+        784
+      ],
+      "id": "fcc27e14-15e5-4d0e-b58b-a0af44839cd0",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('AI Agent').item.json.output }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "asistente"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4960,
+        672
+      ],
+      "id": "78aba8c7-5458-4a86-bf41-835eba921b8a",
+      "name": "9. Guardar Msg IA",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.id }}"
+            },
+            {
+              "fieldId": "patient_id",
+              "fieldValue": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('1. Buscar Empresa').first().json.ai_fallback_message }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "asistente"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4992,
+        848
+      ],
+      "id": "62a9651a-95c9-4068-8f7b-2a834b9b8588",
+      "name": "9b. Error - Guardar Fallback",
+      "credentials": {
+        "supabaseApi": {
+          "id": "qFNsVOfMhpompDLU",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Webhook Meta POST').item.json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "={{ $json.content }}",
+        "additionalFields": {}
+      },
+      "name": "10. WhatsApp Final",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        5360,
+        784
+      ],
+      "id": "3c560340-d00b-4d81-bc6a-8ef0e97c57df",
+      "typeVersion": 1,
+      "webhookId": "bf009879-ed14-4507-b7c2-9f41a558ea5b",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "sHxhxbxtaoJU9mB9",
+          "name": "WhatsApp account 8"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "actualizar_sintoma": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "confirmar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ver_disponibilidad": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transferir_a_humano": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Meta POST": {
+      "main": [
+        [
+          {
+            "node": "1. Buscar Empresa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Buscar Empresa": {
+      "main": [
+        [
+          {
+            "node": "2. Buscar Equipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Buscar Equipo": {
+      "main": [
+        [
+          {
+            "node": "3. Buscar Agendas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Buscar Agendas": {
+      "main": [
+        [
+          {
+            "node": "4. Crear Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Crear Contacto": {
+      "main": [
+        [
+          {
+            "node": "4b. Buscar Horarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4b. Buscar Horarios": {
+      "main": [
+        [
+          {
+            "node": "5. Obtener Estado IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Obtener Estado IA": {
+      "main": [
+        [
+          {
+            "node": "6. Guardar Msg Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Guardar Msg Usuario": {
+      "main": [
+        [
+          {
+            "node": "7. IA Activa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. IA Activa?": {
+      "main": [
+        [
+          {
+            "node": "8. Historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8. Historial": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "9. Guardar Msg IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9b. Error - Guardar Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Guardar Msg IA": {
+      "main": [
+        [
+          {
+            "node": "10. WhatsApp Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9b. Error - Guardar Fallback": {
+      "main": [
+        [
+          {
+            "node": "10. WhatsApp Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3c46ebd2-2988-4988-927a-7b762ea09e17",
+  "meta": {
+    "instanceId": "412afcb0612cd9c1c6846608915aecfa6b8e416d1f4212b9bffd1c8a5d056e4f"
+  },
+  "id": "0tZ3XMzTNyluHyzA",
+  "tags": []
+}
