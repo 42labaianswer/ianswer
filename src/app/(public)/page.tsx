@@ -94,7 +94,7 @@ export default async function HomePage() {
             <div className="mt-12 md:mt-16 flex items-center gap-3 text-xs text-slate-500">
               <Check size={14} className="text-lime-600" /> Sin tarjeta
               <span className="text-slate-300">·</span>
-              <Check size={14} className="text-lime-600" /> 14 días gratis
+              <Check size={14} className="text-lime-600" /> 7 días gratis
               <span className="text-slate-300">·</span>
               <Check size={14} className="text-lime-600" /> Cancela cuando quieras
             </div>
@@ -300,7 +300,7 @@ export default async function HomePage() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 pb-8">
         <Reveal>
           <CTABanner
-            title={s(settings, 'home_final_cta_title', 'Empieza tu prueba de 14 días')}
+            title={s(settings, 'home_final_cta_title', 'Empieza tu prueba de 7 días')}
             subtitle={s(settings, 'home_final_cta_subtitle')}
             primaryCta={heroCtaPrimary.text ? heroCtaPrimary : { text: 'Probar gratis', href: '/login?signup=1' }}
             secondaryCta={{ text: 'Ver precios', href: '/precios' }}

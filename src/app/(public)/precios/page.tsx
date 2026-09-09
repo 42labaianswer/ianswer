@@ -162,7 +162,7 @@ export default function PreciosPage() {
                     cta={
                       plan.tier === 'scale'
                         ? { text: 'Hablar con ventas', href: '/contacto' }
-                        : { text: 'Probar 14 días gratis', href: `/login?signup=1&plan=${plan.slug}` }
+                        : { text: 'Probar 7 días gratis', href: `/login?signup=1&plan=${plan.slug}` }
                     }
                     highlighted={plan.tier === recommendedTier || plan.slug === recommendedTier}
                     badgeText="Más popular"

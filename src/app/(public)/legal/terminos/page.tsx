@@ -95,7 +95,7 @@ export default async function TerminosPage() {
             <>
               <p>Los planes y precios están publicados en <a href="/precios" className="text-lime-700 font-bold hover:underline">/precios</a> y pueden cambiar con 30 días de aviso previo.</p>
               <p>El cobro es mensual o anual según el plan elegido. Los pagos se procesan vía Stripe.</p>
-              <p><strong>Periodo de prueba</strong>: 14 días gratis sin tarjeta. Al terminar el trial debes ingresar método de pago para continuar.</p>
+              <p><strong>Periodo de prueba</strong>: 7 días gratis sin tarjeta. Al terminar el trial debes ingresar método de pago para continuar.</p>
               <p><strong>Cancelación</strong>: puedes cancelar en cualquier momento desde el dashboard o escribiéndonos a <a href={`mailto:${support_email}`} className="text-lime-700 font-bold hover:underline">{support_email}</a>. Efectiva al final del periodo en curso. No hacemos reembolsos parciales.</p>
               <p><strong>Suspensión por falta de pago</strong>: tras 3 días sin pago, el Servicio se suspende. Tras 30 días, los datos se archivan. Tras 90 días, los datos pueden ser eliminados.</p>
             </>

@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     const isFirstSubscription = !company?.stripe_customer_id ||
                                  company?.subscription_status === 'trialing' ||
                                  !company?.subscription_status
-    const trialDays = isFirstSubscription ? (plan?.trial_days ?? 14) : 0
+    const trialDays = isFirstSubscription ? (plan?.trial_days ?? 7) : 0
 
     let customerId = company?.stripe_customer_id
 
