@@ -25,6 +25,7 @@ import {
   Percent, Truck, Coins, ShoppingBag, GitBranch, Bot, Eye, Save, Loader2,
   Plus, Trash2, AlertCircle
 } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 const SEMANTIC_OPTIONS = [
   { value: 'received',   label: 'Recibida (received)' },
@@ -70,6 +71,7 @@ type Settings = {
 }
 
 export default function OrderSettingsTab({ companyId, accentColor }: { companyId: string, accentColor: string }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [settings, setSettings] = useState<Settings | null>(null)
 
@@ -178,8 +180,8 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
     })
   }
 
-  const applyTemplate = (key: 'simple' | 'delivery') => {
-    if (confirm('¿Reemplazar los estados actuales con esta plantilla?')) {
+  const applyTemplate = async (key: 'simple' | 'delivery') => {
+    if (await confirm('¿Reemplazar los estados actuales con esta plantilla?', { title: 'Reemplazar plantilla' })) {
       setSettings({ ...settings, order_statuses: [...TEMPLATES[key]] })
     }
   }
@@ -398,6 +400,7 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
           Guardar configuración
         </button>
       </div>
+      {ConfirmDialog}
     </div>
   )
 }

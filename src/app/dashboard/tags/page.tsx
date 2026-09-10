@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
+import { useConfirm } from '../../../hooks/useConfirm'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
@@ -43,6 +44,7 @@ const COLOR_PALETTE = [
 // PÁGINA
 // ============================================================================
 export default function TagsPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: features, isLoading: isLoadingFeatures } = usePlanFeatures()
@@ -214,8 +216,8 @@ export default function TagsPage() {
               tag={tag}
               canEditAi={!!features?.crm_tags_ai_aware}
               onEdit={() => setEditingTag(tag)}
-              onDelete={() => {
-                if (confirm(`¿Eliminar la etiqueta "${tag.name}"? Se quitará de ${tag.contacts_count} contacto(s).`)) {
+              onDelete={async () => {
+                if (await confirm(`¿Eliminar la etiqueta "${tag.name}"? Se quitará de ${tag.contacts_count} contacto(s).`, { title: 'Eliminar etiqueta', danger: true, confirmText: 'Eliminar' })) {
                   deleteMutation.mutate(tag.id)
                 }
               }}
@@ -238,6 +240,7 @@ export default function TagsPage() {
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

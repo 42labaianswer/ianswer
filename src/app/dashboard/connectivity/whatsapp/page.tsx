@@ -25,6 +25,7 @@ import {
   CheckCircle2, Loader2, ArrowLeft, Activity, Eye, EyeOff,
   ShieldCheck, ExternalLink, KeyRound, Hash, Phone, Trash2, ChevronDown, Zap
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 const ACCENT = '#25D366'
 
@@ -37,6 +38,7 @@ interface WhatsAppConfig {
 }
 
 export default function WhatsAppConnectPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const [companyId, setCompanyId]     = useState<string | null>(null)
   const [config, setConfig]           = useState<WhatsAppConfig | null>(null)
@@ -141,7 +143,7 @@ export default function WhatsAppConnectPage() {
 
   const handleDisconnect = async () => {
     if (!companyId) return
-    if (!confirm('¿Desconectar WhatsApp? Dejarás de recibir y responder mensajes por este canal.')) return
+    if (!(await confirm('¿Desconectar WhatsApp? Dejarás de recibir y responder mensajes por este canal.', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
       await supabase.from('companies').update({
@@ -309,6 +311,7 @@ export default function WhatsAppConnectPage() {
           <WhatsAppProfileEditor accentColor={ACCENT} />
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

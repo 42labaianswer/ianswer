@@ -26,6 +26,7 @@ import {
   X, Save, Loader2, Home, MapPin, Camera, Trash2, Plus, Upload,
   DollarSign, Bed, Bath, Car, Square, ChevronDown, AlertCircle
 } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 export type Property = {
   id?: string
@@ -86,6 +87,7 @@ const OPERATION_TYPES = [
 ] as const
 
 export default function PropertyDrawer({ isOpen, onClose, property, companyId, accentColor }: Props) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<DrawerTab>('data')
   const [form, setForm] = useState<Property>({
@@ -688,8 +690,8 @@ export default function PropertyDrawer({ isOpen, onClose, property, companyId, a
           <div>
             {!isNew && form.id && (
               <button
-                onClick={() => {
-                  if (confirm('¿Eliminar esta propiedad? No se puede deshacer.')) {
+                onClick={async () => {
+                  if (await confirm('¿Eliminar esta propiedad? No se puede deshacer.', { title: 'Eliminar propiedad', danger: true, confirmText: 'Eliminar' })) {
                     deleteMutation.mutate(form.id!)
                   }
                 }}
@@ -712,6 +714,7 @@ export default function PropertyDrawer({ isOpen, onClose, property, companyId, a
           </button>
         </div>
       </div>
+      {ConfirmDialog}
     </>
   )
 }

@@ -9,6 +9,7 @@ import { useEntitlements } from '../hooks/useEntitlements'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 type Agenda = {
   id: string
@@ -24,6 +25,7 @@ type Agenda = {
 }
 
 export default function AgendasTab({ companyId, planSlug }: { companyId: string, planSlug: string }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: entitlements } = useEntitlements()
@@ -152,8 +154,8 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     }
   })
 
-  const handleDelete = (id: string) => {
-    if (!confirm('¿Seguro que deseas eliminar este calendario?')) return
+  const handleDelete = async (id: string) => {
+    if (!(await confirm('¿Seguro que deseas eliminar este calendario?', { title: 'Eliminar calendario', danger: true, confirmText: 'Eliminar' }))) return
     deleteAgendaMutation.mutate(id)
   }
 
@@ -285,6 +287,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
         </div>
       </div>
+      {ConfirmDialog}
     </div>
   )
 }

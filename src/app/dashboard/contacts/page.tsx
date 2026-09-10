@@ -22,6 +22,7 @@ import BookingModal from '../../../components/BookingModal'
 import ContactKanban from '../../../components/ContactKanban'
 import TasksTab from '../../../components/TasksTab'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer'
 
@@ -145,6 +146,7 @@ const formatVisitDate = (dateStr?: string | null): string => {
 }
 
 export default function ContactsPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
@@ -549,8 +551,8 @@ export default function ContactsPage() {
     saveContactMutation.mutate()
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar este contacto? No se puede deshacer.')) deleteContactMutation.mutate(id)
+  const handleDelete = async (id: string) => {
+    if (await confirm('¿Eliminar este contacto? No se puede deshacer.', { title: 'Eliminar contacto', danger: true, confirmText: 'Eliminar' })) deleteContactMutation.mutate(id)
   }
 
   // v2.2: Exportar CSV de los seleccionados
@@ -1298,6 +1300,7 @@ export default function ContactsPage() {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

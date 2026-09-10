@@ -10,6 +10,7 @@ import {
   Phone, Plug, Sparkles, Building, Wrench, GraduationCap,
   LifeBuoy, TrendingUp, Palette, ExternalLink, X, AlertCircle
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 // ============================================================================
 // AddonsAdminTab v2.26
@@ -96,6 +97,7 @@ function centsToMxn(cents: number): string {
 }
 
 export default function AddonsAdminTab() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const qc = useQueryClient()
   const [editing, setEditing] = useState<Addon | null>(null)
   const [creating, setCreating] = useState(false)
@@ -294,14 +296,15 @@ export default function AddonsAdminTab() {
           onClose={() => { setEditing(null); setCreating(false) }}
           onSave={(addon) => saveMutation.mutate({ addon, isNew: creating })}
           onDuplicate={() => duplicate(editing)}
-          onDelete={() => {
-            if (confirm(`¿Desactivar "${editing.name}"? Las companies que ya lo tienen seguirán cobrándose.`)) {
+          onDelete={async () => {
+            if (await confirm(`¿Desactivar "${editing.name}"? Las companies que ya lo tienen seguirán cobrándose.`, { title: 'Desactivar addon', danger: true, confirmText: 'Desactivar' })) {
               deleteMutation.mutate(editing.id)
             }
           }}
           saving={saveMutation.isPending}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

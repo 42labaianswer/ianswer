@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
+import { useConfirm } from '../../../hooks/useConfirm'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
@@ -127,6 +128,7 @@ const statusLabels: Record<string, string> = {
 // PÁGINA PRINCIPAL
 // ============================================================================
 export default function RemindersPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const router = useRouter()
   const { primaryTemplate: vertical } = useWorkspace()
@@ -273,8 +275,8 @@ export default function RemindersPage() {
           agendas={agendas}
           onEdit={setEditingRule}
           onToggle={(id, is_active) => toggleRule.mutate({ id, is_active })}
-          onDelete={(id) => {
-            if (confirm('¿Eliminar regla? Sus recordatorios pendientes se cancelarán.')) {
+          onDelete={async (id) => {
+            if (await confirm('¿Eliminar regla? Sus recordatorios pendientes se cancelarán.', { title: 'Eliminar regla', danger: true, confirmText: 'Eliminar' })) {
               deleteRule.mutate(id)
             }
           }}
@@ -318,6 +320,7 @@ export default function RemindersPage() {
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }
