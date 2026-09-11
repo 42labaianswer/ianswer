@@ -24,6 +24,7 @@ import {
   CheckCircle2, Loader2, ArrowLeft, ArrowRight, Activity, Eye, EyeOff, Zap, Globe,
   ShieldCheck, ExternalLink, KeyRound, Hash, Trash2, ChevronDown, RefreshCw
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 const ACCENT = '#C13584'
 
@@ -51,6 +52,7 @@ const InstagramIcon = ({ size = 32 }: { size?: number }) => (
 )
 
 export default function InstagramConnectPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [companyId, setCompanyId]     = useState<string | null>(null)
@@ -219,7 +221,7 @@ export default function InstagramConnectPage() {
 
   const handleDisconnect = async () => {
     if (!companyId) return
-    if (!confirm('¿Desconectar Instagram Direct?')) return
+    if (!(await confirm('¿Desconectar Instagram Direct?', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
       await supabase.from('integrations').delete()

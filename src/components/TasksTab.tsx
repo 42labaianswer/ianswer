@@ -10,6 +10,7 @@ import {
   CheckSquare, Plus, Loader2, AlertCircle, Calendar as CalendarIcon,
   Edit2, Trash2, Clock, CheckCircle2, Square, X, Save
 } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 // ============================================================================
 // TasksTab — embebido en el modal de /contacts
@@ -47,6 +48,7 @@ const isOverdue = (due?: string | null, completed?: string | null): boolean => {
 }
 
 export default function TasksTab({ contactId, companyId, userId }: { contactId: string, companyId: string, userId: string }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
@@ -133,7 +135,7 @@ export default function TasksTab({ contactId, companyId, userId }: { contactId: 
                   task={t}
                   onToggle={() => toggleCompleteMutation.mutate({ id: t.id, completed: !t.completed_at })}
                   onEdit={() => setEditing(t)}
-                  onDelete={() => { if (confirm('¿Eliminar tarea?')) deleteTaskMutation.mutate(t.id) }}
+                  onDelete={async () => { if (await confirm('¿Eliminar tarea?', { title: 'Eliminar tarea', danger: true, confirmText: 'Eliminar' })) deleteTaskMutation.mutate(t.id) }}
                 />
               ))}
             </div>
@@ -150,7 +152,7 @@ export default function TasksTab({ contactId, companyId, userId }: { contactId: 
                     task={t}
                     onToggle={() => toggleCompleteMutation.mutate({ id: t.id, completed: !t.completed_at })}
                     onEdit={() => setEditing(t)}
-                    onDelete={() => { if (confirm('¿Eliminar tarea?')) deleteTaskMutation.mutate(t.id) }}
+                    onDelete={async () => { if (await confirm('¿Eliminar tarea?', { title: 'Eliminar tarea', danger: true, confirmText: 'Eliminar' })) deleteTaskMutation.mutate(t.id) }}
                   />
                 ))}
               </div>
@@ -174,6 +176,7 @@ export default function TasksTab({ contactId, companyId, userId }: { contactId: 
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

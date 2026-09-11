@@ -14,6 +14,7 @@ import {
   Clock, Send, Trash2, Search, Archive, CheckCircle2, AlertCircle,
   ChevronRight, Sparkles, RefreshCw, MessageSquare, Sun, Sunset, Moon
 } from 'lucide-react'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 // ============================================================================
 // TYPES
@@ -70,6 +71,7 @@ const TIME_LABELS: Record<TimeOfDay, { label: string, icon: any, range: string }
 // PÁGINA PRINCIPAL
 // ============================================================================
 export default function WaitlistPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { labels } = useWorkspace()
@@ -278,8 +280,8 @@ export default function WaitlistPage() {
               key={entry.id}
               entry={entry}
               onNotify={() => setNotifyTarget(entry)}
-              onDelete={() => {
-                if (confirm(`¿Eliminar a ${entry.contact_name} de la lista?`)) deleteMutation.mutate(entry.id)
+              onDelete={async () => {
+                if (await confirm(`¿Eliminar a ${entry.contact_name} de la lista?`, { title: 'Eliminar de la lista', danger: true, confirmText: 'Eliminar' })) deleteMutation.mutate(entry.id)
               }}
               onArchive={() => archiveMutation.mutate(entry.id)}
               onMessage={() => router.push(`/dashboard/inbox?contactId=${entry.contact_id}`)}
@@ -312,6 +314,7 @@ export default function WaitlistPage() {
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

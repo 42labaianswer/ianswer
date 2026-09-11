@@ -22,6 +22,7 @@ import {
   X, Save, Trash2, Loader2, Upload, Plus, UtensilsCrossed, Camera,
   ChefHat, Leaf, Flame, Star, ShieldAlert, AlertCircle, MinusCircle, PlusCircle, Settings2
 } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 export type MenuItem = {
   id?: string
@@ -62,6 +63,7 @@ const COMMON_TAGS = ['vegano', 'vegetariano', 'sin gluten', 'sin lactosa', 'pica
 const COMMON_ALLERGENS = ['gluten', 'lacteos', 'huevo', 'frutos secos', 'mariscos', 'soja', 'pescado']
 
 export default function MenuItemDrawer({ isOpen, onClose, item, defaultCategoryId, companyId, accentColor }: Props) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('data')
   const [form, setForm] = useState<MenuItem>({
@@ -532,8 +534,8 @@ export default function MenuItemDrawer({ isOpen, onClose, item, defaultCategoryI
           <div>
             {!isNew && form.id && (
               <button
-                onClick={() => {
-                  if (confirm('¿Eliminar este item del menú?')) deleteMutation.mutate(form.id!)
+                onClick={async () => {
+                  if (await confirm('¿Eliminar este item del menú?', { title: 'Eliminar item', danger: true, confirmText: 'Eliminar' })) deleteMutation.mutate(form.id!)
                 }}
                 disabled={deleteMutation.isPending}
                 className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5"
@@ -554,6 +556,7 @@ export default function MenuItemDrawer({ isOpen, onClose, item, defaultCategoryI
           </button>
         </div>
       </div>
+      {ConfirmDialog}
     </>
   )
 }

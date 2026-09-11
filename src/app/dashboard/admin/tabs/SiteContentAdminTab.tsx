@@ -16,6 +16,7 @@ import {
   Save, Plus, Trash2, Loader2, GripVertical, Eye, EyeOff,
   Settings, Sparkles, Building2, MessageSquare, HelpCircle, Plug
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 type SubTab = 'general' | 'features' | 'industries' | 'testimonials' | 'faqs' | 'integrations'
 
@@ -375,6 +376,7 @@ const integrationFields: FieldDef[] = [
 ]
 
 function CRUDList({ table, fields, title }: { table: string; fields: FieldDef[]; title: string }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [items, setItems]   = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
@@ -431,7 +433,7 @@ function CRUDList({ table, fields, title }: { table: string; fields: FieldDef[];
   }
 
   const remove = async (id: string) => {
-    if (!confirm(`¿Eliminar este ${title.toLowerCase()}?`)) return
+    if (!(await confirm(`¿Eliminar este ${title.toLowerCase()}?`, { title: 'Eliminar', danger: true, confirmText: 'Eliminar' }))) return
     const { error } = await supabase.from(table).delete().eq('id', id)
     if (error) toast.error('Error: ' + error.message)
     else { toast.success('Eliminado'); load() }
@@ -531,6 +533,7 @@ function CRUDList({ table, fields, title }: { table: string; fields: FieldDef[];
           })}
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

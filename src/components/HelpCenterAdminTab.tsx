@@ -11,6 +11,7 @@ import {
   FileText, Settings, CreditCard, Users, Zap, Shield, Star, PlayCircle, MessageCircle
 } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
+import { useConfirm } from '../hooks/useConfirm'
 
 type HelpArticle = {
   id: string
@@ -43,6 +44,7 @@ const ICON_OPTIONS = [
 ]
 
 export default function HelpCenterAdminTab() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isNewCategory, setIsNewCategory] = useState(false)
@@ -320,7 +322,7 @@ export default function HelpCenterAdminTab() {
                       <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">{art.category}</span>
                     </div>
                     <div className="flex flex-col items-center justify-between">
-                      <button onClick={(e) => { e.stopPropagation(); if(confirm('¿Seguro que deseas eliminar este artículo?')) deleteMutation.mutate(art.id) }} className="text-slate-300 hover:text-rose-600 p-1"><Trash2 size={16}/></button>
+                      <button onClick={async (e) => { e.stopPropagation(); if (await confirm('¿Seguro que deseas eliminar este artículo?', { title: 'Eliminar artículo', danger: true, confirmText: 'Eliminar' })) deleteMutation.mutate(art.id) }} className="text-slate-300 hover:text-rose-600 p-1"><Trash2 size={16}/></button>
                     </div>
                   </div>
                 )
@@ -330,6 +332,7 @@ export default function HelpCenterAdminTab() {
         </div>
 
       </div>
+      {ConfirmDialog}
     </section>
   )
 }

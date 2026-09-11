@@ -10,6 +10,7 @@ import TemplateCard from '../../../components/TemplateCard'
 import toast from 'react-hot-toast'
 import { Layers, Sparkles, Loader2 } from 'lucide-react'
 import PageHeader from '../../../components/PageHeader'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 type Template = {
   id: string
@@ -31,6 +32,7 @@ export default function TemplatesPage() {
   const queryClient = useQueryClient()
   const { primaryTemplate } = useWorkspace()
   const [busyTemplateId, setBusyTemplateId] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const { data, isLoading } = useQuery({
     queryKey: ['templates-page'],
@@ -148,7 +150,8 @@ export default function TemplatesPage() {
               isLoading={isBusy}
               onInstall={async () => {
                 if (isPrimary) return
-                if (!confirm(`¿Cambiar tu plantilla actual por "${tpl.name}"? Tus datos se conservan, pero los módulos y etiquetas del panel cambiarán.`)) return
+                const ok = await confirm(`¿Cambiar tu plantilla actual por "${tpl.name}"? Tus datos se conservan, pero los módulos y etiquetas del panel cambiarán.`, { title: 'Cambiar de industria', confirmText: 'Sí, cambiar', danger: true })
+                if (!ok) return
                 setBusyTemplateId(tpl.id)
                 await switchTemplateMutation.mutateAsync(tpl.id)
                 setBusyTemplateId(null)
@@ -167,6 +170,7 @@ export default function TemplatesPage() {
           )
         })}
       </div>
+      {ConfirmDialog}
     </div>
   )
 }
