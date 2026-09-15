@@ -16,6 +16,7 @@ import {
   Save, Plus, Trash2, Loader2, BookOpen, FileText,
   Eye, EyeOff, ChevronRight, ChevronDown
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 type Mode = 'list' | 'edit-collection' | 'edit-article'
 
@@ -194,6 +195,7 @@ export default function HelpArticlesAdminTab() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function CollectionEditor({ id, onDone }: { id: string | 'new'; onDone: () => void }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [draft, setDraft] = useState<any>({
     slug: '', title: '', description: '', icon_name: 'BookOpen',
     accent_color: '#4f46e5', display_order: 0, visible: true
@@ -231,7 +233,7 @@ function CollectionEditor({ id, onDone }: { id: string | 'new'; onDone: () => vo
 
   const remove = async () => {
     if (id === 'new') return
-    if (!confirm('¿Eliminar esta colección? Los artículos quedarán huérfanos.')) return
+    if (!(await confirm('¿Eliminar esta colección? Los artículos quedarán huérfanos.', { title: 'Eliminar colección', danger: true, confirmText: 'Eliminar' }))) return
     await supabase.from('help_collections').delete().eq('id', id)
     toast.success('Eliminada')
     onDone()
@@ -293,6 +295,7 @@ function CollectionEditor({ id, onDone }: { id: string | 'new'; onDone: () => vo
           </button>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   )
 }
@@ -307,6 +310,7 @@ function ArticleEditor({ id, defaultCollectionId, collections, onDone }: {
   collections: any[]
   onDone: () => void
 }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [draft, setDraft] = useState<any>({
     collection_id: defaultCollectionId,
     slug: '', title: '', summary: '', content_markdown: '',
@@ -346,7 +350,7 @@ function ArticleEditor({ id, defaultCollectionId, collections, onDone }: {
 
   const remove = async () => {
     if (id === 'new') return
-    if (!confirm('¿Eliminar este artículo?')) return
+    if (!(await confirm('¿Eliminar este artículo?', { title: 'Eliminar artículo', danger: true, confirmText: 'Eliminar' }))) return
     await supabase.from('help_articles').delete().eq('id', id)
     toast.success('Eliminado')
     onDone()
@@ -443,6 +447,7 @@ function ArticleEditor({ id, defaultCollectionId, collections, onDone }: {
           </button>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   )
 }

@@ -67,8 +67,19 @@ export default function LoginPage() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw new Error('Credenciales incorrectas.')
+        return { needsEmailConfirmation: false }
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        // emailRedirectTo explícito: sin esto, Supabase arma el link de
+        // confirmación con el "Site URL" configurado en su dashboard (que en
+        // el proyecto de pruebas sigue en el default http://localhost:3000),
+        // sin importar en qué dominio esté corriendo la app (preview o prod).
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined
+          }
+        })
         if (error) throw new Error(error.message)
 
         // Guardar plan/template seleccionados para que OnboardingBootstrap
@@ -77,9 +88,20 @@ export default function LoginPage() {
           if (urlPlanSlug)  localStorage.setItem('signup_pending_plan',     urlPlanSlug)
           if (urlTemplate)  localStorage.setItem('signup_pending_template', urlTemplate)
         }
+
+        // Si el proyecto de Supabase requiere confirmar el correo, signUp no
+        // regresa sesión (data.session === null) aunque el usuario sí se
+        // haya creado — hay que avisarle que revise su correo, no mandarlo
+        // directo al dashboard (ahí no tiene sesión y lo regresaría a /login).
+        return { needsEmailConfirmation: !data.session }
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!isLogin && result?.needsEmailConfirmation) {
+        toast.success('Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.', { duration: 6000 })
+        setIsLogin(true)
+        return
+      }
       toast.success(isLogin ? '¡Bienvenido de vuelta!' : 'Cuenta creada con éxito')
       router.push('/dashboard')
     },

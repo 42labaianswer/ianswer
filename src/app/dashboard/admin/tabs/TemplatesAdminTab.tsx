@@ -11,6 +11,7 @@ import {
   Dumbbell, Scale, Briefcase, ShoppingBag, Wrench, Camera,
   GraduationCap, Heart, Pizza, Car, Plane
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 // ============================================================================
 // TemplatesAdminTab v2.26
@@ -103,6 +104,7 @@ const EMPTY_TEMPLATE: Template = {
 }
 
 export default function TemplatesAdminTab() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const qc = useQueryClient()
   const [editing, setEditing] = useState<Template | null>(null)
   const [creating, setCreating] = useState(false)
@@ -252,14 +254,15 @@ export default function TemplatesAdminTab() {
           onClose={() => { setEditing(null); setCreating(false) }}
           onSave={(tpl) => saveMutation.mutate({ tpl, isNew: creating })}
           onDuplicate={() => duplicateTemplate(editing)}
-          onDelete={() => {
-            if (confirm(`¿Desactivar la industria "${editing.name}"? No se borra, solo deja de aparecer.`)) {
+          onDelete={async () => {
+            if (await confirm(`¿Desactivar la industria "${editing.name}"? No se borra, solo deja de aparecer.`, { title: 'Desactivar industria', danger: true, confirmText: 'Desactivar' })) {
               deleteMutation.mutate(editing.id)
             }
           }}
           saving={saveMutation.isPending}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 import { CreditCard, Loader2, Sparkles, ExternalLink } from 'lucide-react'
 import UsageMeter from '../../../components/UsageMeter'
 import BillingSummary from '../../../components/BillingSummary'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 type Plan = {
   slug: string
@@ -40,6 +41,7 @@ type CompanyData = {
 }
 
 export default function PlansPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const { primaryTemplate } = useWorkspace()
   const [billingMode, setBillingMode] = useState<'monthly' | 'yearly'>('monthly')
@@ -235,9 +237,10 @@ export default function PlansPage() {
               isRecommended={isRecommended}
               billingMode={billingMode}
               isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
-              onSelect={() => {
+              onSelect={async () => {
                 if (data?.isAdmin) {
-                  if (!confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`)) return
+                  const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
+                  if (!ok) return
                   adminForceMutation.mutate(plan.slug)
                 } else {
                   subscribeMutation.mutate(plan)
@@ -296,6 +299,7 @@ export default function PlansPage() {
           </button>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

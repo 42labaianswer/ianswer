@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 // ============================================================================
 // TYPES
@@ -71,6 +72,7 @@ const isOverdue = (due?: string | null, completed?: string | null): boolean => {
 // PAGE
 // ============================================================================
 export default function TasksPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { labels } = useWorkspace()
@@ -297,8 +299,8 @@ export default function TasksPage() {
                       task={task}
                       onToggleComplete={() => toggleCompleteMutation.mutate({ id: task.id, completed: !task.completed_at })}
                       onEdit={() => setEditingTask(task)}
-                      onDelete={() => {
-                        if (confirm('¿Eliminar esta tarea?')) deleteTaskMutation.mutate(task.id)
+                      onDelete={async () => {
+                        if (await confirm('¿Eliminar esta tarea?', { title: 'Eliminar tarea', danger: true, confirmText: 'Eliminar' })) deleteTaskMutation.mutate(task.id)
                       }}
                       onSnooze={(hours: number) => snoozeMutation.mutate({ id: task.id, hours })}
                       onOpenContact={() => task.contact_id && router.push(`/dashboard/inbox?contactId=${task.contact_id}`)}
@@ -326,6 +328,7 @@ export default function TasksPage() {
           }}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

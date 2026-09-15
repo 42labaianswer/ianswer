@@ -36,3 +36,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# archivos que la app de escritorio guarda automáticamente al enviar archivos
+# en el chat — nunca deben subirse al repo
+Claude outputs/

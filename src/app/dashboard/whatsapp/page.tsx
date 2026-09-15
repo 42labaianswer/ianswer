@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import PageHeader from '../../../components/PageHeader'
 import ConnectWhatsAppButton from '../../../components/whatsapp/ConnectWhatsAppButton'
+import { useConfirm } from '../../../hooks/useConfirm'
 import toast from 'react-hot-toast'
 import {
   Smartphone, CheckCircle2, Clock, AlertTriangle, XCircle,
@@ -44,6 +45,7 @@ interface WhatsAppConfig {
 }
 
 export default function WhatsAppConnectPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const [companyId, setCompanyId]           = useState<string | null>(null)
   const [config, setConfig]                 = useState<WhatsAppConfig | null>(null)
@@ -188,7 +190,7 @@ export default function WhatsAppConnectPage() {
 
   async function handleDisconnect() {
     if (!companyId) return
-    if (!confirm('Desconectar WhatsApp? El bot dejará de responder hasta reconectar.')) return
+    if (!(await confirm('Desconectar WhatsApp? El bot dejará de responder hasta reconectar.', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
 
     try {
       const res = await fetch('/api/whatsapp/disconnect', { method: 'POST' })
@@ -241,6 +243,7 @@ export default function WhatsAppConnectPage() {
       )}
 
       <HelpSection />
+      {ConfirmDialog}
     </div>
   )
 }

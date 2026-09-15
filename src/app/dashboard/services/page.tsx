@@ -39,10 +39,12 @@ import {
   type ServiceDraft,
 } from '../../../hooks/useServices';
 import PageHeader from '../../../components/PageHeader';
+import { useConfirm } from '../../../hooks/useConfirm';
 
 const CURRENCY_OPTIONS: Array<'MXN' | 'USD'> = ['MXN', 'USD'];
 
 export default function ServicesCatalogPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loadingCompany, setLoadingCompany] = useState(true);
   const [search, setSearch] = useState('');
@@ -109,11 +111,11 @@ export default function ServicesCatalogPage() {
   }
 
   async function handleDelete(service: Service) {
-    if (
-      !window.confirm(
-        `¿Eliminar el servicio "${service.name}"? Esta acción no se puede deshacer y eliminará todas las asignaciones a miembros del equipo.`
-      )
-    ) {
+    const ok = await confirm(
+      `¿Eliminar el servicio "${service.name}"? Esta acción no se puede deshacer y eliminará todas las asignaciones a miembros del equipo.`,
+      { title: 'Eliminar servicio', danger: true, confirmText: 'Eliminar' }
+    );
+    if (!ok) {
       return;
     }
     try {
@@ -321,6 +323,7 @@ export default function ServicesCatalogPage() {
           isPending={createMut.isPending || updateMut.isPending}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   CheckCircle2, Loader2, ArrowLeft, ArrowRight, Activity, Eye, EyeOff, Zap, Globe,
   ShieldCheck, ExternalLink, KeyRound, Hash, Trash2, ChevronDown, RefreshCw
 } from 'lucide-react'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 const ACCENT = '#1877F2'
 
@@ -50,6 +51,7 @@ const FacebookIcon = ({ size = 32 }: { size?: number }) => (
 )
 
 export default function FacebookConnectPage() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [companyId, setCompanyId]     = useState<string | null>(null)
@@ -222,7 +224,7 @@ export default function FacebookConnectPage() {
 
   const handleDisconnect = async () => {
     if (!companyId) return
-    if (!confirm('¿Desconectar Facebook Messenger?')) return
+    if (!(await confirm('¿Desconectar Facebook Messenger?', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
       await supabase.from('integrations').delete()

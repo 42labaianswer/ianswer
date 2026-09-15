@@ -11,6 +11,7 @@ import ConnectMetaButton from './ConnectMetaButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { MapPinned, Plus, Building2, Trash2, Edit2, X, Save, Loader2, Check, Lock } from 'lucide-react'
+import { useConfirm } from '../hooks/useConfirm'
 
 type Location = {
   id: string
@@ -21,6 +22,7 @@ type Location = {
 }
 
 export default function LocationTab({ companyId, planSlug }: { companyId: string, planSlug: string }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { labels, primaryTemplate } = useWorkspace()
@@ -100,8 +102,8 @@ export default function LocationTab({ companyId, planSlug }: { companyId: string
     saveLocationMutation.mutate({ name: formData.name, id: editingLocation?.id })
   }
 
-  const handleDelete = (id: string) => {
-    if (!confirm(`¿Estás seguro de eliminar esta ${labels?.location || 'Sede'}? Se perderá la conexión.`)) return
+  const handleDelete = async (id: string) => {
+    if (!(await confirm(`¿Estás seguro de eliminar esta ${labels?.location || 'Sede'}? Se perderá la conexión.`, { title: 'Eliminar sede', danger: true, confirmText: 'Eliminar' }))) return
     deleteLocationMutation.mutate(id)
   }
 
@@ -228,6 +230,7 @@ export default function LocationTab({ companyId, planSlug }: { companyId: string
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   )
 }

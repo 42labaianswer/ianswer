@@ -18,7 +18,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-const TRIAL_DAYS = 14
+const TRIAL_DAYS_FALLBACK = 7 // fallback solo si plans.trial_days viene vacío en la base de datos
 const VALID_PLANS = ['start', 'growth', 'scale'] as const
 
 type CompletePayload = {
@@ -168,7 +168,14 @@ export async function POST(req: Request) {
     }
 
     // ---- 6) Activar addons (opcional) ----
-    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    // Lee trial_days del plan igual que stripe/checkout/route.ts, en vez de un valor fijo.
+    const { data: planRow } = await supabase
+      .from('plans')
+      .select('trial_days')
+      .eq('slug', plan_slug)
+      .maybeSingle()
+    const trialDays = planRow?.trial_days ?? TRIAL_DAYS_FALLBACK
+    const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
     let activatedAddons = 0
     const addonErrors: string[] = []
 

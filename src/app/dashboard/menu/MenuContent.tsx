@@ -17,6 +17,7 @@ import { useAppCapability, useAppLimit, useFeature } from '../../../hooks/useApp
 import MenuItemDrawer, { MenuItem } from '../../../components/MenuItemDrawer'
 import MenuImportWizard from '../../../components/MenuImportWizard'
 import PageHeader from '../../../components/PageHeader'
+import { useConfirm } from '../../../hooks/useConfirm'
 
 type Category = {
   id: string
@@ -29,6 +30,7 @@ type Category = {
 }
 
 function MenuContent() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const { primaryTemplate: vertical } = useWorkspace()
   const accentColor = vertical?.accent_color || '#ea580c'
@@ -368,8 +370,8 @@ function MenuContent() {
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
-                onDeleteCategory={() => {
-                  if (confirm(`¿Eliminar categoría "${cat.name}"? Los platillos quedarán sin categoría.`)) {
+                onDeleteCategory={async () => {
+                  if (await confirm(`¿Eliminar categoría "${cat.name}"? Los platillos quedarán sin categoría.`, { title: 'Eliminar categoría', danger: true, confirmText: 'Eliminar' })) {
                     deleteCategoryMutation.mutate(cat.id)
                   }
                 }}
@@ -414,6 +416,7 @@ function MenuContent() {
           accentColor={accentColor}
         />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

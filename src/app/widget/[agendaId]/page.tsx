@@ -18,6 +18,7 @@ export default function WidgetPage({ params }: { params: any }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isBooking, setIsBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [bookingError, setBookingError] = useState<string | null>(null)
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -158,6 +159,7 @@ export default function WidgetPage({ params }: { params: any }) {
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsBooking(true)
+    setBookingError(null)
     
     try {
       // FIX v1.3: la URL viene del admin (platform_settings.n8n_webhook_widget)
@@ -183,7 +185,7 @@ export default function WidgetPage({ params }: { params: any }) {
       
       setBookingSuccess(true)
     } catch (error) {
-      alert("Error al agendar la cita. Por favor intenta de nuevo.")
+      setBookingError("Error al agendar la cita. Por favor intenta de nuevo.")
       console.error(error)
     } finally {
       setIsBooking(false)
@@ -316,6 +318,11 @@ export default function WidgetPage({ params }: { params: any }) {
                 <textarea rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium resize-none" placeholder="Breve descripción..."></textarea>
               </div>
 
+              {bookingError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium rounded-xl px-4 py-3">
+                  {bookingError}
+                </div>
+              )}
               <button disabled={isBooking} type="submit" className="w-full py-3.5 mt-2 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 transition-colors disabled:opacity-70">
                 {isBooking ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Cita'}
               </button>
