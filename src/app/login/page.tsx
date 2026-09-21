@@ -30,6 +30,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
+  // Paso de verificacion de correo tras registro (Tarea 6, parte 2): el
+  // registro ya no deja al usuario directo en el dashboard ni solo con un
+  // toast -- pide un codigo de 6 digitos que llega por correo antes de
+  // iniciar sesion.
+  const [signupStep, setSignupStep] = useState<'form' | 'code'>('form')
+  const [code, setCode] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+
   const [platform, setPlatform] = useState<any>({ logo_url: '', icon_url: '' })
   const [themeColors, setThemeColors] = useState({ bgHeader: '#134e4a', accent: '#3ecf8e' })
   const [isPlatformLoading, setIsPlatformLoading] = useState(true)
@@ -58,6 +66,13 @@ export default function LoginPage() {
     loadData()
   }, [])
 
+  // Cuenta regresiva para volver a habilitar "Reenviar codigo"
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
+
   const authMutation = useMutation({
     mutationFn: async () => {
       // VALIDACIONES FRONTEND (Evita el Error 422)
@@ -71,18 +86,18 @@ export default function LoginPage() {
         if (error) throw new Error('Credenciales incorrectas.')
         return { needsEmailConfirmation: false }
       } else {
-        // emailRedirectTo explícito: sin esto, Supabase arma el link de
-        // confirmación con el "Site URL" configurado en su dashboard (que en
-        // el proyecto de pruebas sigue en el default http://localhost:3000),
-        // sin importar en qué dominio esté corriendo la app (preview o prod).
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined
-          }
+        // El registro ya no llama a supabase.auth.signUp() directo: pasa por
+        // /api/auth/register (cliente admin, email_confirm: false) que manda
+        // un codigo de 6 digitos por Resend con plantilla propia -- no el
+        // correo de confirmacion por defecto de Supabase. Mismo criterio que
+        // "olvide mi contraseña".
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         })
-        if (error) throw new Error(error.message)
+        const resultado = await res.json()
+        if (!res.ok) throw new Error(resultado?.error ?? 'No se pudo crear la cuenta.')
 
         // Guardar plan/template seleccionados para que OnboardingBootstrap
         // los aplique cuando la company del usuario sea creada en el onboarding
@@ -91,17 +106,13 @@ export default function LoginPage() {
           if (urlTemplate)  localStorage.setItem('signup_pending_template', urlTemplate)
         }
 
-        // Si el proyecto de Supabase requiere confirmar el correo, signUp no
-        // regresa sesión (data.session === null) aunque el usuario sí se
-        // haya creado — hay que avisarle que revise su correo, no mandarlo
-        // directo al dashboard (ahí no tiene sesión y lo regresaría a /login).
-        return { needsEmailConfirmation: !data.session }
+        return { needsEmailConfirmation: true }
       }
     },
     onSuccess: (result) => {
       if (!isLogin && result?.needsEmailConfirmation) {
-        toast.success('Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.', { duration: 6000 })
-        setIsLogin(true)
+        setSignupStep('code')
+        setResendCooldown(60)
         return
       }
       toast.success(isLogin ? '¡Bienvenido de vuelta!' : 'Cuenta creada con éxito')
@@ -110,10 +121,142 @@ export default function LoginPage() {
     onError: (error: Error) => toast.error(error.message)
   })
 
+  const verifyCodeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      })
+      const resultado = await res.json()
+      if (!res.ok) throw new Error(resultado?.error ?? 'Codigo invalido.')
+
+      // El servidor ya marco el correo como confirmado; iniciamos sesion con
+      // las credenciales que el usuario escribio en el paso 1 para obtener
+      // la sesion del navegador (Supabase no la crea sola en este flujo).
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw new Error('Tu cuenta ya quedó verificada, pero no pudimos iniciar sesión automáticamente. Intenta iniciar sesión manualmente.')
+    },
+    onSuccess: () => {
+      toast.success('¡Cuenta verificada!')
+      router.push('/dashboard')
+    },
+    onError: (error: Error) => toast.error(error.message)
+  })
+
+  const resendCodeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/auth/resend-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const resultado = await res.json()
+      if (!res.ok) throw new Error(resultado?.error ?? 'No se pudo reenviar el código.')
+    },
+    onSuccess: () => {
+      toast.success('Código reenviado. Revisa tu correo.')
+      setResendCooldown(60)
+    },
+    onError: (error: Error) => toast.error(error.message)
+  })
+
   if (isPlatformLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <IAnswerLoader size={40} />
+      </div>
+    )
+  }
+
+  // ─── Paso 2 del registro: pedir el codigo de verificacion ────────────────
+  if (!isLogin && signupStep === 'code') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-sans relative overflow-hidden">
+
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-[0.03]" style={{ backgroundColor: themeColors.bgHeader }} />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-[0.03]" style={{ backgroundColor: themeColors.bgHeader }} />
+
+        <div className="w-full max-w-[420px] relative z-10">
+
+          <div className="flex flex-col items-center mb-8 text-center cursor-pointer" onClick={() => router.push('/')}>
+            <div className="flex items-center gap-3 mb-6">
+              {platform.icon_url ? (
+                <img src={platform.icon_url} alt="Icon" className="h-11 w-auto object-contain rounded-xl shadow-sm bg-white p-1.5 border border-slate-200" />
+              ) : (
+                <div className="h-11 w-11 rounded-xl flex items-center justify-center text-white shadow-md" style={{ backgroundColor: themeColors.bgHeader }}>
+                  <Building2 size={22} />
+                </div>
+              )}
+
+              {platform.logo_url && (
+                <img src={platform.logo_url} alt="Logo" className="max-h-8 w-auto object-contain" />
+              )}
+            </div>
+
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+              Revisa tu correo
+            </h2>
+            <p className="text-slate-500 font-medium text-sm mt-1">
+              Te enviamos un código a <strong className="text-slate-700">{email}</strong>
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/60">
+            <form onSubmit={(e) => { e.preventDefault(); if (!verifyCodeMutation.isPending) verifyCodeMutation.mutate() }} className="space-y-5">
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Código de verificación</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full text-center tracking-[0.6em] text-2xl font-black py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:bg-white transition-all text-slate-800"
+                  style={{ '--tw-ring-color': themeColors.bgHeader } as React.CSSProperties}
+                  placeholder="000000"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={verifyCodeMutation.isPending || code.length !== 6}
+                className="w-full text-white py-4 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 hover:brightness-110"
+                style={{ backgroundColor: themeColors.bgHeader }}
+              >
+                {verifyCodeMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : 'Verificar y continuar'}
+              </button>
+            </form>
+
+            <div className="mt-6 pt-5 border-t border-slate-100 text-center space-y-3">
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || resendCodeMutation.isPending}
+                onClick={() => resendCodeMutation.mutate()}
+                className="text-xs font-bold transition-colors hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ color: themeColors.bgHeader }}
+              >
+                {resendCooldown > 0
+                  ? `Reenviar código (${resendCooldown}s)`
+                  : (resendCodeMutation.isPending ? 'Enviando…' : '¿No te llegó? Reenviar código')}
+              </button>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => { setSignupStep('form'); setCode('') }}
+                  className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  Usar otro correo electrónico
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -255,6 +398,8 @@ export default function LoginPage() {
                 setIsLogin(!isLogin)
                 setPassword('')
                 setConfirmPassword('')
+                setSignupStep('form')
+                setCode('')
               }} 
               className="text-xs font-bold transition-colors hover:opacity-80"
               style={{ color: themeColors.bgHeader }}
