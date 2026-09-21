@@ -18,7 +18,8 @@ import AddonDetailModal from '../../../components/AddonDetailModal'
 import AddonInstallModal from '../../../components/AddonInstallModal'
 import { useAddonRefresh } from '../../../hooks/useAddonRefresh'
 import PageHeader from '../../../components/PageHeader'
-import { PackageOpen, Sparkles, Loader2, Search, Layers, X } from 'lucide-react'
+import { PackageOpen, Sparkles, Search, Layers, X } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type AddonRow = {
   id: string
@@ -148,7 +149,7 @@ export default function AddonsPage() {
   if (loadingCatalog) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

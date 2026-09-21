@@ -8,9 +8,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import TemplateCard from '../../../components/TemplateCard'
 import toast from 'react-hot-toast'
-import { Layers, Sparkles, Loader2 } from 'lucide-react'
+import { Layers, Sparkles } from 'lucide-react'
 import PageHeader from '../../../components/PageHeader'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type Template = {
   id: string
@@ -106,7 +107,7 @@ export default function TemplatesPage() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-slate-700 animate-spin" />
+        <IAnswerLoader size={40} />
       </div>
     )
   }

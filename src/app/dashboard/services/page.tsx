@@ -40,6 +40,7 @@ import {
 } from '../../../hooks/useServices';
 import PageHeader from '../../../components/PageHeader';
 import { useConfirm } from '../../../hooks/useConfirm';
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 const CURRENCY_OPTIONS: Array<'MXN' | 'USD'> = ['MXN', 'USD'];
 
@@ -130,7 +131,7 @@ export default function ServicesCatalogPage() {
   if (loadingCompany) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <IAnswerLoader size={32} />
       </div>
     );
   }
@@ -182,7 +183,7 @@ export default function ServicesCatalogPage() {
       {/* Lista */}
       {isLoading ? (
         <div className="flex min-h-[200px] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          <IAnswerLoader size={24} />
         </div>
       ) : services?.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">

@@ -3498,6 +3498,7 @@ CREATE TABLE public.companies (
     name text NOT NULL,
     meta_token text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     doctor_name text,
     contact_email text,
     contact_phone text,
@@ -7542,6 +7543,7 @@ CREATE TRIGGER trigger_set_trial BEFORE INSERT ON public.companies FOR EACH ROW 
 --
 
 CREATE TRIGGER trigger_tasks_updated BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trigger_companies_updated BEFORE UPDATE ON public.companies FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --

@@ -7,10 +7,10 @@
 // ----------------------------------------------------------------------------
 // Componente que se monta en el layout del dashboard. Si la suscripción está
 // en 'expired' o 'past_due' (Y ya pasaron más de 3 días de gracia), redirige
-// al usuario a /dashboard/billing forzosamente.
+// al usuario a /dashboard/plans forzosamente.
 //
 // EXCEPCIONES (no redirige si la ruta actual es una de estas):
-//   - /dashboard/billing (donde tiene que estar para pagar)
+//   - /dashboard/plans (donde tiene que estar para pagar)
 //   - /dashboard/admin (admin sigue funcionando para evitar bloqueos accidentales)
 //
 // El TrialBanner sigue mostrando aviso durante el trial. Este componente solo
@@ -24,7 +24,7 @@ import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { isSubscriptionBlocked } from '../lib/subscription'
 
-const ALLOWED_PATHS = ['/dashboard/billing', '/dashboard/admin', '/dashboard/help', '/dashboard/profile']
+const ALLOWED_PATHS = ['/dashboard/plans', '/dashboard/admin', '/dashboard/help', '/dashboard/profile']
 
 interface CompanyStatus {
   subscription_status: string | null
@@ -92,7 +92,7 @@ export default function SubscriptionGuard() {
           Activa un plan para seguir usando iAnswer.
         </p>
         <Link
-          href="/dashboard/billing"
+          href="/dashboard/plans"
           className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black text-sm transition-colors"
         >
           Activar plan ahora <ArrowRight size={14} />

@@ -18,6 +18,7 @@ import MenuItemDrawer, { MenuItem } from '../../../components/MenuItemDrawer'
 import MenuImportWizard from '../../../components/MenuImportWizard'
 import PageHeader from '../../../components/PageHeader'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type Category = {
   id: string
@@ -224,7 +225,7 @@ function MenuContent() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 size={32} className="text-orange-600 animate-spin" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

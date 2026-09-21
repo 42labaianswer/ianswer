@@ -19,6 +19,7 @@ import {
   FileText, Save, Loader2, AlertCircle, CheckCircle2,
   ArrowLeft, Info, Receipt
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 interface TaxData {
   tax_rfc:           string
@@ -180,7 +181,7 @@ export default function DatosFiscalesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-7 h-7 animate-spin text-slate-700" />
+        <IAnswerLoader size={28} />
       </div>
     )
   }

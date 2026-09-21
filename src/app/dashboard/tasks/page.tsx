@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
 // TYPES
@@ -188,7 +189,7 @@ export default function TasksPage() {
   if (isLoadingFeatures) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin text-slate-400" size={32} />
+        <IAnswerLoader size={32} />
       </div>
     )
   }
@@ -267,7 +268,7 @@ export default function TasksPage() {
       {/* LISTA */}
       {isLoading ? (
         <div className="bg-white rounded-3xl border border-slate-200 p-20 flex justify-center">
-          <Loader2 className="animate-spin text-slate-400" />
+          <IAnswerLoader size={32} />
         </div>
       ) : buckets.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">

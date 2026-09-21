@@ -8,6 +8,7 @@ import { useWorkspace } from '../../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Briefcase, Palette, Filter, Users, ShieldCheck, Building2, Save, Loader2 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 export default function TenantAdminTab() {
   const queryClient = useQueryClient()
@@ -53,7 +54,7 @@ export default function TenantAdminTab() {
     setVerticals(verticals.map(v => v.id === id ? { ...v, funnels: { ...v.funnels, [key]: value } } : v))
   }
 
-  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /></div>
+  if (isLoading) return <div className="p-10 flex justify-center"><IAnswerLoader size={40} /></div>
 
   return (
     <section className="animate-in fade-in slide-in-from-right-4 duration-300">

@@ -21,6 +21,7 @@ import {
   Loader2, ExternalLink, Copy, Eye, EyeOff, Sparkles, Info,
   ShieldCheck, Phone, MessageCircle
 } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type ConnectionStatus =
   | 'not_connected'
@@ -209,7 +210,7 @@ export default function WhatsAppConnectPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

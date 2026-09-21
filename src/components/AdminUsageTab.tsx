@@ -12,9 +12,10 @@
 // ----------------------------------------------------------------------------
 
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3, Loader2, Search } from 'lucide-react'
+import { BarChart3, Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import IAnswerLoader from './IAnswerLoader'
 
 interface AdminUsageRow {
   company_id: string
@@ -52,7 +53,7 @@ export default function AdminUsageTab() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 size={28} className="animate-spin text-slate-400" />
+        <IAnswerLoader size={28} />
       </div>
     )
   }

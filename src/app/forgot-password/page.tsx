@@ -14,6 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Loader2, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import IAnswerLoader from '../../components/IAnswerLoader'
 const branding = await loadPlatformBranding()
   const brandName = branding.name || 'Plataforma'
 export default function ForgotPasswordPage() {
@@ -77,7 +78,7 @@ export default function ForgotPasswordPage() {
   if (isPlatformLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
+        <IAnswerLoader size={40} />
       </div>
     );
   }

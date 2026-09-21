@@ -43,6 +43,7 @@ import {
   useUpdatePublicDirectoryConfig,
   useUploadCompanyLogo,
 } from '../../../../hooks/usePublicDirectoryConfig';
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const PUBLIC_BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || '';
@@ -92,7 +93,7 @@ export default function CatalogoWebConfigPage() {
   if (isLoading || loadingAddon) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <IAnswerLoader size={32} />
       </div>
     );
   }

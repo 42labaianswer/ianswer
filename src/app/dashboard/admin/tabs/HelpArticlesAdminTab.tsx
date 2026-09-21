@@ -17,6 +17,7 @@ import {
   Eye, EyeOff, ChevronRight, ChevronDown
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 type Mode = 'list' | 'edit-collection' | 'edit-article'
 
@@ -71,7 +72,7 @@ export default function HelpArticlesAdminTab() {
   }
 
   if (loading) {
-    return <div className="text-center py-12"><Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto" /></div>
+    return <div className="text-center py-12"><IAnswerLoader size={32} /></div>
   }
 
   return (
@@ -239,7 +240,7 @@ function CollectionEditor({ id, onDone }: { id: string | 'new'; onDone: () => vo
     onDone()
   }
 
-  if (loading) return <div className="text-center py-12"><Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto" /></div>
+  if (loading) return <div className="text-center py-12"><IAnswerLoader size={32} /></div>
 
   return (
     <div className="space-y-6">
@@ -356,7 +357,7 @@ function ArticleEditor({ id, defaultCollectionId, collections, onDone }: {
     onDone()
   }
 
-  if (loading) return <div className="text-center py-12"><Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto" /></div>
+  if (loading) return <div className="text-center py-12"><IAnswerLoader size={32} /></div>
 
   return (
     <div className="space-y-6">

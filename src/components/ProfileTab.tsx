@@ -4,9 +4,10 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Building2, User, Phone, Mail, MapPin, Save, Loader2 } from 'lucide-react'
+import { Building2, User, Phone, Mail, MapPin, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import IAnswerLoader from './IAnswerLoader'
 
 export default function ProfileTab({ companyId }: { companyId: string }) {
   const queryClient = useQueryClient()
@@ -86,8 +87,8 @@ export default function ProfileTab({ companyId }: { companyId: string }) {
   // isLoading viene directo de TanStack
   if (isLoading) {
     return (
-      <div className="animate-pulse h-64 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-300" size={32} />
+      <div className="h-64 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-center">
+        <IAnswerLoader size={32} />
       </div>
     )
   }

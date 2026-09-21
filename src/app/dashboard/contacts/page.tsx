@@ -23,6 +23,7 @@ import ContactKanban from '../../../components/ContactKanban'
 import TasksTab from '../../../components/TasksTab'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer'
 
@@ -789,8 +790,7 @@ export default function ContactsPage() {
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
         {isLoadingAll ? (
           <div className="flex flex-col items-center justify-center h-[400px] gap-3">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando contactos...</p>
+            <IAnswerLoader size={40} label="Cargando contactos..." />
           </div>
         ) : (
           <div className="overflow-x-auto">

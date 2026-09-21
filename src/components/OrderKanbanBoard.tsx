@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 
 import OrderDrawer from './OrderDrawer'
+import IAnswerLoader from './IAnswerLoader'
 
 type OrderStatus = {
   step: number
@@ -180,7 +181,7 @@ export default function OrderKanbanBoard({ companyId, accentColor }: Props) {
   if (isLoading || !statuses.length) {
     return (
       <div className="flex h-[40vh] items-center justify-center">
-        <Loader2 size={32} className="text-orange-600 animate-spin" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

@@ -23,6 +23,7 @@ import {
   FileText, Phone, Plug, ShieldCheck, Zap, Wrench, GraduationCap,
   TrendingUp, Palette, LifeBuoy
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
 // OnboardingWizard v3.1 — Carga dinámica de plantillas desde la DB
@@ -314,7 +315,7 @@ export default function OnboardingWizard() {
               </p>
               {loadingTemplates ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+                  <IAnswerLoader size={32} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -452,12 +453,12 @@ export default function OnboardingWizard() {
                 </span>
               </div>
               <p className="text-sm text-slate-500 font-medium mb-6">
-                Te recomendamos estos addons según tu plantilla. Puedes activarlos ahora con 14 días gratis o más tarde desde el dashboard.
+                Te recomendamos estos addons según tu plantilla. Puedes activarlos ahora con 7 días gratis o más tarde desde el dashboard.
               </p>
 
               {loadingAddons ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+                  <IAnswerLoader size={32} />
                 </div>
               ) : availableAddons.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-2xl">
@@ -525,7 +526,7 @@ export default function OnboardingWizard() {
                         <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                           {selectedAddons.length} complemento{selectedAddons.length !== 1 ? 's' : ''} seleccionado{selectedAddons.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-[10px] font-bold uppercase opacity-70 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">14 días gratis</span>
+                        <span className="text-[10px] font-bold uppercase opacity-70 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">7 días gratis</span>
                       </div>
                       {monthlyAddonCost > 0 && (
                         <p className="text-lg font-black">+ {centsToMxn(monthlyAddonCost)}/mes <span className="text-xs font-medium opacity-60">después del trial</span></p>
@@ -621,7 +622,7 @@ export default function OnboardingWizard() {
                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complementos</p>
                           <p className="text-sm font-black text-slate-900">
                             {selectedAddons.length} activo{selectedAddons.length !== 1 ? 's' : ''}
-                            <span className="text-[10px] font-bold text-emerald-700 ml-2 bg-emerald-100 px-1.5 py-0.5 rounded">14 días gratis</span>
+                            <span className="text-[10px] font-bold text-emerald-700 ml-2 bg-emerald-100 px-1.5 py-0.5 rounded">7 días gratis</span>
                           </p>
                         </div>
                       </div>
@@ -731,7 +732,7 @@ function AddonRowSelect({
             ? `${centsToMxn(addon.price_monthly_cents)}/mes`
             : centsToMxn(addon.price_one_time_cents)}
         </p>
-        <p className="text-[10px] font-bold text-emerald-700">14 días gratis</p>
+        <p className="text-[10px] font-bold text-emerald-700">7 días gratis</p>
       </div>
       <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
         isSelected ? 'border-slate-900 bg-slate-900' : 'border-slate-300'

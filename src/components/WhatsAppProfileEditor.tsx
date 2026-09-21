@@ -24,6 +24,7 @@ import {
   type WhatsAppProfile,
 } from '../hooks/useWhatsAppProfile'
 import { VERTICAL_OPTIONS, DEFAULT_VERTICAL, normalizeVertical } from '../lib/whatsappVerticals'
+import IAnswerLoader from './IAnswerLoader'
 
 // Categorías de negocio que Meta acepta (las más comunes)
 // La lista de categorías vive en src/lib/whatsappVerticals.ts,
@@ -104,7 +105,7 @@ export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { acc
   if (isLoading) {
     return (
       <div className="bg-white border border-slate-200 rounded-2xl p-8 flex justify-center">
-        <Loader2 size={26} className="animate-spin text-slate-400" />
+        <IAnswerLoader size={26} />
       </div>
     )
   }

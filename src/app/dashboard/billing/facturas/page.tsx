@@ -19,6 +19,7 @@ import {
   Receipt, FileText, Download, Loader2, AlertCircle, CheckCircle2,
   Clock, ArrowLeft, ExternalLink, Settings
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 interface Invoice {
   id:                  string
@@ -99,7 +100,7 @@ export default function FacturasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-7 h-7 animate-spin text-slate-700" />
+        <IAnswerLoader size={28} />
       </div>
     )
   }

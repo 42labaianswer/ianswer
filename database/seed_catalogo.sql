@@ -366,7 +366,7 @@ INSERT INTO public.site_settings (key, value, category) VALUES
   ('hero_eyebrow',            '"Asistentes AI por WhatsApp"'::jsonb, 'home'),
   ('hero_title',              '"Tu negocio responde. Tú descansas."'::jsonb, 'home'),
   ('hero_subtitle',           '"iAnswer conecta tu WhatsApp a un agente de IA que agenda, cotiza y da seguimiento a tus clientes las 24 horas, para que tú te enfoques en crecer tu negocio."'::jsonb, 'home'),
-  ('hero_cta_primary',        '{"text":"Probar 7 días gratis","href":"/login?signup=1"}'::jsonb, 'home'),
+  ('hero_cta_primary',        '{"text":"Probar gratis","href":"/login?signup=1"}'::jsonb, 'home'),
   ('hero_cta_secondary',      '{"text":"Hablar con ventas","href":"/contacto"}'::jsonb, 'home'),
   ('hero_social_proof',       '"Negocios en salud, bienes raíces y restaurantes ya confían en iAnswer"'::jsonb, 'home'),
   ('home_features_title',     '"Todo lo que necesitas en un solo lugar"'::jsonb, 'home'),
@@ -375,7 +375,7 @@ INSERT INTO public.site_settings (key, value, category) VALUES
   ('home_industries_subtitle','"Cada industria tiene su propio vocabulario, flujo y campos. Elige la tuya y arranca en minutos."'::jsonb, 'home'),
   ('home_steps_title',        '"En 3 pasos tu bot está activo"'::jsonb, 'home'),
   ('home_steps_list',         '[{"number":"01","title":"Conecta tu WhatsApp","description":"Vincula tu número de WhatsApp Business en minutos, sin cambiar de número."},{"number":"02","title":"Elige tu industria","description":"Selecciona la plantilla que mejor se adapta a tu negocio y personalízala."},{"number":"03","title":"Tu agente responde","description":"La IA agenda, cotiza y da seguimiento mientras tú monitoreas todo desde el panel."}]'::jsonb, 'home'),
-  ('home_final_cta_title',    '"Empieza tu prueba de 7 días"'::jsonb, 'home'),
+  ('home_final_cta_title',    '"Empieza tu prueba gratis"'::jsonb, 'home'),
   ('home_final_cta_subtitle', '"Sin tarjeta. Cancela cuando quieras."'::jsonb, 'home'),
 
   -- Precios

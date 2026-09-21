@@ -13,6 +13,7 @@ import {
   Sparkles, Building2, Stethoscope, HeartPulse, Activity, 
   ClipboardList, ShieldCheck, Zap, Laptop
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const AVAILABLE_ICONS = [
   { name: 'Bot', icon: Bot }, { name: 'Calendar', icon: Calendar }, { name: 'CreditCard', icon: CreditCard },
@@ -158,7 +159,7 @@ export default function LandingAdminTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['landingDataAll'] })
   })
 
-  if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-teal-600" /></div>
+  if (isLoading) return <div className="flex justify-center p-20"><IAnswerLoader size={40} /></div>
 
   return (
     <section className="animate-in fade-in space-y-10 pb-20 font-sans">

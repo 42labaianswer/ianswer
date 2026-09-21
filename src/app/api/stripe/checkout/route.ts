@@ -83,8 +83,8 @@ export async function POST(req: Request) {
         ...(trialDays > 0 ? {
           payment_method_collection: 'if_required' as const
         } : {}),
-        success_url: `${origin}/dashboard/billing?success=true&plan=${planSlug}`,
-        cancel_url: `${origin}/dashboard/billing?canceled=true`
+        success_url: `${origin}/dashboard/plans?success=true&plan=${planSlug}`,
+        cancel_url: `${origin}/dashboard/plans?canceled=true`
       })
     }
 

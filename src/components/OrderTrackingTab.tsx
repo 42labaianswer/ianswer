@@ -16,9 +16,10 @@
 // ----------------------------------------------------------------------------
 
 import { useState } from 'react'
-import { Copy, Check, ExternalLink, MapPin, Loader2, Package } from 'lucide-react'
+import { Copy, Check, ExternalLink, MapPin, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTrackableOrders } from '../hooks/useOrderTracking'
+import IAnswerLoader from './IAnswerLoader'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL
 if (!BASE_URL) {
@@ -51,7 +52,7 @@ export default function OrderTrackingTab({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-slate-400" />
+        <IAnswerLoader size={28} />
       </div>
     )
   }

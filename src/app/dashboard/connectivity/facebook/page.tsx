@@ -25,6 +25,7 @@ import {
   ShieldCheck, ExternalLink, KeyRound, Hash, Trash2, ChevronDown, RefreshCw
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const ACCENT = '#1877F2'
 
@@ -242,7 +243,7 @@ export default function FacebookConnectPage() {
   }
 
   if (loading) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-blue-500" size={32} /></div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={32} /></div>
   }
 
   return (

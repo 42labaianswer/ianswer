@@ -28,6 +28,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, HelpCircle, Loader2,
   RefreshCw, PlayCircle, Clock, Radio, Wrench,
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 export type EstadoCheck = 'ok' | 'error' | 'aviso' | 'desconocido'
 export type CanalKey = 'whatsapp' | 'messenger' | 'instagram'
@@ -252,7 +253,7 @@ export default function ChannelDiagnostics({
   if (cargando) {
     return (
       <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex justify-center ${className}`}>
-        <Loader2 className="animate-spin text-slate-400" size={26} />
+        <IAnswerLoader size={26} />
       </div>
     )
   }

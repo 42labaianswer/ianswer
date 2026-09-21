@@ -16,6 +16,7 @@ import {
   Calendar as CalendarIcon, UserX, Send, Search, ChevronRight, Settings,
   TrendingUp, RefreshCw, Eye, Zap, Copy
 } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
 // TYPES
@@ -206,7 +207,7 @@ export default function RemindersPage() {
   if (isLoadingFeatures) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin text-slate-400" size={32} />
+        <IAnswerLoader size={32} />
       </div>
     )
   }
@@ -350,7 +351,7 @@ function RulesTab({
   onCreate: () => void
 }) {
   if (isLoading) {
-    return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-400" /></div>
+    return <div className="flex justify-center py-20"><IAnswerLoader size={32} /></div>
   }
 
   if (rules.length === 0) {
@@ -520,7 +521,7 @@ function QueueTab({ companyId }: { companyId: string }) {
       {/* Tabla */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         {isLoading ? (
-          <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>
+          <div className="py-20 flex justify-center"><IAnswerLoader size={32} /></div>
         ) : queue.length === 0 ? (
           <div className="py-20 text-center">
             <Send size={32} className="mx-auto text-slate-300 mb-3" />

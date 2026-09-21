@@ -11,6 +11,7 @@ import {
   Trash2, AlertTriangle, CheckCircle2, Loader2, Info,
   Phone, Mail, ArrowLeft
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 interface LegalConfig {
   brandName: string
@@ -108,7 +109,7 @@ export default function EliminarDatosPage() {
   if (loading) {
     return (
       <div className="bg-[#FAFAF7] min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-400" size={32} />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

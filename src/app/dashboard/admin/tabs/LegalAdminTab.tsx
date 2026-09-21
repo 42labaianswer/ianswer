@@ -7,6 +7,7 @@ import { useWorkspace } from '../../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Scale, FileText, Loader2, Phone, Mail, MapPin, Globe } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const defaultLegal = {
   // Grupo 1: Identidad
@@ -82,7 +83,7 @@ export default function LegalAdminTab() {
     }))
   }
 
-  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="w-10 h-10 text-slate-800 animate-spin" /></div>
+  if (isLoading) return <div className="p-10 flex justify-center"><IAnswerLoader size={40} /></div>
 
   return (
     <section className="animate-in fade-in slide-in-from-right-4 duration-300">

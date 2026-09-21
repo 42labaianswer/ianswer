@@ -26,6 +26,7 @@ import {
   ShieldCheck, ExternalLink, KeyRound, Hash, Phone, Trash2, ChevronDown, Zap
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const ACCENT = '#25D366'
 
@@ -161,7 +162,7 @@ export default function WhatsAppConnectPage() {
   }
 
   if (loading) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={32} /></div>
   }
 
   return (

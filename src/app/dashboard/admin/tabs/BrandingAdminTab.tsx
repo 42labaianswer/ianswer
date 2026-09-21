@@ -8,6 +8,7 @@ import { useWorkspace } from '../../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Image as ImageIcon, Key, Upload, Save, Loader2, Share2, Globe, LayoutTemplate } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 export default function BrandingAdminTab() {
   const queryClient = useQueryClient()
@@ -66,7 +67,7 @@ export default function BrandingAdminTab() {
     if (file) uploadImageMutation.mutate({ file, field })
   }
 
-  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="w-10 h-10 text-blue-600 animate-spin" /></div>
+  if (isLoading) return <div className="p-10 flex justify-center"><IAnswerLoader size={40} /></div>
 
   return (
     <section className="animate-in fade-in slide-in-from-right-4 duration-300">

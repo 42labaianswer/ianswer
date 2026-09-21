@@ -18,6 +18,7 @@ import {
   UserMinus, Search, X, Calendar, AlertCircle,
   RotateCcw, MessageCircle, Loader2, CheckCircle2, Download
 } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 interface OptedOutContact {
   id: string
@@ -196,7 +197,7 @@ export default function OptOutsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-7 h-7 animate-spin text-slate-700" />
+          <IAnswerLoader size={28} />
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState hasSearch={!!search} />

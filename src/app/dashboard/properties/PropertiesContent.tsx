@@ -20,6 +20,7 @@ import PropertyDrawer, { Property } from '../../../components/PropertyDrawer'
 import PropertyImportWizard from '../../../components/PropertyImportWizard'
 import BatchPublishBar, { PublishDot } from '../../../components/BatchPublishBar'
 import PageHeader from '../../../components/PageHeader'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type StatusKey = 'disponible' | 'apartada' | 'vendida' | 'rentada' | 'borrador'
 
@@ -205,7 +206,7 @@ function PropertiesContent() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 size={32} className="text-purple-600 animate-spin" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

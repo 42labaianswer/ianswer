@@ -9,6 +9,7 @@ import {
   Search, BookOpen, MessageSquare, X, Send, Bot, ChevronRight, Loader2, Home,
   FileText, Settings, CreditCard, Users, Zap, Shield, Star, PlayCircle, MessageCircle
 } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type HelpArticle = {
   id: string
@@ -106,7 +107,7 @@ export default function HelpCenterPage() {
     setSearchTerm('')
   }
 
-  if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-blue-600 w-10 h-10" /></div>
+  if (isLoading) return <div className="flex justify-center p-20"><IAnswerLoader size={40} /></div>
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-80px)] -mt-8 -mx-8">

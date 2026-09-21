@@ -9,7 +9,7 @@ import { useWorkspace } from '../../../components/WorkspaceContext'
 import PageHeader from '../../../components/PageHeader'
 import { useQuery } from '@tanstack/react-query'
 import { 
-  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, MapPinned, Loader2, CodeXml
+  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, MapPinned, CodeXml
 } from 'lucide-react'
 
 // IMPORTAMOS LOS COMPONENTES CREADOS
@@ -19,6 +19,7 @@ import AgendasTab from '../../../components/AgendaTab'
 import LocationTab from '../../../components/LocationTab'
 import WidgetTab from '../../../components/WidgetTab' // <-- NUEVO COMPONENTE
 import SubscriptionSyncOnSuccess from '../../../components/SubscriptionSyncOnSuccess'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -64,7 +65,7 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <IAnswerLoader size={40} />
       </div>
     )
   }

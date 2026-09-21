@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import {
   ShieldAlert, Layers, PackageOpen, CreditCard,
-  Palette, FileText, Webhook, Image as ImageIcon, Loader2,
+  Palette, FileText, Webhook, Image as ImageIcon,
   Globe, HelpCircle, BarChart3
 } from 'lucide-react'
 
@@ -23,6 +23,7 @@ import HelpCenterAdminTab from '../../../components/HelpCenterAdminTab'
 import AuditAdminTab from './tabs/AuditAdminTab'
 import InvoicingAdminTab from './tabs/InvoicingAdminTab'
 import AdminUsageTab from '../../../components/AdminUsageTab'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
 // Admin Page v2.26
@@ -81,7 +82,7 @@ export default function AdminPage() {
   if (authorized === null) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-slate-700" />
+        <IAnswerLoader size={40} />
       </div>
     )
   }
