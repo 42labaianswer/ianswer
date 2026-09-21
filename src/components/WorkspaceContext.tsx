@@ -21,10 +21,29 @@ import { supabase } from '../lib/supabase'
 //   - Se mantiene la misma forma de consumir desde componentes para minimizar
 //     cambios en el resto del código.
 // ============================================================================
-import { loadPlatformBranding } from '../lib/siteSettings'
 
- const branding = await loadPlatformBranding()
-  const brandName = branding.name || 'Plataforma'
+// ── Protección contra llamadas colgadas ──────────────────────────────────
+// `refreshWorkspace()` encadena varias llamadas a Supabase (selects + RPCs).
+// Sin esto, si UNA se queda colgada (wifi inestable, VPN, pestaña que estuvo
+// en segundo plano), el `await` nunca se resuelve ni rechaza, el código nunca
+// llega al `finally`, y `isLoadingWorkspace` se queda en `true` para siempre
+// — lo que deja TODA página que depende de este flag (Equipo, Inbox, Menu,
+// Orders, Dashboard, Contacts, Properties) atorada en "Cargando..." hasta
+// recargar. `withTimeout` fuerza que cada llamada falle a tiempo en vez de
+// colgarse indefinidamente, para que el try/catch/finally de abajo siempre
+// pueda terminar. (Hallazgo de la investigación de la Tarea 5, 21-sep.)
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Tiempo de espera agotado (${ms}ms) esperando ${label}`))
+    }, ms)
+    Promise.resolve(promise).then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (err) => { clearTimeout(timer); reject(err) }
+    )
+  })
+}
+
 type UILabels = {
   client: string
   clients: string
@@ -164,11 +183,10 @@ export const useWorkspace = create<WorkspaceState>()(
 
         try {
           // 1. Platform settings (logo, marca)
-          const { data: platformData } = await supabase
-            .from('platform_settings')
-            .select('name, logo_url, icon_url')
-            .eq('id', 1)
-            .single()
+          const { data: platformData } = await withTimeout(
+            supabase.from('platform_settings').select('name, logo_url, icon_url').eq('id', 1).single(),
+            10000, 'platform_settings'
+          )
 
           if (platformData) {
             set({
@@ -184,17 +202,16 @@ export const useWorkspace = create<WorkspaceState>()(
           }
 
           // 2. Usuario actual
-          const { data: { user } } = await supabase.auth.getUser()
+          const { data: { user } } = await withTimeout(supabase.auth.getUser(), 10000, 'auth.getUser()')
           if (!user) {
             set({ isLoadingWorkspace: false })
             return
           }
 
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('company_id')
-            .eq('id', user.id)
-            .single()
+          const { data: profile } = await withTimeout(
+            supabase.from('profiles').select('company_id').eq('id', user.id).single(),
+            10000, 'profiles'
+          )
 
           if (!profile?.company_id) {
             set({ isLoadingWorkspace: false })
@@ -202,8 +219,10 @@ export const useWorkspace = create<WorkspaceState>()(
           }
 
           // 3. Entitlements (plan + templates + addons combinados)
-          const { data: ent, error: entError } = await supabase
-            .rpc('get_company_entitlements', { p_company_id: profile.company_id })
+          const { data: ent, error: entError } = await withTimeout(
+            supabase.rpc('get_company_entitlements', { p_company_id: profile.company_id }),
+            15000, 'get_company_entitlements'
+          )
 
           if (entError) {
             console.error('[Workspace] get_company_entitlements error:', entError)
@@ -258,8 +277,10 @@ export const useWorkspace = create<WorkspaceState>()(
             // cambias a médico, el tab de Propiedades no desaparece. Para
             // quitarlo se borran los datos o se quita el extra.
             try {
-              const { data: dataModules } = await supabase
-                .rpc('get_modules_with_data', { p_company_id: profile.company_id })
+              const { data: dataModules } = await withTimeout(
+                supabase.rpc('get_modules_with_data', { p_company_id: profile.company_id }),
+                10000, 'get_modules_with_data'
+              )
               if (dataModules && typeof dataModules === 'object') {
                 Object.keys(dataModules).forEach(key => {
                   if ((dataModules as any)[key] === true) {

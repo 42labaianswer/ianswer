@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -200,6 +201,16 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {isLogin && (
+                <div className="text-right">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+              )}
             </div>
 
             {!isLogin && (
