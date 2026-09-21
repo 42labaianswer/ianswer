@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Loader2, Mail, Lock, Building2, Sparkles, Eye, EyeOff } from 'lucide-react'
+import IAnswerLoader from '../../components/IAnswerLoader'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -111,7 +112,7 @@ export default function LoginPage() {
   if (isPlatformLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-slate-400 w-10 h-10" />
+        <IAnswerLoader size={40} />
       </div>
     )
   }
@@ -153,7 +154,7 @@ export default function LoginPage() {
               <span className="text-xs font-bold text-slate-700">
                 {urlPlanSlug && `Plan ${urlPlanSlug.charAt(0).toUpperCase() + urlPlanSlug.slice(1)} · `}
                 {urlTemplate && `${urlTemplate.charAt(0).toUpperCase() + urlTemplate.slice(1)} · `}
-                14 días gratis
+                7 días gratis
               </span>
             </div>
           )}

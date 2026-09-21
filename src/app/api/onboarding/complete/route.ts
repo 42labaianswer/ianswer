@@ -103,9 +103,17 @@ export async function POST(req: Request) {
     // ---- 4) UPDATE company DEFENSIVO ----
     // Intentamos primero con TODOS los campos. Si falla por columna inexistente,
     // reintentamos sin los campos opcionales.
+    // NOTA: además de plan_slug, mandamos selected_plan_slug con el mismo valor.
+    // El trigger companies_set_trial_ends_at_trigger de la base de datos solo se
+    // dispara con "BEFORE INSERT OR UPDATE OF selected_plan_slug" — si solo
+    // actualizábamos plan_slug (como hacía antes este endpoint), el trigger nunca
+    // corría y la cuenta se quedaba sin trial_ends_at/subscription_status = 'trialing',
+    // con acceso indefinido al plan sin pagar. Ver diagnóstico del P1 de Stripe,
+    // semana 4.
     const fullPayload: Record<string, any> = {
       name: company_name.trim(),
       plan_slug,
+      selected_plan_slug: plan_slug,
       onboarding_completed: true,
       onboarding_finished_at: new Date().toISOString(),
       onboarding_step: 4,
@@ -120,6 +128,7 @@ export async function POST(req: Request) {
       const minimalPayload: Record<string, any> = {
         name: company_name.trim(),
         plan_slug,
+        selected_plan_slug: plan_slug,
         onboarding_completed: true,
       }
       updateErr = (await supabase.from('companies').update(minimalPayload).eq('id', companyId)).error
@@ -131,6 +140,7 @@ export async function POST(req: Request) {
         const barePayload: Record<string, any> = {
           name: company_name.trim(),
           plan_slug,
+          selected_plan_slug: plan_slug,
         }
         updateErr = (await supabase.from('companies').update(barePayload).eq('id', companyId)).error
 

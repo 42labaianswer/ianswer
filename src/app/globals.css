@@ -31,3 +31,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* ── IAnswerLoader — animación de marca para pantallas de carga lentas ──
+   Pulso de opacidad (nunca rotación/deformación), respetando las reglas
+   de marca en "docs/identidad de la marca/README.md". */
+@keyframes ianswer-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.animate-ianswer-pulse {
+  animation: ianswer-pulse 1.4s ease-in-out infinite;
+}

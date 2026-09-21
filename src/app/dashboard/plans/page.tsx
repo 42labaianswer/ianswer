@@ -2,17 +2,19 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import PlanCard from '../../../components/PlanCard'
 import PageHeader from '../../../components/PageHeader'
 import toast from 'react-hot-toast'
-import { CreditCard, Loader2, Sparkles, ExternalLink } from 'lucide-react'
+import { CreditCard, Loader2, Sparkles, ExternalLink, Clock, AlertTriangle } from 'lucide-react'
 import UsageMeter from '../../../components/UsageMeter'
 import BillingSummary from '../../../components/BillingSummary'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type Plan = {
   slug: string
@@ -35,16 +37,29 @@ type Plan = {
 type CompanyData = {
   id: string
   plan_slug: string
+  selected_plan_slug: string | null
   account_status: string
   subscription_status: string
   stripe_customer_id: string | null
+  trial_ends_at: string | null
+  current_period_ends_at: string | null
 }
 
 export default function PlansPage() {
   const { confirm, ConfirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const { primaryTemplate } = useWorkspace()
+  const searchParams = useSearchParams()
   const [billingMode, setBillingMode] = useState<'monthly' | 'yearly'>('monthly')
+
+  // Toast de éxito/cancelado tras volver de Stripe Checkout o del portal.
+  // (Antes solo lo hacía /dashboard/billing — fusionado aquí, ver P1 Stripe semana 4.)
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+    if (success === 'true') toast.success('¡Plan activado! Bienvenido.')
+    if (canceled === 'true') toast('Checkout cancelado. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
+  }, [searchParams])
 
   const { data, isLoading } = useQuery({
     queryKey: ['plans-page'],
@@ -69,7 +84,7 @@ export default function PlansPage() {
           .order('display_order'),
         supabase
           .from('companies')
-          .select('id, plan_slug, account_status, subscription_status, stripe_customer_id')
+          .select('id, plan_slug, selected_plan_slug, account_status, subscription_status, stripe_customer_id, trial_ends_at, current_period_ends_at')
           .eq('id', profile.company_id)
           .single()
       ])
@@ -166,13 +181,15 @@ export default function PlansPage() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-slate-700 animate-spin" />
+        <IAnswerLoader size={40} />
       </div>
     )
   }
 
   const plans = data?.plans || []
-  const currentPlanSlug = data?.company?.plan_slug || 'start'
+  // Fallback a selected_plan_slug igual que hacía /dashboard/billing: por si una
+  // cuenta trae el plan elegido pero plan_slug todavía no se confirmó.
+  const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
   const isActive = data?.company?.account_status === 'active'
 
   // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado).
@@ -183,12 +200,51 @@ export default function PlansPage() {
     ? Math.round((1 - (referencePlan.price_yearly_cents! / (referencePlan.price_monthly_cents * 12))) * 100)
     : 17
 
+  // Estado de trial/expiración — fusionado desde /dashboard/billing (ver P1 Stripe
+  // semana 4: esa página se retira, /dashboard/plans pasa a ser la única).
+  const trialEnd = data?.company?.trial_ends_at ? new Date(data.company.trial_ends_at) : null
+  const daysRemaining = trialEnd
+    ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0
+  const isTrialing = data?.company?.subscription_status === 'trialing'
+  const isExpired = ['expired', 'past_due', 'canceled'].includes(data?.company?.subscription_status || '')
+
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       <PageHeader
         title="Mi Plan"
         description="Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas en todos los planes — lo que limita es el volumen y el tamaño del equipo."
       />
+
+      {/* Estado de trial / expiración — fusionado desde /dashboard/billing */}
+      {(isTrialing || isExpired) && (
+        <div className={`mb-8 rounded-2xl p-5 border flex items-start gap-3 ${
+          isExpired ? 'bg-rose-50 border-rose-200' : 'bg-lime-50 border-lime-200'
+        }`}>
+          {isExpired
+            ? <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+            : <Sparkles size={18} className="text-lime-600 shrink-0 mt-0.5" />}
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">
+              {isExpired ? 'Suscripción expirada' : 'Período de prueba'}
+            </p>
+            {isTrialing && (
+              <p className="text-sm text-slate-700 font-medium flex items-center gap-1.5">
+                <Clock size={14} />
+                {daysRemaining > 0
+                  ? `Quedan ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'} de prueba`
+                  : 'El período de prueba terminó'}
+                {trialEnd && ` · vence ${trialEnd.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}`}
+              </p>
+            )}
+            {isExpired && (
+              <p className="text-sm text-rose-700 font-medium">
+                Activa un plan para volver a usar iAnswer.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Sub-header con CTA principal centrado */}
       <div className="text-center mb-12">
@@ -274,7 +330,7 @@ export default function PlansPage() {
                 ? (plans.find(p => p.slug === currentPlanSlug)?.price_yearly_cents || 0)
                 : (plans.find(p => p.slug === currentPlanSlug)?.price_monthly_cents || 0)
             }
-            nextPaymentDate={null}
+            nextPaymentDate={data?.company?.current_period_ends_at || null}
             billingCycle={billingMode}
             accentColor={primaryTemplate?.accent_color || '#6366f1'}
             stripeCustomerId={data.company.stripe_customer_id}

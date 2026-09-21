@@ -106,7 +106,7 @@ export default function TrialBanner({ companyId: companyIdProp }: { companyId?: 
           {message}
         </p>
         <Link
-          href="/dashboard/billing"
+          href="/dashboard/plans"
           className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black text-white ${variant.btnBg} transition-colors flex items-center gap-1.5`}
         >
           {isExpired ? 'Activar ahora' : 'Configurar plan'}
