@@ -60,33 +60,15 @@ interface Props {
 export default function ConnectWhatsAppButton({
   onSuccess, onError, variant = 'primary', className = ''
 }: Props) {
-  const [sdkReady, setSdkReady]   = useState(false)
   const [working, setWorking]     = useState(false)
   const [errorMsg, setErrorMsg]   = useState<string | null>(null)
 
-  // ─── Esperar a que FB SDK esté cargado ──────────────────────────────────
-  useEffect(() => {
-    const check = () => {
-      if (typeof window !== 'undefined' && window.FB) {
-        setSdkReady(true)
-        return true
-      }
-      return false
-    }
-    if (check()) return
-    const interval = setInterval(() => {
-      if (check()) clearInterval(interval)
-    }, 300)
-    // Timeout: si no carga en 10s, asumimos que está bloqueado
-    const timeout = setTimeout(() => {
-      clearInterval(interval)
-      if (!window.FB) setErrorMsg('No se pudo cargar Facebook. ¿Bloqueador de anuncios activado?')
-    }, 10000)
-    return () => {
-      clearInterval(interval)
-      clearTimeout(timeout)
-    }
-  }, [])
+  // ─── Ya no bloqueamos el botón mientras esperamos el SDK de Meta ────────
+  // (mismo criterio que ya usa ConnectMetaButton para Facebook/Instagram):
+  // si el usuario hace clic antes de que window.FB esté listo, handleClick()
+  // ya lo detecta y muestra "Facebook SDK no cargó. Recarga la página." —
+  // evitamos que el botón se quede deshabilitado/girando indefinidamente si
+  // el SDK tarda o un bloqueador de anuncios lo retrasa.
 
   // ─── Escuchar el evento postMessage de Embedded Signup ──────────────────
   // Meta envía un postMessage con { type: 'WA_EMBEDDED_SIGNUP', event: '...', data: {...} }
@@ -265,18 +247,13 @@ export default function ConnectWhatsAppButton({
     <div className={className}>
       <button
         onClick={handleClick}
-        disabled={!sdkReady || working}
+        disabled={working}
         className={`w-full md:w-auto px-6 py-4 ${baseClasses} disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl font-black text-base transition-colors inline-flex items-center justify-center gap-3`}
       >
         {working ? (
           <>
             <Loader2 size={18} className="animate-spin" />
             Conectando...
-          </>
-        ) : !sdkReady ? (
-          <>
-            <Loader2 size={18} className="animate-spin opacity-50" />
-            Cargando Facebook...
           </>
         ) : (
           <>
