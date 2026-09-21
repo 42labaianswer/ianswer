@@ -265,9 +265,14 @@ export default function WhatsAppConnectPage() {
             <h3 className="font-bold text-slate-800">Cómo obtener tus credenciales</h3>
           </div>
           <div className="p-6 space-y-5 text-sm text-slate-600">
-            <Instruction n={1} title="Entra a Meta for Developers" text="Ve a tu app en developers.facebook.com y abre WhatsApp > Configuración de la API." />
-            <Instruction n={2} title="Copia el Phone Number ID y el WABA ID" text="Están en la configuración de la API, junto al número de teléfono de prueba o producción." />
-            <Instruction n={3} title="Genera un token permanente" text="En Usuarios del sistema de tu Business Manager, crea un token con los permisos whatsapp_business_messaging y whatsapp_business_management." />
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+              <strong className="block mb-1">⚠️ Antes de empezar</strong>
+              Estos 3 datos los genera Meta automáticamente — <strong>no son tu número de teléfono, tu correo ni una contraseña que tú inventes.</strong> Si lo que vas a pegar es corto o lo reconoces como algo tuyo, seguramente no es el dato correcto: vuelve a Meta for Developers y cópialo de ahí.
+            </div>
+            <Instruction n={1} title="Entra a Meta for Developers" text="Ve a tu app en developers.facebook.com > WhatsApp > Configuración de la API." />
+            <Instruction n={2} title='Copia el "Phone Number ID"' text='Es un número largo de 15-16 dígitos (ej. 109876543210987) que aparece junto al número de teléfono de prueba o producción, en el bloque "De". No es tu número de WhatsApp — es un identificador interno que Meta le pone a ese número dentro de la app.' />
+            <Instruction n={3} title='Copia el "WhatsApp Business Account ID" (WABA ID)' text="Es otro número largo, parecido al anterior pero distinto, que identifica tu cuenta de WhatsApp Business completa (no un número de teléfono en particular). Está en la misma pantalla, justo junto al Phone Number ID." />
+            <Instruction n={4} title="Genera un token permanente" text='En "Usuarios del sistema" de tu Business Manager, crea un token con los permisos whatsapp_business_messaging y whatsapp_business_management. El token es un texto largo (200+ caracteres) que empieza con "EAA" — si lo que copiaste es corto, no es el correcto.' />
             <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold hover:underline" style={{ color: ACCENT }}>
               Abrir Meta for Developers <ExternalLink size={13} />
             </a>
@@ -275,8 +280,8 @@ export default function WhatsAppConnectPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5 h-fit">
-          <Field label="Phone Number ID" icon={Phone} value={form.business_phone_id} onChange={v => setForm({ ...form, business_phone_id: v })} placeholder="Ej. 109876543210987" required accent="emerald" />
-          <Field label="WhatsApp Business Account ID (WABA)" icon={Hash} value={form.waba_id} onChange={v => setForm({ ...form, waba_id: v })} placeholder="Ej. 102345678901234" required accent="emerald" />
+          <Field label="Phone Number ID" icon={Phone} value={form.business_phone_id} onChange={v => setForm({ ...form, business_phone_id: v })} placeholder="Ej. 109876543210987" required accent="emerald" hint="Número de 15-16 dígitos que Meta le asigna a tu número dentro de la app — no es tu número de teléfono real." />
+          <Field label="WhatsApp Business Account ID (WABA)" icon={Hash} value={form.waba_id} onChange={v => setForm({ ...form, waba_id: v })} placeholder="Ej. 102345678901234" required accent="emerald" hint="Identifica tu cuenta completa de WhatsApp Business. Es distinto al Phone Number ID, aunque se ve parecido." />
           <div>
             <label className="block text-xs font-black text-slate-700 uppercase tracking-wide mb-1.5">Token de acceso permanente <span className="text-rose-500">*</span></label>
             <div className="relative">
@@ -286,6 +291,7 @@ export default function WhatsAppConnectPage() {
                 {revealToken ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            <p className="mt-1 text-[11px] text-slate-400 leading-snug">Texto largo (200+ caracteres) que empieza con “EAA”. No es una contraseña que tú elijas ni la contraseña de tu Facebook.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
             <Field label="Número visible (opcional)" value={form.display_phone} onChange={v => setForm({ ...form, display_phone: v })} placeholder="+52 999 123 4567" accent="emerald" />
@@ -329,9 +335,9 @@ function Instruction({ n, title, text }: { n: number; title: string; text: strin
   )
 }
 
-function Field({ label, icon: Icon, value, onChange, placeholder, required }: {
+function Field({ label, icon: Icon, value, onChange, placeholder, required, hint }: {
   label: string; icon?: typeof Phone; value: string; onChange: (v: string) => void
-  placeholder?: string; required?: boolean; accent?: string
+  placeholder?: string; required?: boolean; accent?: string; hint?: string
 }) {
   return (
     <div>
@@ -342,6 +348,7 @@ function Field({ label, icon: Icon, value, onChange, placeholder, required }: {
         {Icon && <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />}
         <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400`} />
       </div>
+      {hint && <p className="mt-1 text-[11px] text-slate-400 leading-snug">{hint}</p>}
     </div>
   )
 }

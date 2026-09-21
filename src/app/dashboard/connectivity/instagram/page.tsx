@@ -391,9 +391,13 @@ export default function InstagramConnectPage() {
               <h3 className="font-bold text-slate-800">Cómo obtener tus credenciales</h3>
             </div>
             <div className="p-6 space-y-5 text-sm text-slate-600">
-              <Instruction n={1} title="Vincula Instagram a una página" text="Tu cuenta de Instagram debe ser Business y estar vinculada a una página de Facebook." />
-              <Instruction n={2} title="Usa el token de la página" text="En Meta for Developers, el token de acceso de la página vinculada sirve para Instagram (el mismo de Messenger)." />
-              <Instruction n={3} title="Obtén el ID de Instagram" text="Consulta la Graph API con el ID de tu página para leer el campo instagram_business_account." />
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                <strong className="block mb-1">⚠️ Antes de empezar</strong>
+                Estos 2 datos los genera Meta automáticamente — <strong>no son tu usuario de Instagram ni una contraseña propia.</strong> Si lo que vas a pegar es corto o lo reconoces como algo tuyo, revisa de nuevo en Meta for Developers.
+              </div>
+              <Instruction n={1} title="Vincula Instagram a una página" text="Tu cuenta de Instagram debe ser Business y estar vinculada a una página de Facebook (no basta con tener la app de Instagram instalada)." />
+              <Instruction n={2} title="Usa el token de la página" text='En Meta for Developers, el token de acceso de la página vinculada sirve para Instagram (el mismo de Messenger). Es un texto largo (200+ caracteres) que empieza con "EAA".' />
+              <Instruction n={3} title='Obtén el "ID de cuenta de Instagram"' text="Consulta la Graph API con el ID de tu página para leer el campo instagram_business_account — es un número largo (ej. 17841400000000000), no tu nombre de usuario de Instagram." />
               <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold hover:underline" style={{ color: ACCENT }}>
                 Abrir Meta for Developers <ExternalLink size={13} />
               </a>
@@ -415,6 +419,7 @@ export default function InstagramConnectPage() {
                   {revealToken ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <p className="mt-1 text-[11px] text-slate-400 leading-snug">Texto largo (200+ caracteres) que empieza con “EAA” — es el mismo token que usarías para Messenger, no tu contraseña de Instagram.</p>
             </div>
             <div>
               <label className="block text-xs font-black text-slate-700 uppercase tracking-wide mb-1.5">ID de cuenta de Instagram <span className="text-rose-500">*</span></label>
@@ -422,6 +427,7 @@ export default function InstagramConnectPage() {
                 <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })} placeholder="Ej. 17841400000000000" className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-200 focus:border-fuchsia-400" />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400 leading-snug">Número largo que identifica tu cuenta de Instagram Business — no es tu @usuario.</p>
             </div>
             <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-xl text-white font-bold inline-flex items-center justify-center gap-2 shadow-sm hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
               {saving ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <>{connected ? 'Actualizar' : 'Conectar'} <CheckCircle2 size={16} /></>}

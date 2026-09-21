@@ -399,9 +399,13 @@ export default function FacebookConnectPage() {
               <h3 className="font-bold text-slate-800">Cómo obtener tus credenciales</h3>
             </div>
             <div className="p-6 space-y-5 text-sm text-slate-600">
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                <strong className="block mb-1">⚠️ Antes de empezar</strong>
+                Estos 2 datos los genera Meta automáticamente — <strong>no son tu correo ni una contraseña propia.</strong> Si lo que vas a pegar es corto o lo reconoces como algo tuyo, vuelve a Meta for Developers y cópialo de ahí.
+              </div>
               <Instruction n={1} title="Entra a Meta for Developers" text="Ve a tu app en developers.facebook.com y abre Messenger > Configuración de la API." />
-              <Instruction n={2} title="Genera un token de página" text="En la configuración de la API de Messenger, selecciona tu página y genera un token de acceso de página." />
-              <Instruction n={3} title="Copia el ID de la página" text="El ID de tu página lo encuentras en la configuración de la página o junto al token generado." />
+              <Instruction n={2} title="Genera un token de página" text='En la configuración de la API de Messenger, selecciona tu página y genera un token de acceso de página. Es un texto largo (200+ caracteres) que empieza con "EAA".' />
+              <Instruction n={3} title='Copia el "ID de la página"' text="Es un número largo (ej. 102345678901234) que identifica tu página de Facebook dentro de Meta — no es el nombre de la página. Lo encuentras en la configuración de la página o junto al token generado." />
               <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold hover:underline" style={{ color: ACCENT }}>
                 Abrir Meta for Developers <ExternalLink size={13} />
               </a>
@@ -424,6 +428,7 @@ export default function FacebookConnectPage() {
                   {revealToken ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <p className="mt-1 text-[11px] text-slate-400 leading-snug">Texto largo (200+ caracteres) que empieza con “EAA”. No es tu contraseña de Facebook.</p>
             </div>
             <div>
               <label className="block text-xs font-black text-slate-700 uppercase tracking-wide mb-1.5">ID de la página <span className="text-rose-500">*</span></label>
@@ -431,6 +436,7 @@ export default function FacebookConnectPage() {
                 <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input type="text" value={form.pageId} onChange={e => setForm({ ...form, pageId: e.target.value })} placeholder="Ej. 102345678901234" className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400 leading-snug">Número largo que identifica tu página de Facebook — no es el nombre de la página.</p>
             </div>
             <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-xl text-white font-bold inline-flex items-center justify-center gap-2 shadow-sm hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: ACCENT }}>
               {saving ? <><Loader2 size={16} className="animate-spin" /> Guardando...</> : <>{connected ? 'Actualizar' : 'Conectar'} <CheckCircle2 size={16} /></>}
