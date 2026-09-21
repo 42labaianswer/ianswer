@@ -21,6 +21,7 @@ import {
   Trash2, ShieldAlert, Loader2, CheckCircle2, Clock,
   AlertCircle, FileText, RefreshCw, Filter, Eye, X
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 type Tab = 'deletion' | 'audit'
 
@@ -188,7 +189,7 @@ function DeletionRequestsPanel() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
+          <IAnswerLoader size={24} />
         </div>
       ) : requests.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
@@ -411,7 +412,7 @@ function AuditLogPanel() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
+          <IAnswerLoader size={24} />
         </div>
       ) : logs.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">

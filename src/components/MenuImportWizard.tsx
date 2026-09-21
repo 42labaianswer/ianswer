@@ -22,6 +22,7 @@ import {
   X, Upload, FileText, Loader2, AlertCircle, Sparkles, Save, Edit2, Check,
   Star, Flame, Leaf
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 type ExtractedItem = {
   category: string
@@ -371,7 +372,7 @@ export default function MenuImportWizard({ isOpen, onClose, companyId, accentCol
               </div>
               <p className="text-lg font-black text-slate-800 mb-2">{pdfFilename}</p>
               <p className="text-sm text-slate-500 mb-6">DeepSeek está identificando categorías y platillos...</p>
-              <Loader2 size={32} className="text-orange-600 animate-spin mx-auto" />
+              <IAnswerLoader size={32} />
               <p className="text-[10px] text-slate-400 mt-4">Esto puede tomar 20-60 segundos</p>
             </div>
           )}

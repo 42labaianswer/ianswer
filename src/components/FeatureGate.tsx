@@ -4,7 +4,8 @@
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEntitlements } from '../hooks/useEntitlements'
-import { Lock, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
+import { Lock, Sparkles, ArrowRight } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
 // FeatureGate v3.0
@@ -64,7 +65,7 @@ export default function FeatureGate({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <IAnswerLoader size={24} />
       </div>
     )
   }

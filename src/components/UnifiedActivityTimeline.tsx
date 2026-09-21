@@ -9,6 +9,7 @@ import {
   MessageSquare, Calendar, Bell, CheckCircle2, XCircle, ArrowRight, RotateCcw,
   Loader2, Sparkles, User, Bot, UserCog, Filter, Clock
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
 // UnifiedActivityTimeline (v2.1)
@@ -203,7 +204,7 @@ export default function UnifiedActivityTimeline({ patientId }: { patientId: stri
   }
 
   if (isLoading) {
-    return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-slate-400" /></div>
+    return <div className="flex justify-center py-12"><IAnswerLoader size={32} /></div>
   }
 
   if (items.length === 0) {

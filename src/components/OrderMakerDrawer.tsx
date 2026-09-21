@@ -28,6 +28,7 @@ import {
   useCreateManualOrder,
   type OrderLineItem,
 } from '../hooks/useOrderMaker'
+import IAnswerLoader from './IAnswerLoader'
 
 type DeliveryType = 'pickup' | 'delivery' | 'dine_in'
 
@@ -255,7 +256,7 @@ export default function OrderMakerDrawer({
             <div className="flex-1 overflow-y-auto p-4 space-y-5">
               {loadingMenu ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 size={24} className="animate-spin text-slate-400" />
+                  <IAnswerLoader size={24} />
                 </div>
               ) : groupedItems.length === 0 ? (
                 <div className="text-center py-12">

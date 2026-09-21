@@ -23,6 +23,7 @@ import {
   FileText, Phone, Plug, ShieldCheck, Zap, Wrench, GraduationCap,
   TrendingUp, Palette, LifeBuoy
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
 // OnboardingWizard v3.1 — Carga dinámica de plantillas desde la DB
@@ -314,7 +315,7 @@ export default function OnboardingWizard() {
               </p>
               {loadingTemplates ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+                  <IAnswerLoader size={32} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -457,7 +458,7 @@ export default function OnboardingWizard() {
 
               {loadingAddons ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+                  <IAnswerLoader size={32} />
                 </div>
               ) : availableAddons.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-2xl">

@@ -15,6 +15,7 @@ import {
   ChevronRight, Sparkles, RefreshCw, MessageSquare, Sun, Sunset, Moon
 } from 'lucide-react'
 import { useConfirm } from '../../../hooks/useConfirm'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
 // TYPES
@@ -175,7 +176,7 @@ export default function WaitlistPage() {
   if (isLoadingFeatures) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin text-slate-400" size={32} />
+        <IAnswerLoader size={32} />
       </div>
     )
   }
@@ -255,7 +256,7 @@ export default function WaitlistPage() {
 
       {/* LISTA */}
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-400" /></div>
+        <div className="flex justify-center py-20"><IAnswerLoader size={32} /></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">
           <ListChecks size={48} className="mx-auto text-slate-300 mb-4" />

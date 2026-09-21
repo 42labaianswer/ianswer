@@ -26,6 +26,7 @@ import {
   Plus, Trash2, AlertCircle
 } from 'lucide-react'
 import { useConfirm } from '../hooks/useConfirm'
+import IAnswerLoader from './IAnswerLoader'
 
 const SEMANTIC_OPTIONS = [
   { value: 'received',   label: 'Recibida (received)' },
@@ -150,7 +151,7 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
   if (isLoading || !settings) {
     return (
       <div className="flex h-[40vh] items-center justify-center">
-        <Loader2 size={32} className="text-orange-600 animate-spin" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

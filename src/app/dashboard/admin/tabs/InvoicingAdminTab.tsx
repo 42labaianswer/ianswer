@@ -21,6 +21,7 @@ import {
   Receipt, Loader2, AlertCircle, CheckCircle2, Clock,
   RefreshCw, FileText, Download, AlertTriangle, Zap, Eye, X
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 interface AdminInvoice {
   id:                  string
@@ -157,7 +158,7 @@ export default function InvoicingAdminTab() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-700" />
+          <IAnswerLoader size={24} />
         </div>
       ) : invoices.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">

@@ -17,6 +17,7 @@ import {
   Settings, Sparkles, Building2, MessageSquare, HelpCircle, Plug
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 type SubTab = 'general' | 'features' | 'industries' | 'testimonials' | 'faqs' | 'integrations'
 
@@ -193,7 +194,7 @@ function GeneralEditor() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }
@@ -439,7 +440,7 @@ function CRUDList({ table, fields, title }: { table: string; fields: FieldDef[];
     else { toast.success('Eliminado'); load() }
   }
 
-  if (loading) return <div className="text-center py-12"><Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto" /></div>
+  if (loading) return <div className="text-center py-12"><IAnswerLoader size={32} /></div>
 
   // Form de edición/creación
   if (editingId) {

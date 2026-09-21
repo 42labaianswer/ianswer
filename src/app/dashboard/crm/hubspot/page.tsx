@@ -43,6 +43,7 @@ import {
   useDisconnectHubSpot,
   useUpdateHubSpotSettings,
 } from '../../../../hooks/useHubSpotIntegration';
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 export default function HubSpotConfigPage() {
   const { data: hasAddon, isLoading: loadingAddon } = useHasHubSpotAddon();
@@ -53,7 +54,7 @@ export default function HubSpotConfigPage() {
   if (loadingAddon || loadingIntegration) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <IAnswerLoader size={32} />
       </div>
     );
   }

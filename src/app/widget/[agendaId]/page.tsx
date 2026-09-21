@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Calendar as CalendarIcon, Clock, User, Phone, CheckCircle2, ChevronLeft, ChevronRight, Loader2, ArrowLeft } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // Definimos params como 'any' para evitar quejas de TS, nosotros lo manejamos internamente
 export default function WidgetPage({ params }: { params: any }) {
@@ -192,7 +193,7 @@ export default function WidgetPage({ params }: { params: any }) {
     }
   }
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-blue-600" /></div>
+  if (isLoading) return <div className="flex h-screen items-center justify-center bg-white"><IAnswerLoader size={32} /></div>
   if (!agenda) return <div className="flex h-screen items-center justify-center bg-white text-slate-500">Agenda no disponible</div>
 
   if (bookingSuccess) {

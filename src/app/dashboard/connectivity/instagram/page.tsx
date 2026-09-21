@@ -25,6 +25,7 @@ import {
   ShieldCheck, ExternalLink, KeyRound, Hash, Trash2, ChevronDown, RefreshCw
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const ACCENT = '#C13584'
 
@@ -239,7 +240,7 @@ export default function InstagramConnectPage() {
   }
 
   if (loading) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="animate-spin" size={32} style={{ color: ACCENT }} /></div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={32} /></div>
   }
 
   return (

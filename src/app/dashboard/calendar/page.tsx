@@ -16,6 +16,7 @@ import BookingModal from '../../../components/BookingModal'
 import CancelDialog from '../../../components/CancelDialog'
 import PageHeader from '../../../components/PageHeader'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type Agenda = {
   id: string
@@ -607,7 +608,7 @@ export default function CalendarPage() {
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative min-h-[600px]">
               {isLoadingEvents && !selectedDay && (
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
-                  <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-full shadow-2xl border border-slate-100 font-black text-blue-600"><RefreshCw size={20} className="animate-spin" /> Descargando eventos...</div>
+                  <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-full shadow-2xl border border-slate-100 font-black text-blue-600"><IAnswerLoader size={20} /> Descargando eventos...</div>
                 </div>
               )}
 

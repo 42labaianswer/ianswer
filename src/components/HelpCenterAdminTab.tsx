@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 import { useConfirm } from '../hooks/useConfirm'
+import IAnswerLoader from './IAnswerLoader'
 
 type HelpArticle = {
   id: string
@@ -159,7 +160,7 @@ export default function HelpCenterAdminTab() {
     }
   }
 
-  if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-600" /></div>
+  if (isLoading) return <div className="flex justify-center p-10"><IAnswerLoader size={32} /></div>
 
   return (
     <section className="space-y-6 animate-in fade-in">

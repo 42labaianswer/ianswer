@@ -1,19 +1,16 @@
 // ============================================================================
 // components/IAnswerLoader.tsx
 // ----------------------------------------------------------------------------
-// Loader de marca para pantallas de carga que TARDAN (dashboard cargando,
-// tabs de admin, login/recuperar contraseña, etc). No es un reemplazo de los
-// spinners de botón/acción rápida ("Guardando...", "Enviando...") — esos se
-// quedan con <Loader2 className="animate-spin" /> de lucide-react, tal como
-// estaban.
+// Loader de marca para pantallas/secciones de carga que TARDAN (dashboard
+// cargando, tabs de admin, login/recuperar contraseña, listas, etc). No es un
+// reemplazo de los spinners de botón/acción rápida ("Guardando...",
+// "Enviando...", "Conectando...") — esos se quedan con
+// <Loader2 className="animate-spin" /> de lucide-react, tal como estaban.
 //
-// Usa el símbolo oficial de iAnswer (punto + asta, ver
-// docs/identidad de la marca/README.md) con una animación de "respiración"
-// (pulso de opacidad). A propósito NO rota ni deforma el símbolo — la guía de
-// marca lo prohíbe explícitamente ("Nunca: degradados, sombra, contorno,
-// deformar, rotar...").
+// Animación: el punto de la "i" orbita alrededor de la asta (como pidió Roy),
+// una vuelta completa en loop. La asta se queda fija.
 //
-// Colores tomados directo de la guía de marca:
+// Colores tomados de la guía de marca (docs/identidad de la marca/README.md):
 //   - variant="light" (default, fondo claro): punto #5B2BE8, asta #14162B
 //   - variant="dark" (fondo Ink / oscuro):     punto #8B6BFF, asta #FFFFFF
 // ============================================================================
@@ -44,13 +41,17 @@ export default function IAnswerLoader({
       aria-live="polite"
     >
       <svg width={size} height={size} viewBox="0 0 100 100" fill="none" aria-hidden="true">
-        <circle cx="50" cy="21" r="11" fill={dotColor} className="animate-ianswer-pulse" />
-        <rect
-          x="38" y="40" width="24" height="48" rx="12"
-          fill={stemColor}
-          className="animate-ianswer-pulse"
-          style={{ animationDelay: '150ms' }}
-        />
+        <rect x="38" y="40" width="24" height="48" rx="12" fill={stemColor} />
+        <circle cx="50" cy="21" r="11" fill={dotColor}>
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 50 64"
+            to="-360 50 64"
+            dur="1.6s"
+            repeatCount="indefinite"
+          />
+        </circle>
       </svg>
       {label && (
         <p className={`text-xs font-bold uppercase tracking-widest ${variant === 'dark' ? 'text-white/60' : 'text-slate-400'}`}>

@@ -4,7 +4,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { CalendarPlus, CalendarClock, Trash2, CheckCircle2, AlertCircle, Loader2, History } from 'lucide-react'
+import { CalendarPlus, CalendarClock, Trash2, CheckCircle2, AlertCircle, History } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 type HistoryEvent = {
   id: string
@@ -76,7 +77,7 @@ export default function AppointmentHistory({ patientId }: { patientId: string })
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="animate-spin text-slate-400" size={20} />
+        <IAnswerLoader size={20} />
       </div>
     )
   }

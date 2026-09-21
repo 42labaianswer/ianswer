@@ -11,6 +11,7 @@ import {
   Edit2, Trash2, Clock, CheckCircle2, Square, X, Save
 } from 'lucide-react'
 import { useConfirm } from '../hooks/useConfirm'
+import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
 // TasksTab — embebido en el modal de /contacts
@@ -114,7 +115,7 @@ export default function TasksTab({ contactId, companyId, userId }: { contactId: 
 
       {/* Lista */}
       {isLoading ? (
-        <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>
+        <div className="py-10 flex justify-center"><IAnswerLoader size={32} /></div>
       ) : tasks.length === 0 ? (
         <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center">
           <CheckSquare size={32} className="mx-auto text-slate-300 mb-3" />

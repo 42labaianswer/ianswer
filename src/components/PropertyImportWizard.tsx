@@ -30,6 +30,7 @@ import {
   X, Upload, FileText, Loader2, CheckCircle2, AlertCircle, Sparkles,
   Trash2, Save, Edit2, Check
 } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 type ExtractedProperty = {
   title: string
@@ -265,7 +266,7 @@ export default function PropertyImportWizard({ isOpen, onClose, companyId, accen
               </div>
               <p className="text-lg font-black text-slate-800 mb-2">{pdfFilename}</p>
               <p className="text-sm text-slate-500 mb-6">DeepSeek está analizando tu PDF y extrayendo propiedades...</p>
-              <Loader2 size={32} className="text-purple-600 animate-spin mx-auto" />
+              <IAnswerLoader size={32} />
               <p className="text-[10px] text-slate-400 mt-4">Esto puede tomar 20-60 segundos según el tamaño del PDF</p>
             </div>
           )}

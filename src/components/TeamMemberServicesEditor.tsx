@@ -34,6 +34,7 @@ import {
   type MemberServiceRow,
   type ServiceAssignmentState,
 } from '../hooks/useTeamMemberServices';
+import IAnswerLoader from './IAnswerLoader'
 
 interface Props {
   teamMemberId: string;
@@ -151,7 +152,7 @@ export default function TeamMemberServicesEditor({
           {/* Loading */}
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <IAnswerLoader size={20} />
             </div>
           )}
 

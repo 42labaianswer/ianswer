@@ -16,6 +16,7 @@ import OrderDrawer from '../../../components/OrderDrawer'
 import OrderKanbanBoard from '../../../components/OrderKanbanBoard'
 import OrderMakerDrawer from '../../../components/OrderMakerDrawer'
 import PageHeader from '../../../components/PageHeader'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
 // OrdersContent · Vista de LISTA de órdenes con filtros
@@ -146,7 +147,7 @@ function OrdersContent() {
   if (isLoadingContext || !companyId) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 size={32} className="text-orange-600 animate-spin" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }
@@ -255,7 +256,7 @@ function OrdersContent() {
           {/* Lista */}
           {isLoadingOrders ? (
             <div className="flex h-[40vh] items-center justify-center">
-              <Loader2 size={28} className="text-orange-600 animate-spin" />
+              <IAnswerLoader size={28} />
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center">

@@ -6,7 +6,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { CodeXml, Copy, CheckCircle2, Globe, ExternalLink, Loader2, AlertCircle } from 'lucide-react'
+import { CodeXml, Copy, CheckCircle2, Globe, ExternalLink, AlertCircle } from 'lucide-react'
+import IAnswerLoader from './IAnswerLoader'
 
 export default function WidgetTab({ companyId }: { companyId: string }) {
   const [selectedAgendaId, setSelectedAgendaId] = useState<string>('')
@@ -36,7 +37,7 @@ export default function WidgetTab({ companyId }: { companyId: string }) {
   }, [agendas, selectedAgendaId])
 
   if (isLoading) {
-    return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-600" /></div>
+    return <div className="flex justify-center py-10"><IAnswerLoader size={32} /></div>
   }
 
   if (agendas.length === 0) {

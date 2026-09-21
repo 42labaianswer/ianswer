@@ -21,6 +21,7 @@ import PageHeader from '../../../../components/PageHeader'
 import ChannelDiagnostics, { type CanalDiagnostico, type CanalKey } from '../../../../components/ChannelDiagnostics'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Loader2, RefreshCw, MessageSquare } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const CANALES: Array<{ canal: CanalKey; nombre: string }> = [
   { canal: 'whatsapp', nombre: 'WhatsApp Business' },
@@ -57,7 +58,7 @@ export default function DiagnosticoCanalesPage() {
   const porCanal = (canal: CanalKey) => canales.find(c => c.canal === canal) || null
 
   if (cargando) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="animate-spin text-slate-400" size={32} /></div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={32} /></div>
   }
 
   return (
