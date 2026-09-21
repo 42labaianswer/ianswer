@@ -22,7 +22,7 @@ import WhatsAppProfileEditor from '../../../../components/WhatsAppProfileEditor'
 import ConnectWhatsAppButton from '../../../../components/whatsapp/ConnectWhatsAppButton'
 import toast from 'react-hot-toast'
 import {
-  CheckCircle2, Loader2, ArrowLeft, Activity, Eye, EyeOff,
+  CheckCircle2, Loader2, ArrowLeft, Activity, Eye, EyeOff, Globe,
   ShieldCheck, ExternalLink, KeyRound, Hash, Phone, Trash2, ChevronDown, Zap
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
@@ -47,7 +47,7 @@ export default function WhatsAppConnectPage() {
   const [saving, setSaving]           = useState(false)
   const [revealToken, setRevealToken] = useState(false)
   const [showDiag, setShowDiag]       = useState(false)
-  const [showManual, setShowManual]   = useState(false)
+  const [step, setStep]               = useState<1 | 2>(1)
 
   const [form, setForm] = useState({
     business_phone_id: '', waba_id: '', system_user_access_token: '',
@@ -154,6 +154,7 @@ export default function WhatsAppConnectPage() {
       toast.success('WhatsApp desconectado')
       setConfig(null)
       setForm({ business_phone_id: '', waba_id: '', system_user_access_token: '', display_phone: '', verified_name: '' })
+      setStep(1)
     } catch (e: any) {
       toast.error('Error: ' + (e?.message || 'desconocido'))
     } finally {
@@ -197,45 +198,36 @@ export default function WhatsAppConnectPage() {
         description="Ingresa las credenciales de la API de WhatsApp de tu cuenta de Meta Business."
       />
 
-      {/* CONEXIÓN RÁPIDA (Embedded Signup) — habilitado con Tech Provider aprobado */}
-      {!config?.connected && (
-        <div className="mb-6 rounded-3xl border-2 border-emerald-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0" style={{ color: ACCENT }}>
-              <Zap size={24} />
+      {/* PASO 1: elegir método (2 columnas) — mismo patrón que Facebook/Instagram */}
+      {step === 1 && !config?.connected && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-right-4">
+          {/* Conexión rápida (Embedded Signup) — habilitado con Tech Provider aprobado */}
+          <div className="bg-white rounded-3xl border-2 border-emerald-100 p-8 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 text-white text-[10px] font-black px-4 py-1 rounded-bl-xl uppercase tracking-tight" style={{ backgroundColor: ACCENT }}>Recomendado</div>
+            <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6" style={{ color: ACCENT }}>
+              <Zap size={36} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-lg font-black text-slate-900">Conexión rápida</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white" style={{ backgroundColor: ACCENT }}>
-                  Recomendado
-                </span>
-              </div>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                Conecta tu número con un clic desde el portal oficial de Meta. No necesitas tokens ni credenciales: eliges tu cuenta de Business, tu número, y listo.
-              </p>
-
-              <div className="mt-4">
-                <ConnectWhatsAppButton
-                  variant="primary"
-                  onSuccess={handleEmbeddedSuccess}
-                  onError={(msg) => toast.error(msg)}
-                />
-              </div>
-
-              <p className="text-[11px] text-slate-400 mt-3">
-                Se abre un popup oficial de Meta. No guardamos tu contraseña de Facebook.
-              </p>
-            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Conexión rápida</h3>
+            <p className="text-sm text-slate-500 mb-8 px-2 flex-1">Conecta tu número con un clic desde el portal oficial de Meta. No necesitas tokens ni credenciales: eliges tu cuenta de Business, tu número, y listo.</p>
+            <ConnectWhatsAppButton
+              variant="primary"
+              onSuccess={handleEmbeddedSuccess}
+              onError={(msg) => toast.error(msg)}
+            />
+            <p className="text-[11px] text-slate-400 mt-3">
+              Se abre un popup oficial de Meta. No guardamos tu contraseña de Facebook.
+            </p>
           </div>
 
-          <div className="mt-5 pt-4 border-t border-slate-100">
-            <button
-              onClick={() => setShowManual(v => !v)}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1.5"
-            >
-              <ChevronDown size={14} className={`transition-transform ${showManual ? 'rotate-180' : ''}`} />
-              {showManual ? 'Ocultar configuración manual' : 'Configurar manualmente (avanzado)'}
+          {/* Manual */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm flex flex-col items-center text-center group hover:border-slate-400 transition-all">
+            <div className="h-20 w-20 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mb-6 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">
+              <Globe size={36} />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Configuración manual</h3>
+            <p className="text-sm text-slate-500 mb-8 px-2 flex-1">Si ya tienes el Phone Number ID, el WABA ID y el token de acceso de tu cuenta de Meta Business, ingrésalos aquí.</p>
+            <button onClick={() => setStep(2)} className="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all">
+              Usar credenciales API
             </button>
           </div>
         </div>
@@ -256,18 +248,25 @@ export default function WhatsAppConnectPage() {
         </div>
       )}
 
-      {/* 2 columnas: instrucciones | formulario. Manual solo si el usuario lo
-          despliega, o si ya está conectado (para poder actualizar credenciales). */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${showManual || config?.connected ? '' : 'hidden'}`}>
+      {/* PASO 2: manual (2 columnas: instrucciones | formulario). Se muestra si el
+          usuario elige "Configuración manual", o si ya está conectado (para
+          poder actualizar credenciales) — mismo patrón que Facebook/Instagram. */}
+      {(step === 2 || config?.connected) && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-right-4">
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm h-fit">
           <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center gap-2">
             <ShieldCheck size={18} className="text-slate-500" />
             <h3 className="font-bold text-slate-800">Cómo obtener tus credenciales</h3>
           </div>
           <div className="p-6 space-y-5 text-sm text-slate-600">
-            <Instruction n={1} title="Entra a Meta for Developers" text="Ve a tu app en developers.facebook.com y abre WhatsApp > Configuración de la API." />
-            <Instruction n={2} title="Copia el Phone Number ID y el WABA ID" text="Están en la configuración de la API, junto al número de teléfono de prueba o producción." />
-            <Instruction n={3} title="Genera un token permanente" text="En Usuarios del sistema de tu Business Manager, crea un token con los permisos whatsapp_business_messaging y whatsapp_business_management." />
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+              <strong className="block mb-1">⚠️ Antes de empezar</strong>
+              Estos 3 datos los genera Meta automáticamente — <strong>no son tu número de teléfono, tu correo ni una contraseña que tú inventes.</strong> Si lo que vas a pegar es corto o lo reconoces como algo tuyo, seguramente no es el dato correcto: vuelve a Meta for Developers y cópialo de ahí.
+            </div>
+            <Instruction n={1} title="Entra a Meta for Developers" text="Ve a tu app en developers.facebook.com > WhatsApp > Configuración de la API." />
+            <Instruction n={2} title='Copia el "Phone Number ID"' text='Es un número largo de 15-16 dígitos (ej. 109876543210987) que aparece junto al número de teléfono de prueba o producción, en el bloque "De". No es tu número de WhatsApp — es un identificador interno que Meta le pone a ese número dentro de la app.' />
+            <Instruction n={3} title='Copia el "WhatsApp Business Account ID" (WABA ID)' text="Es otro número largo, parecido al anterior pero distinto, que identifica tu cuenta de WhatsApp Business completa (no un número de teléfono en particular). Está en la misma pantalla, justo junto al Phone Number ID." />
+            <Instruction n={4} title="Genera un token permanente" text='En "Usuarios del sistema" de tu Business Manager, crea un token con los permisos whatsapp_business_messaging y whatsapp_business_management. El token es un texto largo (200+ caracteres) que empieza con "EAA" — si lo que copiaste es corto, no es el correcto.' />
             <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-bold hover:underline" style={{ color: ACCENT }}>
               Abrir Meta for Developers <ExternalLink size={13} />
             </a>
@@ -275,8 +274,13 @@ export default function WhatsAppConnectPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5 h-fit">
-          <Field label="Phone Number ID" icon={Phone} value={form.business_phone_id} onChange={v => setForm({ ...form, business_phone_id: v })} placeholder="Ej. 109876543210987" required accent="emerald" />
-          <Field label="WhatsApp Business Account ID (WABA)" icon={Hash} value={form.waba_id} onChange={v => setForm({ ...form, waba_id: v })} placeholder="Ej. 102345678901234" required accent="emerald" />
+          {!config?.connected && (
+            <button onClick={() => setStep(1)} className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 mb-1">
+              <ArrowLeft size={15} /> Cambiar método
+            </button>
+          )}
+          <Field label="Phone Number ID" icon={Phone} value={form.business_phone_id} onChange={v => setForm({ ...form, business_phone_id: v })} placeholder="Ej. 109876543210987" required accent="emerald" hint="Número de 15-16 dígitos que Meta le asigna a tu número dentro de la app — no es tu número de teléfono real." />
+          <Field label="WhatsApp Business Account ID (WABA)" icon={Hash} value={form.waba_id} onChange={v => setForm({ ...form, waba_id: v })} placeholder="Ej. 102345678901234" required accent="emerald" hint="Identifica tu cuenta completa de WhatsApp Business. Es distinto al Phone Number ID, aunque se ve parecido." />
           <div>
             <label className="block text-xs font-black text-slate-700 uppercase tracking-wide mb-1.5">Token de acceso permanente <span className="text-rose-500">*</span></label>
             <div className="relative">
@@ -286,6 +290,7 @@ export default function WhatsAppConnectPage() {
                 {revealToken ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            <p className="mt-1 text-[11px] text-slate-400 leading-snug">Texto largo (200+ caracteres) que empieza con “EAA”. No es una contraseña que tú elijas ni la contraseña de tu Facebook.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
             <Field label="Número visible (opcional)" value={form.display_phone} onChange={v => setForm({ ...form, display_phone: v })} placeholder="+52 999 123 4567" accent="emerald" />
@@ -296,6 +301,7 @@ export default function WhatsAppConnectPage() {
           </button>
         </div>
       </div>
+      )}
 
       {/*
         Editor de perfil de WhatsApp Business — antes vivía suelto en la pantalla
@@ -329,9 +335,9 @@ function Instruction({ n, title, text }: { n: number; title: string; text: strin
   )
 }
 
-function Field({ label, icon: Icon, value, onChange, placeholder, required }: {
+function Field({ label, icon: Icon, value, onChange, placeholder, required, hint }: {
   label: string; icon?: typeof Phone; value: string; onChange: (v: string) => void
-  placeholder?: string; required?: boolean; accent?: string
+  placeholder?: string; required?: boolean; accent?: string; hint?: string
 }) {
   return (
     <div>
@@ -342,6 +348,7 @@ function Field({ label, icon: Icon, value, onChange, placeholder, required }: {
         {Icon && <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />}
         <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={`w-full ${Icon ? 'pl-10' : 'pl-3'} pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400`} />
       </div>
+      {hint && <p className="mt-1 text-[11px] text-slate-400 leading-snug">{hint}</p>}
     </div>
   )
 }
