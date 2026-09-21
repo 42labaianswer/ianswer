@@ -36,6 +36,7 @@ export default function BillingSummary({
   nextPaymentDate,
   billingCycle = 'monthly',
   accentColor = '#4f46e5',
+  stripeCustomerId = null,
 }: {
   companyId: string
   planName: string
@@ -44,6 +45,10 @@ export default function BillingSummary({
   nextPaymentDate: string | null
   billingCycle?: string
   accentColor?: string
+  // Si es null, el plan actual fue asignado manualmente por un admin (o por el
+  // onboarding automático) sin pasar por Stripe — no hay nada que gestionar/
+  // cancelar en el portal de Stripe. Ver diagnóstico del P1 de Stripe, semana 4.
+  stripeCustomerId?: string | null
 }) {
   const { data: addons = [], isLoading } = useActiveAddonsDetailed(companyId)
   const cancelAddon = useCancelAddon()
@@ -151,41 +156,51 @@ export default function BillingSummary({
 
       {/* Acciones */}
       <div className="px-6 py-4 border-t border-slate-100 space-y-2">
-        <button
-          onClick={() => cancelPlan.mutate(companyId)}
-          disabled={cancelPlan.isPending}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors"
-        >
-          {cancelPlan.isPending ? <Loader2 size={15} className="animate-spin" /> : <><ExternalLink size={14} /> Gestionar suscripción</>}
-        </button>
+        {!stripeCustomerId ? (
+          <p className="text-xs text-slate-500 font-medium bg-slate-50 border border-slate-200 rounded-xl p-3">
+            Este plan fue asignado manualmente (sin pasar por Stripe), así que no hay una
+            suscripción que gestionar o cancelar aquí. Para cambiarlo, pide a un admin que
+            te asigne otro plan, o contrata uno pagando desde esta página.
+          </p>
+        ) : (
+          <>
+            <button
+              onClick={() => cancelPlan.mutate(companyId)}
+              disabled={cancelPlan.isPending}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors"
+            >
+              {cancelPlan.isPending ? <Loader2 size={15} className="animate-spin" /> : <><ExternalLink size={14} /> Gestionar suscripción</>}
+            </button>
 
-        {confirmingPlan ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-            <div className="flex items-start gap-2 mb-2">
-              <AlertTriangle size={15} className="text-red-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-800 font-medium">
-                Cancelar el plan detiene tu servicio al fin del periodo. Tus datos se conservan.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmingPlan(false)} className="flex-1 py-2 text-xs font-bold text-slate-600 bg-white rounded-lg border border-slate-200">
-                Mantener
-              </button>
+            {confirmingPlan ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <div className="flex items-start gap-2 mb-2">
+                  <AlertTriangle size={15} className="text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-800 font-medium">
+                    Cancelar el plan detiene tu servicio al fin del periodo. Tus datos se conservan.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmingPlan(false)} className="flex-1 py-2 text-xs font-bold text-slate-600 bg-white rounded-lg border border-slate-200">
+                    Mantener
+                  </button>
+                  <button
+                    onClick={() => cancelPlan.mutate(companyId)}
+                    className="flex-1 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                  >
+                    Cancelar plan
+                  </button>
+                </div>
+              </div>
+            ) : (
               <button
-                onClick={() => cancelPlan.mutate(companyId)}
-                className="flex-1 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                onClick={() => setConfirmingPlan(true)}
+                className="w-full py-2 text-xs font-medium text-slate-400 hover:text-red-500 transition-colors"
               >
                 Cancelar plan
               </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmingPlan(true)}
-            className="w-full py-2 text-xs font-medium text-slate-400 hover:text-red-500 transition-colors"
-          >
-            Cancelar plan
-          </button>
+            )}
+          </>
         )}
       </div>
     </div>

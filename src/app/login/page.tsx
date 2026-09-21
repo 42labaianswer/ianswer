@@ -140,7 +140,7 @@ export default function LoginPage() {
           </div>
           
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-            {isLogin ? 'Inicia Sesión' : 'Crea tu Cuenta'} <Sparkles className="text-amber-400" size={20} />
+            {isLogin ? 'Inicia Sesión' : 'Crea tu Cuenta'}
           </h2>
           <p className="text-slate-500 font-medium text-sm mt-1">
             Gestión de agendas y automatizaciones.
@@ -172,7 +172,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)} 
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:bg-white transition-all text-sm font-semibold text-slate-800" 
                   style={{ '--tw-ring-color': themeColors.bgHeader } as React.CSSProperties}
-                  placeholder="doctor@empresa.com"
+                  placeholder="ejemplo@correo.com"
                   required 
                 />
               </div>

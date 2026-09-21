@@ -277,6 +277,7 @@ export default function PlansPage() {
             nextPaymentDate={null}
             billingCycle={billingMode}
             accentColor={primaryTemplate?.accent_color || '#6366f1'}
+            stripeCustomerId={data.company.stripe_customer_id}
           />
         </div>
       )}

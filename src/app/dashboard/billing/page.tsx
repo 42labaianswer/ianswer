@@ -204,6 +204,7 @@ export default function BillingPage() {
             nextPaymentDate={company.current_period_ends_at}
             billingCycle={billing}
             accentColor="#6366f1"
+            stripeCustomerId={company.stripe_customer_id}
           />
         </div>
       )}

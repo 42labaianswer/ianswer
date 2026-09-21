@@ -271,7 +271,7 @@ export default async function IndustriaSlugPage({ params }: PageProps) {
         <Reveal>
           <CTABanner
             title={`Activa la industria ${industria.name.toLowerCase()}`}
-            subtitle="7 días gratis. Sin tarjeta. Cancela cuando quieras."
+            subtitle="Prueba gratis. Sin tarjeta. Cancela cuando quieras."
             primaryCta={{ text: 'Probar gratis', href: `/login?signup=1&template=${industria.slug}` }}
             secondaryCta={{ text: 'Hablar con ventas', href: '/contacto' }}
           />
