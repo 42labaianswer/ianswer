@@ -175,6 +175,14 @@ export default function PlansPage() {
   const currentPlanSlug = data?.company?.plan_slug || 'start'
   const isActive = data?.company?.account_status === 'active'
 
+  // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado).
+  // Antes decía "-20%" fijo en el código, aunque el descuento real cargado en Stripe/DB
+  // es de 17% — ver diagnóstico del P1 de Stripe, semana 4.
+  const referencePlan = plans.find(p => p.price_yearly_cents && p.price_monthly_cents)
+  const yearlyDiscountBadge = referencePlan
+    ? Math.round((1 - (referencePlan.price_yearly_cents! / (referencePlan.price_monthly_cents * 12))) * 100)
+    : 17
+
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       <PageHeader
@@ -208,7 +216,7 @@ export default function PlansPage() {
           >
             Anual
             <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
-              -20%
+              -{yearlyDiscountBadge}%
             </span>
           </button>
         </div>
