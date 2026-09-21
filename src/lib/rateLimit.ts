@@ -45,6 +45,12 @@ export const RATE_LIMITS: Record<string, RateLimitRule> = {
   'agent-catalog': { limit: 120, windowSeconds: 60 },
   // Simulador y entrenador: consumen IA, pero requieren sesión y addon.
   'agent-ai': { limit: 30, windowSeconds: 300 },
+  // Registro (Tarea 6, parte 2): cada llamada crea una cuenta y envía un correo.
+  'signup': { limit: 8, windowSeconds: 3600 },
+  // Reenvío del código de verificación de registro.
+  'signup-resend-code': { limit: 5, windowSeconds: 900 },
+  // Intentos de canjear el código de verificación de registro.
+  'signup-verify-code': { limit: 15, windowSeconds: 900 },
 }
 
 /**

@@ -1,48 +1,48 @@
-﻿ 
+// src/lib/emails/verify-email-code.ts
+// ----------------------------------------------------------------------------
+// Template HTML del correo con el código de verificación de registro.
+// Mismo estilo que password-reset-email.ts (sobrio, sin emojis, mobile-first,
+// probado en Gmail/Outlook/Apple Mail) pero mostrando un código en vez de un
+// botón con link.
+// ----------------------------------------------------------------------------
 
-// src/lib/emails/password-reset-email.ts
-// ----------------------------------------------------------------------------
-// Template HTML del email de recuperación de contraseña.
-// Estilo sobrio, sin emojis, branding, mobile-first.
-// Probado en Gmail, Outlook web, Apple Mail, móvil.
-// ----------------------------------------------------------------------------
-export interface PasswordResetEmailParams {
-  recoveryLink: string;
+export interface VerificationCodeEmailParams {
+  code: string;
   recipientEmail: string;
-  appName?: string;       // Default: "Plataforma"
-  expiresInHours?: number; // Default: 1 (Supabase default es 1 hora)
+  appName?: string;          // Default: "Plataforma"
+  expiresInMinutes?: number; // Default: 15
 }
-export function buildPasswordResetEmail(params: PasswordResetEmailParams): {
+
+export function buildVerificationCodeEmail(params: VerificationCodeEmailParams): {
   subject: string;
   html: string;
   text: string;
 } {
   const appName = params.appName ?? 'Plataforma';
-  const expiresInHours = params.expiresInHours ?? 1;
+  const expiresInMinutes = params.expiresInMinutes ?? 15;
 
-  const subject = `Restablece tu contraseña de ${appName}`;
+  const subject = `Tu código de verificación de ${appName}`;
 
-  // Plain text fallback (importante para deliverability + screen readers)
   const text = [
     `Hola,`,
     ``,
-    `Recibimos una solicitud para restablecer la contraseña de tu cuenta de ${appName}`,
-    `asociada a ${params.recipientEmail}.`,
+    `Recibimos una solicitud para crear una cuenta en ${appName}`,
+    `con el correo ${params.recipientEmail}.`,
     ``,
-    `Para crear una nueva contraseña, abre el siguiente enlace:`,
-    `${params.recoveryLink}`,
+    `Tu código de verificación es:`,
     ``,
-    `Este enlace expira en ${expiresInHours} ${expiresInHours === 1 ? 'hora' : 'horas'}.`,
+    `  ${params.code}`,
     ``,
-    `Si no solicitaste este cambio, puedes ignorar este correo. Tu contraseña`,
-    `actual sigue siendo válida y nadie tiene acceso a tu cuenta.`,
+    `Escríbelo en la pantalla de registro para confirmar tu correo.`,
+    `Este código expira en ${expiresInMinutes} minutos.`,
+    ``,
+    `Si no fuiste tú quien intentó crear esta cuenta, puedes ignorar este`,
+    `correo -- no se creará ninguna cuenta sin verificar este código.`,
     ``,
     `Saludos,`,
     `Equipo de ${appName}`,
   ].join('\n');
 
-  // HTML con inline styles (es la forma estándar para máxima compatibilidad
-  // con clientes de correo; CSS externo / clases NO funcionan en Outlook).
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -66,7 +66,7 @@ export function buildPasswordResetEmail(params: PasswordResetEmailParams): {
                       ${escapeHtml(appName)}
                     </p>
                     <h1 style="margin: 6px 0 0 0; font-size: 22px; font-weight: 700; color: #1c1917; line-height: 1.3;">
-                      Restablece tu contraseña
+                      Confirma tu correo
                     </h1>
                   </td>
                 </tr>
@@ -80,49 +80,39 @@ export function buildPasswordResetEmail(params: PasswordResetEmailParams): {
               <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #1c1917;">
                 Hola,
               </p>
-              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #44403c;">
-                Recibimos una solicitud para restablecer la contraseña de tu cuenta de
-                <strong style="color: #1c1917;">${escapeHtml(appName)}</strong>
-                asociada a <strong style="color: #1c1917;">${escapeHtml(params.recipientEmail)}</strong>.
-              </p>
               <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #44403c;">
-                Para crear una nueva contraseña, haz clic en el siguiente botón:
+                Recibimos una solicitud para crear una cuenta en
+                <strong style="color: #1c1917;">${escapeHtml(appName)}</strong>
+                con el correo <strong style="color: #1c1917;">${escapeHtml(params.recipientEmail)}</strong>.
+                Usa este código para confirmarlo:
               </p>
 
-              <!-- Botón principal -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin: 0 0 24px 0;">
+              <!-- Código -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0;">
                 <tr>
-                  <td bgcolor="#0f172a" style="border-radius: 8px;">
-                    <a href="${escapeHtmlAttr(params.recoveryLink)}"
-                       style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">
-                      Restablecer contraseña
-                    </a>
+                  <td align="center" bgcolor="#f5f5f4" style="border-radius: 12px; padding: 24px;">
+                    <p style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #0f172a; font-family: 'Courier New', Courier, monospace;">
+                      ${escapeHtml(params.code)}
+                    </p>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 1.6; color: #78716c;">
-                Si el botón no funciona, copia y pega este enlace en tu navegador:
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 13px; line-height: 1.6; color: #57534e; word-break: break-all;">
-                <a href="${escapeHtmlAttr(params.recoveryLink)}" style="color: #0f172a; text-decoration: underline;">${escapeHtml(params.recoveryLink)}</a>
-              </p>
-
               <!-- Aviso de expiración -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 24px; background-color: #f5f5f4; border-radius: 8px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 8px; background-color: #f5f5f4; border-radius: 8px;">
                 <tr>
                   <td style="padding: 14px 16px;">
                     <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #57534e;">
-                      Este enlace expira en <strong style="color: #1c1917;">${expiresInHours} ${expiresInHours === 1 ? 'hora' : 'horas'}</strong>.
-                      Después tendrás que solicitar uno nuevo.
+                      Este código expira en <strong style="color: #1c1917;">${expiresInMinutes} minutos</strong>.
+                      Después tendrás que pedir uno nuevo.
                     </p>
                   </td>
                 </tr>
               </table>
 
               <p style="margin: 24px 0 0 0; font-size: 13px; line-height: 1.6; color: #78716c;">
-                Si no solicitaste este cambio, puedes ignorar este correo. Tu contraseña
-                actual sigue siendo válida y nadie tiene acceso a tu cuenta.
+                Si no fuiste tú quien intentó crear esta cuenta, puedes ignorar este correo --
+                no se creará ninguna cuenta sin verificar este código.
               </p>
             </td>
           </tr>
@@ -155,9 +145,4 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function escapeHtmlAttr(s: string): string {
-  // En atributos solo necesitamos escapar comillas y &
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
