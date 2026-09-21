@@ -21,10 +21,6 @@ import { supabase } from '../lib/supabase'
 //   - Se mantiene la misma forma de consumir desde componentes para minimizar
 //     cambios en el resto del código.
 // ============================================================================
-import { loadPlatformBranding } from '../lib/siteSettings'
-
- const branding = await loadPlatformBranding()
-  const brandName = branding.name || 'Plataforma'
 
 // ── Protección contra llamadas colgadas ──────────────────────────────────
 // `refreshWorkspace()` encadena varias llamadas a Supabase (selects + RPCs).

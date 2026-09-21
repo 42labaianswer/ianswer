@@ -7,7 +7,6 @@
 // Página pública: el usuario ingresa su email para recibir el link de reset.
 // Estilo consistente con /login.
 // ----------------------------------------------------------------------------
-import { loadPlatformBranding } from '../../lib/siteSettings' 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
@@ -15,12 +14,10 @@ import toast from 'react-hot-toast';
 import { Loader2, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import IAnswerLoader from '../../components/IAnswerLoader'
-const branding = await loadPlatformBranding()
-  const brandName = branding.name || 'Plataforma'
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [platform, setPlatform] = useState<{ logo_url?: string; icon_url?: string }>({});
+  const [platform, setPlatform] = useState<{ name?: string; logo_url?: string; icon_url?: string }>({});
   const [themeColors, setThemeColors] = useState({
     bgHeader: '#134e4a',
     accent: '#3ecf8e',
@@ -31,7 +28,7 @@ export default function ForgotPasswordPage() {
     async function loadDesign() {
       try {
         const [platRes, tplRes] = await Promise.all([
-          supabase.from('platform_settings').select('logo_url, icon_url').single(),
+          supabase.from('platform_settings').select('name, logo_url, icon_url').single(),
           supabase
             .from('templates')
             .select('theme_color, accent_color')
@@ -101,7 +98,7 @@ export default function ForgotPasswordPage() {
             Revisa tu correo
           </h1>
           <p className="mt-3 text-center text-sm leading-relaxed text-slate-600">
-            Si <strong className="text-slate-900">{email}</strong> está registrado en  {brandName},
+            Si <strong className="text-slate-900">{email}</strong> está registrado en  {platform.name || 'Plataforma'},
             recibirás un enlace para restablecer tu contraseña en los próximos minutos.
           </p>
           <p className="mt-2 text-center text-xs text-slate-500">
@@ -145,7 +142,7 @@ export default function ForgotPasswordPage() {
           <div className="mb-6 flex justify-center">
             <img
               src={platform.logo_url}
-              alt=" {brandName}"
+              alt=" {platform.name || 'Plataforma'}"
               className="h-10 object-contain"
             />
           </div>
