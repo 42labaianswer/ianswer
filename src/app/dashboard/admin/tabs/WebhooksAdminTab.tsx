@@ -8,6 +8,7 @@ import { useWorkspace } from '../../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Webhook, Save, Loader2, Upload, Download, FileJson } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 // ---------------------------------------------------------------------------
 // Subcomponente: fila de respaldo (.json) al fondo de cada tarjeta.
@@ -186,7 +187,7 @@ export default function WebhooksAdminTab() {
     uploadJsonMutation.mutate({ file, storageKey, dbField })
   }
 
-  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="w-10 h-10 text-purple-600 animate-spin" /></div>
+  if (isLoading) return <div className="p-10 flex justify-center"><IAnswerLoader size={40} /></div>
 
   return (
     <section className="animate-in fade-in slide-in-from-right-4 duration-300">

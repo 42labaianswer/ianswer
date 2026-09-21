@@ -9,6 +9,7 @@ import {
   CreditCard, Save, Loader2, Sparkles, Zap, Crown,
   ExternalLink, AlertCircle, TrendingUp
 } from 'lucide-react'
+import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 // ============================================================================
 // PlansAdminTab v2.26
@@ -120,7 +121,7 @@ export default function PlansAdminTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+        <IAnswerLoader size={32} />
       </div>
     )
   }

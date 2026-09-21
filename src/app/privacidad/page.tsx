@@ -4,8 +4,9 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { Loader2, ShieldCheck, Mail, Globe, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, Mail, Globe, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import IAnswerLoader from '../../components/IAnswerLoader'
 
 export default function PrivacyPolicyPage() {
   const [platform, setPlatform] = useState<any>(null)
@@ -33,7 +34,7 @@ export default function PrivacyPolicyPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <IAnswerLoader size={40} />
       </div>
     )
   }

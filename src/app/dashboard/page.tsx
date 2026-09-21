@@ -10,8 +10,9 @@ import { useQuery } from '@tanstack/react-query'
 import { 
   MessageSquare, Calendar as CalendarIcon, 
   Users, Sparkles, ArrowUpRight, 
-  BellRing, CalendarCheck, Loader2, Bot, Layers
+  BellRing, CalendarCheck, Bot, Layers
 } from 'lucide-react'
+import IAnswerLoader from '../../components/IAnswerLoader'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -73,10 +74,7 @@ export default function DashboardPage() {
   if (isPageLoading) {
     return (
       <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 animate-spin" style={{ color: accentColor }} />
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preparando tu espacio...</p>
-        </div>
+        <IAnswerLoader size={40} label="Preparando tu espacio..." />
       </div>
     )
   }

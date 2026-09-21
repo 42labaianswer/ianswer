@@ -12,7 +12,7 @@ import {
   Search, Send, MoreVertical, CheckCheck, Filter,
   Inbox, User, MessageSquarePlus,
   Sparkles, Flame, CreditCard, Heart, CheckCircle2,
-  Clock, ChevronDown, Bot, UserCog, BellRing, Loader2, X,
+  Clock, ChevronDown, Bot, UserCog, BellRing, X,
   Mic, Image as ImageIcon, Play, Maximize2,
   Paperclip, Square, Trash2
 } from 'lucide-react'
@@ -20,6 +20,7 @@ import {
   CHANNELS, normalizeChannel, channelIdentityLabel, ChannelBadge, ChannelGlyph,
   type ChannelKey,
 } from '../../../components/ChannelBadge'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer' | string
 
@@ -584,10 +585,7 @@ export default function InboxPage() {
   if (isPageLoading) {
     return (
       <div className="h-[calc(100vh-120px)] flex items-center justify-center bg-white rounded-3xl border border-slate-200 mt-8">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando bandeja...</p>
-        </div>
+        <IAnswerLoader size={40} label="Cargando bandeja..." />
       </div>
     )
   }
