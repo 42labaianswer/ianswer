@@ -58,7 +58,17 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailValue }),
       });
-      const data = await res.json();
+      // La respuesta puede llegar vacía/incompleta si la función del servidor
+      // se corta antes de terminar (ej. timeout de Vercel bajo alta latencia) --
+      // en ese caso res.json() lanzaría 'Unexpected end of JSON input' crudo.
+      let data: { ok?: boolean; error?: string; message?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(
+          'El servidor tardó demasiado en responder. Intenta de nuevo en unos segundos.'
+        );
+      }
       if (!res.ok) {
         throw new Error(data?.error ?? 'Error enviando solicitud');
       }

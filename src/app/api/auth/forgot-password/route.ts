@@ -14,7 +14,7 @@
 // para evitar leakage de información (técnica estándar de seguridad).
 // ----------------------------------------------------------------------------
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '../../../../lib/resend';
 import { buildPasswordResetEmail } from '../../../../lib/emails/password-reset-email';
@@ -112,7 +112,12 @@ export async function POST(req: NextRequest) {
     return neutralResponse();
   }
 
-  // 5. Enviar email vía Resend
+  // 5. Enviar email vía Resend -- se manda DESPUÉS de responder (after()),
+  // para no sumar la latencia de Resend al tiempo de respuesta de esta ruta.
+  // Region mismatch Vercel(iad1)/Supabase(us-west-2) hace que cada round-trip
+  // ya sea lento -- sacar este del camino crítico evita que la función se pase
+  // del límite de ejecución de Vercel (10s en plan Hobby) y devuelva una
+  // respuesta vacía/incompleta ("Unexpected end of JSON input" en el cliente).
   const { subject, html, text } = buildPasswordResetEmail({
     recoveryLink,
     recipientEmail: email,
@@ -120,6 +125,7 @@ export async function POST(req: NextRequest) {
     expiresInHours: 1, // Supabase default
   });
 
+  after(async () => {
   const sendResult = await sendEmail({
     to: email,
     subject,
@@ -132,13 +138,12 @@ export async function POST(req: NextRequest) {
   });
 
   if (sendResult.error) {
-    // Loggeamos pero seguimos devolviendo respuesta neutral
+    // Loggeamos pero ya respondimos neutral al cliente
     console.error('[forgot-password] Resend falló:', sendResult.error);
-    // En este caso sí queremos saber si Resend falla por config
-    // pero al usuario le decimos lo mismo (no es su problema)
   } else {
     console.log(`[forgot-password] Email enviado a ${email}, Resend ID: ${sendResult.id}`);
   }
+  });
 
   return neutralResponse();
 }
