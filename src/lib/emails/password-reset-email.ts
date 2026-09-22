@@ -132,7 +132,7 @@ export function buildPasswordResetEmail(params: PasswordResetEmailParams): {
             <td style="padding: 24px 32px; border-top: 1px solid #e7e5e4; background-color: #fafaf7; border-radius: 0 0 12px 12px;">
               <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #a8a29e; text-align: center;">
                 Este mensaje fue enviado por ${escapeHtml(appName)}.<br>
-                Si tienes alguna duda, responde a este correo y un humano te atenderá.
+                Si tienes alguna duda, responde a este correo y nosotros te contactaremos.
               </p>
             </td>
           </tr>
