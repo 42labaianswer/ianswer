@@ -15,6 +15,8 @@ import {
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import { useFeature } from '../../../hooks/useAppCapability'
 import PageHeader from '../../../components/PageHeader'
+import Link from 'next/link'
+import { ROUTES } from '../../../lib/routes'
 import AgentTrainingStudio from '../../../components/AgentTrainingStudio'
 import { useHasAgentTrainingAddon } from '../../../hooks/useAgentTraining'
 
@@ -435,7 +437,45 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
         </div>
       )}
 
-      {!selectedMember ? (
+      {!selectedMember && team.length === 0 ? (
+        // Estado vacío sin nadie en Equipo (plan-agente-semana04, 1.8): antes
+        // solo decía "Selecciona un perfil" sin explicar qué hacer.
+        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 px-6 py-12 sm:px-12 flex flex-col items-center text-center">
+          <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${accent}15`, color: accent }}>
+            <BrainCircuit size={30} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Tu agente necesita al menos un perfil</h2>
+          <p className="text-sm text-slate-600 font-medium max-w-lg mb-8">
+            Un <strong className="text-slate-900">perfil</strong> es una persona de tu equipo (tú, un especialista, un vendedor…).
+            El Agente IA responde a tus clientes en nombre de ese perfil: usa su nombre, su especialidad
+            y la personalidad que configures aquí. Sin perfiles, no hay a quién configurar.
+          </p>
+          <ol className="w-full max-w-md space-y-3 text-left mb-8">
+            {[
+              { title: 'Ve a Equipo', desc: 'Es la sección donde vive tu personal.' },
+              { title: 'Agrega a la primera persona', desc: 'Con su nombre y, si aplica, su especialidad o puesto.' },
+              { title: 'Regresa aquí', desc: 'Su perfil aparecerá listo para darle personalidad al agente.' }
+            ].map((step, i) => (
+              <li key={step.title} className="flex items-start gap-3">
+                <span className="h-6 w-6 rounded-full text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: accent }}>
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{step.title}</p>
+                  <p className="text-xs text-slate-500 font-medium">{step.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Link
+            href={ROUTES.team}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white text-sm font-black shadow-md hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: accent }}
+          >
+            <UserCog size={16} /> Ir a Equipo
+          </Link>
+        </div>
+      ) : !selectedMember ? (
         <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 min-h-[400px] flex flex-col items-center justify-center text-slate-400">
           <BrainCircuit size={48} className="mb-4 opacity-50" />
           <p className="font-medium">Selecciona un perfil para comenzar.</p>

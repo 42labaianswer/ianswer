@@ -22,6 +22,7 @@ type PlanCardProps = {
   billingMode?: 'monthly' | 'yearly'
   isLoading?: boolean
   onSelect?: () => void
+  className?: string
 }
 
 const TIER_BADGES: Record<string, { label: string, icon: any, gradient: string }> = {
@@ -44,7 +45,8 @@ export default function PlanCard({
   isRecommended = false,
   billingMode = 'monthly',
   isLoading = false,
-  onSelect
+  onSelect,
+  className = ''
 }: PlanCardProps) {
   const tier = plan.tier || plan.slug
   const tierBadge = TIER_BADGES[tier] || TIER_BADGES.start
@@ -61,7 +63,7 @@ export default function PlanCard({
 
   return (
     <div
-      className={`relative bg-white rounded-3xl border-2 p-6 sm:p-8 flex flex-col transition-all ${
+      className={`relative min-w-0 bg-white rounded-3xl border-2 p-6 sm:p-8 flex flex-col transition-all ${className} ${
         isCurrent
           ? 'border-emerald-500 shadow-2xl shadow-emerald-900/10 ring-4 ring-emerald-500/10'
           : isRecommended
@@ -106,7 +108,7 @@ export default function PlanCard({
 
       {/* Precio */}
       <div className="mb-6 pb-6 border-b border-slate-100">
-        <div className="flex items-baseline gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
             {formatPrice(displayedPrice)}
           </span>

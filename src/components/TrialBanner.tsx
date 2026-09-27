@@ -88,7 +88,7 @@ export default function TrialBanner({ companyId: companyIdProp }: { companyId?: 
     ? { bg: 'bg-rose-50',   border: 'border-rose-200',  text: 'text-rose-900',   accent: 'text-rose-600',  icon: AlertTriangle, btnBg: 'bg-rose-600 hover:bg-rose-700' }
     : isUrgent
     ? { bg: 'bg-amber-50',  border: 'border-amber-200', text: 'text-amber-900',  accent: 'text-amber-700', icon: AlertTriangle, btnBg: 'bg-amber-600 hover:bg-amber-700' }
-    : { bg: 'bg-lime-50',   border: 'border-lime-200',  text: 'text-slate-900',  accent: 'text-lime-700',  icon: Sparkles,      btnBg: 'bg-slate-950 hover:bg-slate-800' }
+    : { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-slate-900',  accent: 'text-indigo-600',  icon: Sparkles,      btnBg: 'bg-slate-950 hover:bg-slate-800' }
 
   const Icon = variant.icon
 

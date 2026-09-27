@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { 
   MessageSquare, Calendar as CalendarIcon, 
   Users, Sparkles, ArrowUpRight, 
-  BellRing, CalendarCheck, Bot, Layers
+  BellRing, CalendarCheck, Bot
 } from 'lucide-react'
 import IAnswerLoader from '../../components/IAnswerLoader'
 
@@ -84,29 +84,31 @@ export default function DashboardPage() {
   const actionLabel = vertical?.funnels?.customer || 'Citas confirmadas'
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+    // @container: el ancho útil depende del sidebar (w-72 desde md), así que las
+    // columnas se deciden por el ancho real del contenido, no por la ventana.
+    <div className="@container space-y-6 animate-in fade-in duration-700 pb-20">
       <PageHeader
         title={<>¡Hola, {stats?.userName}! <Sparkles className="inline text-amber-400 -mt-1" size={26} /></>}
         description={`Aquí tienes el resumen de tu ${tenantName} para hoy.`}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: accentColor }}>
-          <div className="h-16 w-16 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+      <div className="grid grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3 gap-4 @4xl:gap-6 mb-10">
+        <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: accentColor }}>
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
             <Users size={28} />
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total {clientsLabel}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-snug mb-1 break-words">Total {clientsLabel}</p>
             <p className="text-3xl font-black text-slate-900">{stats?.totalContacts}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}>
-          <div className="h-16 w-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
+        <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}>
+          <div className="h-14 w-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
             <BellRing size={28} />
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Requieren Atención</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-snug mb-1 break-words">Requieren Atención</p>
             <div className="flex items-center gap-2">
               <p className="text-3xl font-black text-slate-900">{stats?.pendingChats}</p>
               {stats?.pendingChats ? <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span> : null}
@@ -114,18 +116,18 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-5 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#10b981' }}>
-          <div className="h-16 w-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
+        <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#10b981' }}>
+          <div className="h-14 w-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
             <CalendarCheck size={28} />
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 truncate">{actionLabel}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-snug mb-1 break-words">{actionLabel}</p>
             <p className="text-3xl font-black text-slate-900">{stats?.totalAppointments}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-6">
         <button 
           onClick={() => router.push('/dashboard/inbox')}
           className="group relative rounded-[32px] p-8 md:p-10 text-left overflow-hidden transition-all hover:scale-[1.02] shadow-2xl shadow-slate-900/20"
@@ -164,7 +166,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="rounded-3xl p-6 md:p-8 border flex flex-col md:flex-row items-center justify-between gap-6 mt-6" style={{ backgroundColor: `${accentColor}08`, borderColor: `${accentColor}20` }}>
+      <div className="rounded-3xl p-6 @3xl:p-8 border flex flex-col @3xl:flex-row items-center justify-between gap-6 mt-6" style={{ backgroundColor: `${accentColor}08`, borderColor: `${accentColor}20` }}>
         <div className="flex items-center gap-5">
           <div className="h-14 w-14 bg-white rounded-full flex items-center justify-center shadow-md border relative" style={{ borderColor: `${accentColor}20`, color: accentColor }}>
             <Bot size={28} />
@@ -179,20 +181,6 @@ export default function DashboardPage() {
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-xs font-black uppercase text-slate-700 tracking-widest">Sistemas Online</span>
         </div>
-      </div>
-
-      {/* Industria actual + cambiar */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-8 text-center">
-        <p className="text-xs text-slate-400">
-          Estás en la industria <strong className="text-slate-600 font-bold">{vertical?.name || 'Genérica'}</strong>. ¿Quieres cambiar de industria?
-        </p>
-        <a
-          href="/dashboard/templates"
-          className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-lg border transition-colors hover:bg-slate-50"
-          style={{ color: accentColor, borderColor: `${accentColor}30` }}
-        >
-          <Layers size={12} /> Cambiar industria
-        </a>
       </div>
     </div>
   )

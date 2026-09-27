@@ -9,12 +9,13 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../components/WorkspaceContext'
 import { useMobileSidebar } from './MobileSidebarContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
+import { ROUTES } from '../lib/routes'
 
 import {
   LayoutDashboard, MessageSquare, Plug, Settings, Zap,
   Calendar, BarChart3, BrainCircuit, Stethoscope,
   ShieldAlert, X,
-  Home, Utensils, UserSquare, Megaphone, Sparkles,
+  Home, Utensils, UserSquare, UserCog, Megaphone, Sparkles,
   PackageOpen, Layers, CreditCard, ClipboardList
 } from 'lucide-react'
 
@@ -74,12 +75,13 @@ export default function Sidebar() {
     { name: 'Dashboard',          href: '/dashboard',              icon: LayoutDashboard, show: true },
     { name: 'Mensajes',           href: '/dashboard/inbox',        icon: MessageSquare,   show: true },
     { name: 'Agente AI',          href: '/dashboard/ai-agent',     icon: BrainCircuit,    show: true },
+    { name: 'Equipo',             href: ROUTES.team,               icon: UserCog,         show: true },
     { name: 'Gestor de Clientes', href: '/dashboard/crm',          icon: UserSquare,      show: true, badgeKey: 'overdue_tasks' },
     { name: 'Calendario',         href: '/dashboard/calendar',     icon: Calendar,        show: !!modules.calendar },
     { name: 'Propiedades',        href: '/dashboard/properties',   icon: Home,            show: !!modules.properties },
     { name: 'Menú Digital',       href: '/dashboard/menu',         icon: Utensils,        show: !!modules.menu },
     { name: 'Órdenes',            href: '/dashboard/orders',       icon: ClipboardList,   show: !!modules.menu },
-    { name: 'Reportes',           href: '/dashboard/reports',      icon: BarChart3,       show: true },
+    { name: 'Métricas',           href: '/dashboard/reports',      icon: BarChart3,       show: true },
     { name: 'Conectividad',       href: '/dashboard/connectivity', icon: Plug,            show: true }
   ]
 

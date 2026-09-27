@@ -1,5 +1,8 @@
-﻿ 
+import { redirect } from "next/navigation"
+import { ROUTES } from "../../../../lib/routes"
 
-// Re-exporta la página existente sin modificar su código.
-// El layout de /crm provee el breadcrumb + tabs horizontales.
-export { default } from "../../team/page"
+// Equipo ya no vive dentro de /crm (plan-agente-semana04, 6.2). Se deja esta
+// redirección para no romper enlaces o marcadores guardados.
+export default function CrmEquipoRedirect() {
+  redirect(ROUTES.team)
+}

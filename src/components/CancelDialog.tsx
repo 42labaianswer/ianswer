@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { X, Loader2, AlertTriangle, Trash2, MessageCircle, UserX, ListChecks } from 'lucide-react'
+import { X, Loader2, AlertTriangle, Trash2, MessageCircle, UserX } from 'lucide-react'
 
 type Mode = 'cancel' | 'noshow'
 
@@ -20,8 +20,6 @@ type CancelDialogProps = {
   onSuccess: () => void
   // v2.7: nuevo prop para distinguir cancelación vs no-show
   mode?: Mode
-  // v2.7: opcional - mostrar hint de waitlist
-  hasWaitlist?: boolean
 }
 
 // v2.7: razones predefinidas de no-show
@@ -36,7 +34,7 @@ const NOSHOW_REASONS = [
 
 export default function CancelDialog({
   isOpen, onClose, appointmentId, patientName, patientPhone, dateLabel, onSuccess,
-  mode = 'cancel', hasWaitlist = false
+  mode = 'cancel'
 }: CancelDialogProps) {
 
   const [reason, setReason] = useState('')
@@ -210,16 +208,6 @@ export default function CancelDialog({
                 className="w-full mt-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-rose-500 focus:ring-2 focus:ring-rose-100 resize-none"
               />
             </div>
-
-            {/* v2.7: Hint de waitlist */}
-            {hasWaitlist && (
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 flex gap-2.5">
-                <ListChecks size={14} className="text-purple-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-purple-800 font-medium">
-                  Tienes pacientes en lista de espera. Después de cancelar, ve a <em>/dashboard/waitlist</em> para ofrecer este slot.
-                </p>
-              </div>
-            )}
 
             {/* Toggle de notificación */}
             <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${notifyPatient ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'} ${!patientPhone ? 'opacity-60' : ''}`}>

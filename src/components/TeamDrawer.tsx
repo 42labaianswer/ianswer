@@ -11,7 +11,6 @@ import {
   X, User, Briefcase, Sparkles, Trash2, Save, Loader2,
   Camera, Plus, Mail, Phone, Palette, Tag as TagIcon
 } from 'lucide-react'
-import { useConfirm } from '../hooks/useConfirm'
 
 export type TeamMember = {
   id?: string
@@ -68,7 +67,6 @@ type Section = 'profile' | 'professional' | 'bot'
 export default function TeamDrawer({
   open, member, companyId, templateId, onClose, onSave, onDelete
 }: Props) {
-  const { confirm, ConfirmDialog } = useConfirm()
   const tplConfig = getTemplateConfig(templateId)
   const [section, setSection] = useState<Section>('profile')
   const [data, setData] = useState<TeamMember>({ full_name: '', company_id: companyId })
@@ -122,7 +120,8 @@ export default function TeamDrawer({
 
   const handleDelete = async () => {
     if (!data.id || !onDelete) return
-    if (!(await confirm(`¿Eliminar a ${data.full_name}? Esta acción no se puede deshacer.`, { title: 'Eliminar miembro', danger: true, confirmText: 'Eliminar' }))) return
+    // Sin modal: el borrado es diferido y se puede deshacer desde el toast
+    // (useUndoableDelete en /dashboard/team, plan-agente-semana04 1.7).
     setSaving(true)
     try {
       await onDelete(data.id)
@@ -511,7 +510,6 @@ export default function TeamDrawer({
           </div>
         </div>
       </div>
-      {ConfirmDialog}
     </div>,
     document.body
   )
