@@ -45,3 +45,28 @@ export function isSubscriptionBlocked(
   return false
 }
 
+// ============================================================================
+// Acceso al DASHBOARD — lista BLANCA (plan-agente-semana04, sección 4).
+// ----------------------------------------------------------------------------
+// Distinta a propósito de isSubscriptionBlocked (que sigue en lista negra
+// porque está replicada en n8n para los envíos desde la bandeja). Para entrar
+// al dashboard hace falta una suscripción de Stripe viva: en prueba, activa, o
+// con un cobro fallido todavía dentro de los días de gracia.
+//
+// Motivo: con la lista negra, 'inactive' (cuentas que terminaron el wizard sin
+// pasar por Stripe, y suscripciones canceladas) no se bloqueaba nunca — acceso
+// ilimitado sin pagar. Ver docs/Semana 4/reporte-fin-prueba-stripe-3.1.md.
+// ============================================================================
+
+export const DASHBOARD_ALLOWED_STATUSES = ['trialing', 'active'] as const
+
+export function hasDashboardAccess(
+  state: SubscriptionState,
+  now: Date = new Date()
+): boolean {
+  const status = (state.status || '').toLowerCase().trim()
+  if ((DASHBOARD_ALLOWED_STATUSES as readonly string[]).includes(status)) return true
+  if (status === 'past_due') return !isSubscriptionBlocked(state, now)
+  return false
+}
+

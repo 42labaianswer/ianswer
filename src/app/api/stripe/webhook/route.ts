@@ -1,50 +1,103 @@
-﻿ 
-
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
+import type Stripe from 'stripe'
 import { stripe } from '../../../../lib/stripe'
 import { createClient } from '@supabase/supabase-js'
-import { loadPlatformBranding } from '../../../../lib/siteSettings'  
+import { loadPlatformBranding } from '../../../../lib/siteSettings'
+import {
+  applyPlanSubscription, customerContact, invoiceSubscriptionId, toIso
+} from '../../../../lib/stripePlan'
+import { getAppBaseUrl } from '../../../../lib/appUrl'
+import { sendEmail } from '../../../../lib/resend'
+import {
+  buildPaymentFailedEmail, buildSubscriptionCanceledEmail, buildTrialEndingEmail
+} from '../../../../lib/emails/subscription-emails'
+
 // ============================================================================
 // POST /api/stripe/webhook
 // ----------------------------------------------------------------------------
-// Webhook unificado  2.0. Maneja:
+// Webhook unificado v3.0 (plan-agente-semana04, sección 4 + 4.4). Maneja:
 //
-// PLAN BASE (Start / Growth / Scale):
-//   - checkout.session.completed        → activar plan
-//   - customer.subscription.deleted     → bloquear cuenta
-//   - customer.subscription.updated     → cambio de plan
-//   - invoice.payment_succeeded         → renovación exitosa
-//   - invoice.payment_failed            → bloquear cuenta
+// PLAN BASE (Start / Growth / Scale) — el plan y la prueba SOLO se escriben aquí
+// (y en api/stripe/confirm-checkout, con la misma lógica de lib/stripePlan.ts):
+//   - checkout.session.completed            → activar plan / iniciar prueba
+//   - customer.subscription.updated         → cambio de estado o de plan
+//   - customer.subscription.deleted         → 'canceled' (+ correo)
+//   - customer.subscription.trial_will_end  → correo "tu prueba termina en 3 días"
+//   - invoice.payment_succeeded             → renovación (+ borrador CFDI)
+//   - invoice.payment_failed                → 'past_due' (+ correo)
 //
 // ADDONS:
 //   - checkout.session.completed (subscription o payment) → activate_addon
-//   - customer.subscription.deleted (sub de addon)        → cancel_addon
+//   - customer.subscription.deleted/updated (sub de addon) → cancel / status
 //
 // El metadata.checkoutType discrimina entre 'plan' y 'addon'.
+//
+// Versión de API 2026-04-22.dahlia: la factura ya no trae `subscription` en la
+// raíz (ahora invoice.parent.subscription_details.subscription) — antes de este
+// cambio, payment_succeeded/payment_failed llegaban pero no hacían nada.
+// Eventos suscritos en Stripe (destino ianswer.pro): los 6 de arriba.
 // ============================================================================
-  const branding = await loadPlatformBranding()
-  const brandName = branding.name || 'Plataforma' 
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+type CompanyRow = { id: string, name: string | null, plan_slug: string | null }
+
+async function companyBySubscription(subscriptionId: string): Promise<CompanyRow | null> {
+  const { data } = await supabaseAdmin
+    .from('companies')
+    .select('id, name, plan_slug')
+    .eq('stripe_subscription_id', subscriptionId)
+    .maybeSingle()
+  return (data as CompanyRow | null) || null
+}
+
+async function planName(slug: string | null | undefined): Promise<string> {
+  if (!slug) return 'iAnswer'
+  const { data } = await supabaseAdmin.from('plans').select('name').eq('slug', slug).maybeSingle()
+  return data?.name || slug
+}
+
+function formatAmount(cents: number | null | undefined, currency: string | null | undefined): string | null {
+  if (!cents) return null
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency', currency: (currency || 'mxn').toUpperCase(), maximumFractionDigits: 2,
+  }).format(cents / 100)
+}
+
+/** Manda un aviso por Resend después de responder a Stripe. Nunca rompe el webhook. */
+function sendAfter(kind: string, build: () => Promise<{ to: string | null, subject: string, html: string, text: string } | null>) {
+  after(async () => {
+    try {
+      const msg = await build()
+      if (!msg?.to) { console.warn(`[Webhook] ${kind}: sin correo de destino, no se envía`); return }
+      const res = await sendEmail({
+        to: msg.to, subject: msg.subject, html: msg.html, text: msg.text,
+        tags: [{ name: 'category', value: 'billing' }, { name: 'type', value: kind }],
+      })
+      if (res.error) console.error(`[Webhook] ${kind}: Resend falló:`, res.error)
+      else console.log(`[Webhook] ${kind}: correo enviado a ${msg.to} (${res.id})`)
+    } catch (e) {
+      console.error(`[Webhook] ${kind}: no se pudo enviar el correo:`, e)
+    }
+  })
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const signature = req.headers.get('Stripe-Signature') as string
 
-  let event
+  let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (error: any) {
     console.error('[Webhook] Signature verification failed:', error.message)
     return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 })
   }
 
+  const plansUrl = `${getAppBaseUrl()}/dashboard/plans`
   const obj = event.data.object as any
 
   try {
@@ -63,52 +116,11 @@ export async function POST(req: Request) {
         }
 
         // ── PLAN BASE ──
-        if (checkoutType === 'plan') {
-          const subscriptionId = obj.subscription
-          const planSlug       = obj.metadata?.planSlug
-          const billingMode    = obj.metadata?.billingMode || 'monthly'
-
-          // Traer la subscription completa de Stripe para conocer su status real
-          // (puede ser 'trialing' si checkout incluyó trial_period_days)
-          let subscriptionStatus = 'active'
-          let trialEndsAt: string | null = null
-          let currentPeriodEndsAt: string | null = null
-
-          if (subscriptionId) {
-            try {
-              const sub = await stripe.subscriptions.retrieve(subscriptionId)
-              subscriptionStatus = sub.status === 'trialing' ? 'trialing'
-                                 : sub.status === 'active'   ? 'active'
-                                 : sub.status === 'past_due' ? 'past_due'
-                                 : sub.status === 'canceled' ? 'canceled'
-                                 : sub.status
-              if (sub.trial_end) {
-                trialEndsAt = new Date(sub.trial_end * 1000).toISOString()
-              }
-              if ((sub as any).current_period_end) {
-                currentPeriodEndsAt = new Date((sub as any).current_period_end * 1000).toISOString()
-              }
-            } catch (e: any) {
-              console.warn('[Webhook] No se pudo leer subscription de Stripe:', e.message)
-            }
-          }
-
-          await supabaseAdmin
-            .from('companies')
-            .update({
-              stripe_subscription_id: subscriptionId,
-              plan_slug: planSlug,
-              selected_plan_slug: planSlug,
-              subscription_status: subscriptionStatus,
-              account_status: subscriptionStatus === 'canceled' ? 'expired' : 'active',
-              billing_cycle: billingMode,
-              ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
-              ...(currentPeriodEndsAt ? { current_period_ends_at: currentPeriodEndsAt } : {}),
-              subscription_started_at: new Date().toISOString()
-            })
-            .eq('id', companyId)
-
-          console.log(`[Webhook] Plan ${planSlug} → ${subscriptionStatus} para company ${companyId}`)
+        if (checkoutType === 'plan' && obj.subscription) {
+          const subId = typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id
+          const sub = await stripe.subscriptions.retrieve(subId)
+          const { normalized, planSlug } = await applyPlanSubscription(supabaseAdmin, sub, { companyId, markStarted: true })
+          console.log(`[Webhook] Plan ${planSlug} → ${normalized} para company ${companyId}`)
         }
 
         // ── ADDON ──
@@ -117,14 +129,12 @@ export async function POST(req: Request) {
           const isOneTime       = obj.metadata?.isOneTime === 'true'
           const subscriptionId  = obj.subscription              // null si es one-time
 
-          // Si es recurrente: el subscription item es el line item de la sub
           let subscriptionItemId: string | null = null
           if (!isOneTime && subscriptionId) {
             const sub = await stripe.subscriptions.retrieve(subscriptionId)
             subscriptionItemId = sub.items.data[0]?.id || null
           }
 
-          // Activar addon vía RPC
           await supabaseAdmin.rpc('activate_addon', {
             p_company_id: companyId,
             p_addon_id: addonId,
@@ -133,7 +143,6 @@ export async function POST(req: Request) {
             p_stripe_checkout_session_id: obj.id
           })
 
-          // Si es one-time, marcar también el invoice id
           if (isOneTime && obj.invoice) {
             await supabaseAdmin
               .from('company_addons')
@@ -148,154 +157,137 @@ export async function POST(req: Request) {
       }
 
       // ──────────────────────────────────────────────────────────────
-      // SUBSCRIPCIÓN CANCELADA (puede ser plan o addon)
+      // SUSCRIPCIÓN CANCELADA (plan o addon)
       // ──────────────────────────────────────────────────────────────
       case 'customer.subscription.deleted': {
-        const subscriptionId = obj.id
-        const meta = obj.metadata || {}
-        const checkoutType = meta.checkoutType
-
-        if (checkoutType === 'addon') {
-          // Cancelar addon
+        const sub = obj as Stripe.Subscription
+        if (sub.metadata?.checkoutType === 'addon') {
           await supabaseAdmin
             .from('company_addons')
-            .update({
-              status: 'canceled',
-              canceled_at: new Date().toISOString()
-            })
-            .eq('stripe_subscription_item_id', obj.items?.data?.[0]?.id || '')
-        } else {
-          // Plan base — bloquear cuenta
-          await supabaseAdmin
-            .from('companies')
-            .update({
-              subscription_status: 'inactive',
-              account_status: 'expired'
-            })
-            .eq('stripe_subscription_id', subscriptionId)
+            .update({ status: 'canceled', canceled_at: new Date().toISOString() })
+            .eq('stripe_subscription_item_id', sub.items?.data?.[0]?.id || '')
+          break
         }
+
+        // Plan base. Antes escribía 'inactive', que no bloqueaba el dashboard.
+        const company = await companyBySubscription(sub.id)
+        await supabaseAdmin
+          .from('companies')
+          .update({ subscription_status: 'canceled', account_status: 'expired' })
+          .eq('stripe_subscription_id', sub.id)
+
+        sendAfter('subscription_canceled', async () => {
+          const { email } = await customerContact(stripe, sub.customer)
+          return email ? {
+            to: email,
+            ...buildSubscriptionCanceledEmail({ recipientEmail: email, planName: await planName(company?.plan_slug), plansUrl }),
+          } : null
+        })
         break
       }
 
       // ──────────────────────────────────────────────────────────────
-      // SUBSCRIPCIÓN ACTUALIZADA (cambio de plan, upgrade, downgrade)
+      // SUSCRIPCIÓN ACTUALIZADA (estado, upgrade, downgrade)
       // ──────────────────────────────────────────────────────────────
       case 'customer.subscription.updated': {
-        const meta = obj.metadata || {}
-        const checkoutType = meta.checkoutType
-
-        if (checkoutType === 'plan') {
-          const newPlanSlug = meta.planSlug
-
-          // Status normalizado a nuestro enum
-          const statusMap: Record<string, string> = {
-            trialing: 'trialing',
-            active:   'active',
-            past_due: 'past_due',
-            canceled: 'canceled',
-            unpaid:   'past_due',
-            paused:   'paused'
-          }
-          const normalizedStatus = statusMap[obj.status] || obj.status
-
-          const updates: any = {
-            subscription_status: normalizedStatus,
-            account_status: normalizedStatus === 'canceled' || normalizedStatus === 'expired' ? 'expired' : 'active'
-          }
-
-          if (newPlanSlug) {
-            updates.plan_slug = newPlanSlug
-            updates.selected_plan_slug = newPlanSlug
-          }
-
-          if (obj.trial_end) {
-            updates.trial_ends_at = new Date(obj.trial_end * 1000).toISOString()
-          }
-          if (obj.current_period_end) {
-            updates.current_period_ends_at = new Date(obj.current_period_end * 1000).toISOString()
-          }
-
-          await supabaseAdmin
-            .from('companies')
-            .update(updates)
-            .eq('stripe_subscription_id', obj.id)
-        }
+        const sub = obj as Stripe.Subscription
+        const checkoutType = sub.metadata?.checkoutType
 
         if (checkoutType === 'addon') {
-          const subItemId = obj.items?.data?.[0]?.id
+          const subItemId = sub.items?.data?.[0]?.id
+          const itemEnd = (sub.items?.data?.[0] as any)?.current_period_end
           await supabaseAdmin
             .from('company_addons')
             .update({
-              status: obj.status === 'active' ? 'active' : obj.status === 'past_due' ? 'past_due' : 'canceled',
-              current_period_end: obj.current_period_end
-                ? new Date(obj.current_period_end * 1000).toISOString()
-                : null
+              status: sub.status === 'active' ? 'active' : sub.status === 'past_due' ? 'past_due' : 'canceled',
+              current_period_end: toIso(itemEnd ?? (sub as any).current_period_end)
             })
             .eq('stripe_subscription_item_id', subItemId)
+          break
         }
+
+        // Plan base (con o sin metadata: las suscripciones creadas antes del
+        // cambio también tienen checkoutType 'plan').
+        await applyPlanSubscription(supabaseAdmin, sub)
         break
       }
 
       // ──────────────────────────────────────────────────────────────
-      // RENOVACIÓN EXITOSA
+      // LA PRUEBA TERMINA EN 3 DÍAS
+      // ──────────────────────────────────────────────────────────────
+      case 'customer.subscription.trial_will_end': {
+        const sub = obj as Stripe.Subscription
+        if (sub.metadata?.checkoutType === 'addon') break
+        const company = await companyBySubscription(sub.id)
+
+        sendAfter('trial_will_end', async () => {
+          const { email } = await customerContact(stripe, sub.customer)
+          return email ? {
+            to: email,
+            ...buildTrialEndingEmail({
+              recipientEmail: email,
+              planName: await planName(company?.plan_slug || sub.metadata?.planSlug),
+              plansUrl,
+              trialEndsAt: toIso(sub.trial_end),
+            }),
+          } : null
+        })
+        break
+      }
+
+      // ──────────────────────────────────────────────────────────────
+      // PAGO EXITOSO (renovación)
       // ──────────────────────────────────────────────────────────────
       case 'invoice.payment_succeeded': {
-        const subscriptionId = obj.subscription
+        const invoice = obj as Stripe.Invoice
+        const subscriptionId = invoiceSubscriptionId(invoice)
         if (!subscriptionId) break
+
+        // La factura de $0 que Stripe emite al iniciar la prueba NO es un pago:
+        // antes pisaba 'trialing' con 'active' y creaba un CFDI de $0.
+        const totalCents = invoice.amount_paid ?? invoice.total ?? 0
+        if (totalCents <= 0) break
 
         await supabaseAdmin
           .from('companies')
-          .update({
-            subscription_status: 'active',
-            account_status: 'active'
-          } as never)
+          .update({ subscription_status: 'active', account_status: 'active' } as never)
           .eq('stripe_subscription_id', subscriptionId)
 
         // ── Sprint G: crear invoice draft (CFDI México) ──
-        // Buscar la company y crear draft de invoice si no existe ya para este pago.
-        // El draft se queda en status 'draft' hasta que el admin (o un cron) lo timbre
-        // con el PAC contratado. Si PAC no está configurado, simplemente queda registrado.
+        // El draft se queda en status 'draft' hasta que el admin (o un cron) lo
+        // timbre con el PAC contratado.
         try {
-          const { data: company } = await supabaseAdmin
-            .from('companies')
-            .select('id, name')
-            .eq('stripe_subscription_id', subscriptionId)
-            .maybeSingle() as { data: any | null }
+          const company = await companyBySubscription(subscriptionId)
+          if (company?.id && invoice.id) {
+            const branding = await loadPlatformBranding()
+            const brandName = branding.name || 'Plataforma'
+            const currency = (invoice.currency || 'mxn').toUpperCase()
 
-          if (company?.id && obj.id) {
-            // Stripe entrega los montos en centavos USD-like (no MXN cents)
-            // En MX, Stripe usa MXN con escala normal (1 MXN = 100 centavos)
-            // obj.amount_paid viene ya en la unidad mínima de la moneda
-            const totalCents = obj.amount_paid ?? obj.total ?? 0
-            const currency   = (obj.currency || 'mxn').toUpperCase()
-
-            // Calcular subtotal e IVA asumiendo que el precio cobrado incluye IVA
-            // (esto es lo normal en MX). Si quieres precios pre-IVA, ajusta aquí.
+            // El precio cobrado incluye IVA (lo normal en MX).
             const subtotalCents = Math.round(totalCents / 1.16)
             const ivaCents      = totalCents - subtotalCents
 
-            const description = obj.lines?.data?.[0]?.description
-              || obj.description
-              || `Suscripción  {brandName} - ${company.name || 'Plan'}`
+            const line = invoice.lines?.data?.[0]
+            const description = line?.description
+              || invoice.description
+              || `Suscripción ${brandName} - ${company.name || 'Plan'}`
 
-            const periodStart = obj.lines?.data?.[0]?.period?.start
-              ? new Date(obj.lines.data[0].period.start * 1000).toISOString()
-              : null
-            const periodEnd = obj.lines?.data?.[0]?.period?.end
-              ? new Date(obj.lines.data[0].period.end * 1000).toISOString()
-              : null
+            const paymentIntent =
+              (invoice as any).payments?.data?.[0]?.payment?.payment_intent
+              ?? (invoice as any).payment_intent
+              ?? null
 
             await (supabaseAdmin.rpc as any)('create_invoice_draft_from_stripe', {
               p_company_id:            company.id,
-              p_stripe_invoice_id:     obj.id,
-              p_stripe_payment_intent: obj.payment_intent || null,
+              p_stripe_invoice_id:     invoice.id,
+              p_stripe_payment_intent: typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id || null,
               p_subtotal_cents:        subtotalCents,
               p_iva_cents:             ivaCents,
               p_total_cents:           totalCents,
               p_currency:              currency,
               p_description:           description,
-              p_billing_period_start:  periodStart,
-              p_billing_period_end:    periodEnd,
+              p_billing_period_start:  toIso(line?.period?.start),
+              p_billing_period_end:    toIso(line?.period?.end),
               p_emisor_rfc:            process.env.EMISOR_RFC          || null,
               p_emisor_legal_name:     process.env.EMISOR_LEGAL_NAME   || null,
               p_emisor_regime_code:    process.env.EMISOR_REGIME       || null,
@@ -308,7 +300,6 @@ export async function POST(req: Request) {
           // Si la creación del invoice falla, NO rompemos el flujo principal de Stripe
           console.error('[Webhook] No se pudo crear invoice draft:', invoiceErr)
         }
-
         break
       }
 
@@ -316,16 +307,32 @@ export async function POST(req: Request) {
       // PAGO FALLIDO
       // ──────────────────────────────────────────────────────────────
       case 'invoice.payment_failed': {
-        const subscriptionId = obj.subscription
+        const invoice = obj as Stripe.Invoice
+        const subscriptionId = invoiceSubscriptionId(invoice)
         if (!subscriptionId) break
 
+        // past_due con account_status 'active': el dashboard da los días de
+        // gracia de lib/subscription.ts mientras Stripe reintenta. Si se agotan
+        // los reintentos, Stripe cancela → customer.subscription.deleted.
+        const company = await companyBySubscription(subscriptionId)
         await supabaseAdmin
           .from('companies')
-          .update({
-            subscription_status: 'past_due',
-            account_status: 'expired'
-          })
+          .update({ subscription_status: 'past_due', account_status: 'active' })
           .eq('stripe_subscription_id', subscriptionId)
+
+        sendAfter('payment_failed', async () => {
+          const { email } = await customerContact(stripe, invoice.customer)
+          return email ? {
+            to: email,
+            ...buildPaymentFailedEmail({
+              recipientEmail: email,
+              planName: await planName(company?.plan_slug),
+              plansUrl,
+              amountLabel: formatAmount(invoice.amount_due, invoice.currency),
+              nextAttemptAt: toIso(invoice.next_payment_attempt),
+            }),
+          } : null
+        })
         break
       }
     }

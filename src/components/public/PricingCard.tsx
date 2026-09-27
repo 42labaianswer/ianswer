@@ -118,7 +118,7 @@ export default function PricingCard({
       {/* Trial note */}
       {trialDays && (
         <p className={`text-center text-[11px] font-bold uppercase tracking-wider mt-3 ${highlighted ? 'text-stone-400' : 'text-stone-500'}`}>
-          {trialDays} días gratis · sin tarjeta
+          {trialDays} días gratis · sin cargo hasta que termine la prueba
         </p>
       )}
     </div>
