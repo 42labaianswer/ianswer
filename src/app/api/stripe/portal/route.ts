@@ -33,6 +33,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    // El companyId viene del navegador: tiene que ser la empresa del usuario.
+    // Sin esta validación (y con el SELECT abierto de companies) cualquier
+    // usuario podía abrir el portal de facturación de otra empresa.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    if (!profile?.company_id || profile.company_id !== companyId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
     const { data: company } = await supabase
       .from('companies')
       .select('stripe_customer_id')

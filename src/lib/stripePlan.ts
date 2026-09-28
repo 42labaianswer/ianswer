@@ -96,6 +96,9 @@ export async function applyPlanSubscription(
 
   const updates: Record<string, unknown> = {
     stripe_subscription_id: sub.id,
+    // El cliente de la suscripción es la fuente de verdad (corrige si el
+    // checkout no alcanzó a guardarlo).
+    stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
     subscription_status: normalized,
     account_status: accountStatusFor(normalized),
   }

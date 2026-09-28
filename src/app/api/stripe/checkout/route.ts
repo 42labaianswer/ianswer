@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '../../../../lib/stripe'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { getAppBaseUrl } from '../../../../lib/appUrl'
 
@@ -46,6 +47,16 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    // El companyId viene del navegador: tiene que ser la empresa del usuario.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+    if (!profile?.company_id || profile.company_id !== companyId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     const { data: company } = await supabase
@@ -97,10 +108,16 @@ export async function POST(req: Request) {
         preferred_locales: ['es-419'],
         metadata: { companyId }
       })
-      await supabase
+      // Con service_role: con la sesión del usuario la escritura podía fallar
+      // en silencio (RLS) y el siguiente checkout creaba un cliente duplicado,
+      // dejando el portal apuntando a la suscripción vieja. El webhook también
+      // lo reescribe desde la suscripción (lib/stripePlan.ts).
+      const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      const { error: saveErr } = await admin
         .from('companies')
         .update({ stripe_customer_id: customer.id })
         .eq('id', companyId)
+      if (saveErr) console.error('[Stripe Checkout Plan] No se pudo guardar stripe_customer_id:', saveErr)
       return customer.id
     }
 
