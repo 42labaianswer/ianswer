@@ -13,7 +13,8 @@
 //   Se usa el ícono de app (tile indigo con la "i" blanca) porque se ve igual
 //   en modo claro y oscuro; el símbolo transparente tiene el asta en ink y
 //   desaparece cuando el cliente invierte colores.
-// - El logotipo "iAnswer" va como texto vivo (i 500 / A 800 indigo / nswer 600).
+// - Arriba: ícono y debajo "iAnswer" como texto vivo en un solo color (ink).
+//   En el pie solo va el texto, sin ícono (pedido de Rubén, 29-sep).
 // - El código de verificación es texto real (se puede seleccionar y copiar).
 // ----------------------------------------------------------------------------
 
@@ -107,7 +108,7 @@ export function renderEmailLayout(p: EmailLayoutParams): string {
           <!-- Logo -->
           <tr>
             <td align="center" class="ia-pad" style="padding: 40px 48px 8px 48px;">
-              ${logoLockup(40, 22)}
+              ${logoHeader()}
             </td>
           </tr>
 
@@ -146,7 +147,7 @@ export function renderEmailLayout(p: EmailLayoutParams): string {
           <!-- Pie -->
           <tr>
             <td align="center" class="ia-pad" style="padding: 28px 48px 36px 48px;">
-              ${logoLockup(28, 16)}
+              ${wordmark(16)}
               <p class="ia-muted" style="margin: 16px 0 0 0; font-family: ${FONT}; font-size: 12px; line-height: 1.6; color: ${C.muted}; text-align: center;">${escapeHtml(p.footerReason)}</p>
               <p style="margin: 16px 0 0 0; font-family: ${FONT}; font-size: 12px; line-height: 1.6; text-align: center;">
                 <a class="ia-muted" href="${SITE}/legal/privacidad" style="color: ${C.muted}; text-decoration: underline;">Aviso de privacidad</a>
@@ -189,17 +190,23 @@ export function plainTextFooter(reason: string): string {
 
 // ─── Bloques ───────────────────────────────────────────────────────────────
 
-function logoLockup(iconPx: number, textPx: number): string {
+function logoHeader(): string {
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                 <tr>
-                  <td valign="middle" style="padding-right: ${Math.round(iconPx / 4)}px;">
-                    <img src="${ASSETS_BASE}/email/ianswer-icon.png" width="${iconPx}" height="${iconPx}" alt="iAnswer" style="display: block; width: ${iconPx}px; height: ${iconPx}px; border: 0; border-radius: ${Math.round(iconPx / 4)}px;">
+                  <td align="center">
+                    <img src="${ASSETS_BASE}/email/ianswer-icon.png" width="48" height="48" alt="iAnswer" style="display: block; width: 48px; height: 48px; border: 0; border-radius: 12px;">
                   </td>
-                  <td valign="middle" style="font-family: ${FONT}; font-size: ${textPx}px; line-height: 1; letter-spacing: -0.03em; white-space: nowrap;">
-                    <span class="ia-ink" style="color: ${C.ink}; font-weight: 500;">i</span><span class="ia-a" style="color: ${C.indigo}; font-weight: 800;">A</span><span class="ia-ink" style="color: ${C.ink}; font-weight: 600;">nswer</span>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 10px;">
+                    ${wordmark(20)}
                   </td>
                 </tr>
               </table>`
+}
+
+function wordmark(textPx: number): string {
+  return `<span class="ia-ink" style="font-family: ${FONT}; font-size: ${textPx}px; line-height: 1; font-weight: 700; letter-spacing: -0.02em; color: ${C.ink}; white-space: nowrap;">iAnswer</span>`
 }
 
 function codeBlock(code: string): string {
