@@ -106,7 +106,7 @@ export default async function FuncionesPage() {
         <Reveal>
           <CTABanner
             title="Activa tu agente en 10 minutos"
-            subtitle="Sin tarjeta. Prueba gratis. Cancela cuando quieras."
+            subtitle="Prueba gratis. Sin cargos durante la prueba. Cancela cuando quieras."
             primaryCta={{ text: 'Probar gratis', href: '/login?signup=1' }}
             secondaryCta={{ text: 'Ver precios', href: '/precios' }}
           />

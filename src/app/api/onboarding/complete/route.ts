@@ -3,12 +3,12 @@
 // ============================================================================
 // src/app/api/onboarding/complete/route.ts · v3.0 DEFENSIVO
 // ----------------------------------------------------------------------------
-// Endpoint atómico que completa el onboarding:
-//   1. Actualiza company.name + plan_slug + onboarding_completed
-//      (intenta también onboarding_finished_at y onboarding_step si existen,
-//       pero si no existen NO falla — usa fallback)
-//   2. Instala el template principal vía RPC install_template
-//   3. (opcional) Activa addons elegidos vía RPC activate_addon
+// Endpoint que completa el onboarding (v4, plan-agente-semana04 4.2):
+//   1. Guarda company.name, el plan elegido como pendiente (pending_plan_slug),
+//      los complementos de interés y onboarding_completed.
+//   2. Instala el template principal vía RPC install_template.
+// Ya NO asigna plan ni activa complementos: eso pasa por Stripe (checkout +
+// webhook). Requiere database/add_onboarding_pending_plan.sql.
 //
 // Devuelve errores específicos (no genéricos) para que el frontend muestre
 // exactamente qué pasó.
@@ -18,7 +18,6 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-const TRIAL_DAYS_FALLBACK = 7 // fallback solo si plans.trial_days viene vacío en la base de datos
 const VALID_PLANS = ['start', 'growth', 'scale'] as const
 
 type CompletePayload = {
@@ -100,123 +99,73 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `template_id "${template_id}" no existe o está inactivo` }, { status: 400 })
     }
 
-    // ---- 4) UPDATE company DEFENSIVO ----
-    // Intentamos primero con TODOS los campos. Si falla por columna inexistente,
-    // reintentamos sin los campos opcionales.
-    // NOTA: además de plan_slug, mandamos selected_plan_slug con el mismo valor.
-    // El trigger companies_set_trial_ends_at_trigger de la base de datos solo se
-    // dispara con "BEFORE INSERT OR UPDATE OF selected_plan_slug" — si solo
-    // actualizábamos plan_slug (como hacía antes este endpoint), el trigger nunca
-    // corría y la cuenta se quedaba sin trial_ends_at/subscription_status = 'trialing',
-    // con acceso indefinido al plan sin pagar. Ver diagnóstico del P1 de Stripe,
-    // semana 4.
-    const fullPayload: Record<string, any> = {
-      name: company_name.trim(),
-      plan_slug,
-      selected_plan_slug: plan_slug,
-      onboarding_completed: true,
-      onboarding_finished_at: new Date().toISOString(),
-      onboarding_step: 4,
-    }
-
-    let updateErr = (await supabase.from('companies').update(fullPayload).eq('id', companyId)).error
+    // ---- 4) Guardar lo del onboarding (SIN plan) ----
+    // plan-agente-semana04, 4.2: este endpoint ya NO asigna plan ni activa
+    // complementos. El plan y la prueba solo los escribe el webhook de Stripe
+    // (lib/stripePlan.ts). Aquí se guarda el plan elegido como *pendiente* y los
+    // complementos como "de interés".
+    // No se toca selected_plan_slug: dispara el trigger
+    // companies_set_trial_ends_at, que armaba una prueba sin pasar por Stripe.
+    const cleanAddonIds = addon_ids.filter((a): a is string => typeof a === 'string').slice(0, 20)
+    const { error: updateErr } = await supabase
+      .from('companies')
+      .update({
+        name: company_name.trim(),
+        pending_plan_slug: plan_slug,
+        onboarding_addon_ids: cleanAddonIds,
+        onboarding_completed: true,
+        onboarding_finished_at: new Date().toISOString(),
+        onboarding_step: 4,
+      })
+      .eq('id', companyId)
 
     if (updateErr) {
-      console.warn('[onboarding] UPDATE companies con campos completos falló:', updateErr.message)
-      
-      // Reintento 1: sin onboarding_finished_at y onboarding_step
-      const minimalPayload: Record<string, any> = {
-        name: company_name.trim(),
-        plan_slug,
-        selected_plan_slug: plan_slug,
-        onboarding_completed: true,
-      }
-      updateErr = (await supabase.from('companies').update(minimalPayload).eq('id', companyId)).error
-
-      if (updateErr) {
-        console.warn('[onboarding] UPDATE companies sin opcionales también falló:', updateErr.message)
-
-        // Reintento 2: sin onboarding_completed (puede que sea columna nueva)
-        const barePayload: Record<string, any> = {
-          name: company_name.trim(),
-          plan_slug,
-          selected_plan_slug: plan_slug,
-        }
-        updateErr = (await supabase.from('companies').update(barePayload).eq('id', companyId)).error
-
-        if (updateErr) {
-          console.error('[onboarding] UPDATE companies definitivamente falló:', updateErr)
-          return NextResponse.json(
-            {
-              error: 'No se pudo actualizar la company',
-              detail: updateErr.message,
-              hint: 'Verifica que la tabla companies tenga las columnas: name, plan_slug. Si plan_slug no existe agregala con ALTER TABLE.'
-            },
-            { status: 500 }
-          )
-        }
-      }
-    }
-
-    // ---- 5) Instalar template primario vía RPC ----
-    const { error: tplErr } = await supabase.rpc('install_template', {
-      p_company_id: companyId,
-      p_template_id: template_id,
-      p_make_primary: true,
-    })
-
-    if (tplErr) {
-      console.error('[onboarding] install_template error:', tplErr)
+      console.error('[onboarding] UPDATE companies falló:', updateErr)
       return NextResponse.json(
         {
-          error: 'Error al instalar template principal',
-          detail: tplErr.message,
-          hint: 'Verifica que la RPC install_template(p_company_id uuid, p_template_id text, p_make_primary boolean) exista. Está en SQL 01_migration_v2.26_fresh.sql.'
+          error: 'No se pudo guardar la configuración de tu negocio',
+          detail: updateErr.message,
+          hint: updateErr.message.includes('pending_plan_slug') || updateErr.message.includes('onboarding_addon_ids')
+            ? 'Falta correr la migración database/add_onboarding_pending_plan.sql.'
+            : undefined,
         },
         { status: 500 }
       )
     }
 
-    // ---- 6) Activar addons (opcional) ----
-    // Lee trial_days del plan igual que stripe/checkout/route.ts, en vez de un valor fijo.
-    const { data: planRow } = await supabase
-      .from('plans')
-      .select('trial_days')
-      .eq('slug', plan_slug)
+    // ---- 5) Instalar template primario vía RPC (una sola vez) ----
+    const { data: existingPrimary } = await supabase
+      .from('company_templates')
+      .select('template_id')
+      .eq('company_id', companyId)
+      .eq('is_primary', true)
+      .limit(1)
       .maybeSingle()
-    const trialDays = planRow?.trial_days ?? TRIAL_DAYS_FALLBACK
-    const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
-    let activatedAddons = 0
-    const addonErrors: string[] = []
 
-    for (const addonId of addon_ids) {
-      const { error: addonErr } = await supabase.rpc('activate_addon', {
+    if (!existingPrimary) {
+      const { error: tplErr } = await supabase.rpc('install_template', {
         p_company_id: companyId,
-        p_addon_id: addonId,
-        p_quantity: 1,
+        p_template_id: template_id,
+        p_make_primary: true,
       })
-      if (addonErr) {
-        console.warn('[onboarding] activate_addon failed for', addonId, addonErr.message)
-        addonErrors.push(`${addonId}: ${addonErr.message}`)
-        continue
+
+      if (tplErr) {
+        console.error('[onboarding] install_template error:', tplErr)
+        return NextResponse.json(
+          {
+            error: 'Error al instalar template principal',
+            detail: tplErr.message,
+            hint: 'Verifica que la RPC install_template(p_company_id uuid, p_template_id text, p_make_primary boolean) exista. Está en SQL 01_migration_v2.26_fresh.sql.'
+          },
+          { status: 500 }
+        )
       }
-
-      // Setear current_period_end (trial) — opcional, no falla si la columna no existe
-      await supabase
-        .from('company_addons')
-        .update({ current_period_end: trialEndsAt })
-        .eq('company_id', companyId)
-        .eq('addon_id', addonId)
-
-      activatedAddons++
     }
 
     return NextResponse.json({
       success: true,
       template_installed: template_id,
-      addons_activated: activatedAddons,
-      addon_errors: addonErrors.length > 0 ? addonErrors : undefined,
-      trial_ends_at: addon_ids.length > 0 ? trialEndsAt : null,
+      pending_plan_slug: plan_slug,
     })
 
   } catch (err: any) {

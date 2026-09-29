@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import PageHeader from '../../../components/PageHeader'
 import toast from 'react-hot-toast'
+import { ROUTES } from '../../../lib/routes'
 import { 
   Filter,BarChart3, Download, Users, CalendarCheck, 
   TrendingUp, MessageSquare, Target, Sparkles, Bot, UserCog, Trophy, Activity, AlertCircle, CalendarRange,
@@ -366,7 +367,7 @@ export default function ReportsPage() {
       
       {/* HEADER PRO CON FILTRO DE FECHAS */}
       <PageHeader
-        title="Reportes y Analíticas"
+        title="Métricas"
         description="Controla tu rendimiento, descubre oportunidades y evalúa a tu equipo."
         actions={
           <>
@@ -644,7 +645,7 @@ export default function ReportsPage() {
                     ? 'Todavía no agregas miembros a tu equipo.'
                     : 'Tu equipo no tiene contactos ni citas asignadas.'}
                 </p>
-                <a href="/dashboard/team" className="inline-block text-xs font-bold text-indigo-600 hover:underline">
+                <a href={ROUTES.team} className="inline-block text-xs font-bold text-indigo-600 hover:underline">
                   {metrics.teamSize === 0 ? 'Agregar equipo →' : 'Ir a equipo →'}
                 </a>
               </div>

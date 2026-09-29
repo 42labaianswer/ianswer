@@ -12,15 +12,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Users, UserCog, ListChecks, Bell, Clock, Tag as TagIcon
+  Users, ListChecks, Bell, Tag as TagIcon
 } from 'lucide-react'
 
 const TABS = [
   { slug: 'clientes',      label: 'Clientes',       icon: Users,      title: 'Clientes',        description: 'Tu base de contactos y prospectos.' },
-  { slug: 'equipo',        label: 'Equipo',         icon: UserCog,    title: 'Equipo',          description: 'Tu equipo profesional. El bot responde sobre cada miembro como su recepcionista.' },
   { slug: 'tareas',        label: 'Tareas',         icon: ListChecks, title: 'Tareas',          description: 'Pendientes y seguimientos. Anclas a un contacto o asignas a alguien del equipo.' },
   { slug: 'recordatorios', label: 'Recordatorios',  icon: Bell,       title: 'Recordatorios',   description: 'Avisos automáticos que el bot envía al cliente o a tu equipo.' },
-  { slug: 'lista-espera',  label: 'Lista de espera', icon: Clock,     title: 'Lista de espera', description: 'Clientes esperando cupo, llamada o respuesta.' },
   { slug: 'etiquetas',     label: 'Etiquetas',      icon: TagIcon,    title: 'Etiquetas',       description: 'Categorías visuales para segmentar y organizar tu base.' }
 ] as const
 
@@ -30,10 +28,10 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const currentTab = TABS.find(t => t.slug === currentSlug) || TABS[0]
 
   return (
-    <div className="flex flex-col md:flex-row md:h-[calc(100vh-80px)] bg-slate-50">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] bg-slate-50">
 
       {/* ── MOBILE: tabs horizontales scrolleables ─────────────────────── */}
-      <div className="md:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <nav className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
           {TABS.map(tab => {
             const Icon = tab.icon
@@ -57,7 +55,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── DESKTOP: Sidebar interno ────────────────────────────────────── */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-slate-200 shrink-0 flex-col">
+      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 shrink-0 flex-col">
         <div className="px-5 pt-6 pb-5 border-b border-slate-100">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
             Dashboard
@@ -98,9 +96,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Content area ────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col md:overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col lg:overflow-hidden">
         {/* Header del tab (desktop) */}
-        <header className="hidden md:block bg-white border-b border-slate-200 px-8 py-5 shrink-0">
+        <header className="hidden lg:block bg-white border-b border-slate-200 px-8 py-5 shrink-0">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-0.5">
             {currentTab.title}
           </h1>
@@ -110,7 +108,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Header del tab (mobile - más compacto) */}
-        <header className="md:hidden bg-white border-b border-slate-200 px-4 py-4">
+        <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-4">
           <h1 className="text-xl font-black text-slate-900 tracking-tight mb-0.5">
             {currentTab.title}
           </h1>
@@ -120,7 +118,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content scrolleable */}
-        <div className="flex-1 md:overflow-y-auto">
+        <div className="flex-1 lg:overflow-y-auto">
           {children}
         </div>
       </div>

@@ -41,6 +41,7 @@ type CompanyData = {
   account_status: string
   subscription_status: string
   stripe_customer_id: string | null
+  stripe_subscription_id: string | null
   trial_ends_at: string | null
   current_period_ends_at: string | null
 }
@@ -57,9 +58,23 @@ export default function PlansPage() {
   useEffect(() => {
     const success = searchParams.get('success')
     const canceled = searchParams.get('canceled')
-    if (success === 'true') toast.success('¡Plan activado! Bienvenido.')
+    const sessionId = searchParams.get('session_id')
+    if (success === 'true') {
+      toast.success('¡Plan activado! Bienvenido.')
+      // No depender de que el webhook llegue antes que el usuario.
+      if (sessionId) {
+        fetch('/api/stripe/confirm-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        }).finally(() => {
+          queryClient.invalidateQueries({ queryKey: ['plans-page'] })
+          queryClient.invalidateQueries({ queryKey: ['entitlements'] })
+        })
+      }
+    }
     if (canceled === 'true') toast('Checkout cancelado. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
-  }, [searchParams])
+  }, [searchParams, queryClient])
 
   const { data, isLoading } = useQuery({
     queryKey: ['plans-page'],
@@ -84,7 +99,7 @@ export default function PlansPage() {
           .order('display_order'),
         supabase
           .from('companies')
-          .select('id, plan_slug, selected_plan_slug, account_status, subscription_status, stripe_customer_id, trial_ends_at, current_period_ends_at')
+          .select('id, plan_slug, selected_plan_slug, account_status, subscription_status, stripe_customer_id, stripe_subscription_id, trial_ends_at, current_period_ends_at')
           .eq('id', profile.company_id)
           .single()
       ])
@@ -190,6 +205,7 @@ export default function PlansPage() {
   // Fallback a selected_plan_slug igual que hacía /dashboard/billing: por si una
   // cuenta trae el plan elegido pero plan_slug todavía no se confirmó.
   const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
+  const planIsLive = ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
   const isActive = data?.company?.account_status === 'active'
 
   // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado).
@@ -208,6 +224,8 @@ export default function PlansPage() {
     : 0
   const isTrialing = data?.company?.subscription_status === 'trialing'
   const isExpired = ['expired', 'past_due', 'canceled'].includes(data?.company?.subscription_status || '')
+  const hasLiveSubscription = !!data?.company?.stripe_subscription_id &&
+    ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
@@ -219,11 +237,11 @@ export default function PlansPage() {
       {/* Estado de trial / expiración — fusionado desde /dashboard/billing */}
       {(isTrialing || isExpired) && (
         <div className={`mb-8 rounded-2xl p-5 border flex items-start gap-3 ${
-          isExpired ? 'bg-rose-50 border-rose-200' : 'bg-lime-50 border-lime-200'
+          isExpired ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-100'
         }`}>
           {isExpired
             ? <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
-            : <Sparkles size={18} className="text-lime-600 shrink-0 mt-0.5" />}
+            : <Sparkles size={18} className="text-indigo-600 shrink-0 mt-0.5" />}
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">
               {isExpired ? 'Suscripción expirada' : 'Período de prueba'}
@@ -288,15 +306,22 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Grid de planes */}
-      <div id="plans-grid" className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      {/* Grid de planes. Container queries (no breakpoints de ventana): el ancho
+          útil depende del sidebar (w-72 desde md), así que con md:grid-cols-3 las
+          tarjetas quedaban aplastadas a media pantalla. 1 → 2 → 3 columnas según
+          el ancho real; en 2 columnas la última tarjeta impar se centra sola. */}
+      <div className="@container">
+      <div id="plans-grid" className="grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6 lg:gap-8">
         {plans.map(plan => {
-          const isCurrent = plan.slug === currentPlanSlug
+          // Solo es "tu plan actual" si la suscripción sigue viva; con una
+          // cancelada/vencida los 3 planes se pueden elegir para reactivar.
+          const isCurrent = planIsLive && plan.slug === currentPlanSlug
           const isRecommended = plan.slug === 'growth'
           return (
             <PlanCard
               key={plan.slug}
               plan={plan}
+              className="@2xl:last:odd:col-span-2 @2xl:last:odd:justify-self-center @2xl:last:odd:w-full @2xl:last:odd:max-w-md @4xl:last:odd:col-span-1 @4xl:last:odd:max-w-none"
               isCurrent={isCurrent}
               isRecommended={isRecommended}
               billingMode={billingMode}
@@ -306,6 +331,10 @@ export default function PlansPage() {
                   const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
                   if (!ok) return
                   adminForceMutation.mutate(plan.slug)
+                } else if (hasLiveSubscription) {
+                  // Ya hay suscripción: el cambio de plan va por el portal de
+                  // Stripe (un checkout nuevo crearía una segunda suscripción).
+                  portalMutation.mutate()
                 } else {
                   subscribeMutation.mutate(plan)
                 }
@@ -313,6 +342,7 @@ export default function PlansPage() {
             />
           )
         })}
+      </div>
       </div>
 
       {/* Uso de conversaciones + Resumen de facturación */}

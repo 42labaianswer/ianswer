@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { LogOut, ChevronDown, User, Settings, MessageSquare, Sparkles, Building2 } from 'lucide-react'
+import { LogOut, ChevronDown, User, Settings, MessageSquare, Sparkles, Building2, Layers } from 'lucide-react'
 
 export default function ProfileWidget() {
   const router = useRouter()
@@ -134,6 +134,16 @@ export default function ProfileWidget() {
           >
             <Settings size={16} />
             Configuración
+          </button>
+
+          {/* Antes vivía como botón al pie de /dashboard; se movió aquí para que
+              esté disponible desde cualquier página (plan-agente-semana04, 1.3). */}
+          <button
+            onClick={() => { setIsOpen(false); router.push('/dashboard/templates') }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 font-semibold hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors"
+          >
+            <Layers size={16} />
+            Cambiar de industria
           </button>
         </div>
 

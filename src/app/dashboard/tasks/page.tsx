@@ -2,7 +2,8 @@
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
-import { useConfirm } from '../../../hooks/useConfirm'
+import { useUndoableDelete, undoableRowClass } from '../../../hooks/useUndoableDelete'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
@@ -73,7 +74,6 @@ const isOverdue = (due?: string | null, completed?: string | null): boolean => {
 // PAGE
 // ============================================================================
 export default function TasksPage() {
-  const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { labels } = useWorkspace()
@@ -140,15 +140,13 @@ export default function TasksPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasksEnriched'] })
   })
 
-  const deleteTaskMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tasks').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      toast.success('Tarea eliminada')
-      queryClient.invalidateQueries({ queryKey: ['tasksEnriched'] })
-    }
+  // Borrado diferido con "Deshacer" — sin modal de confirmación (aprobado por
+  // Rubén/Roy, plan-agente-semana04 1.1).
+  const undoDelete = useUndoableDelete({
+    table: 'tasks',
+    label: 'Tarea eliminada',
+    errorLabel: 'No se pudo eliminar la tarea. Intenta de nuevo.',
+    onDeleted: () => queryClient.invalidateQueries({ queryKey: ['tasksEnriched'] })
   })
 
   const snoozeMutation = useMutation({
@@ -164,11 +162,17 @@ export default function TasksPage() {
     }
   })
 
-  // Filtrar y agrupar
+  // Filtrar y agrupar. Las tareas con borrado pendiente se siguen pintando
+  // mientras se animan ('leaving') y se sacan de la lista ya ocultas ('hidden').
+  const { phaseOf } = undoDelete
   const visibleTasks = useMemo(() => {
-    if (showCompleted) return tasks
-    return tasks.filter(t => t.bucket !== 'completed')
-  }, [tasks, showCompleted])
+    const shown = tasks.filter(t => phaseOf(t.id) !== 'hidden')
+    if (showCompleted) return shown
+    return shown.filter(t => t.bucket !== 'completed')
+  }, [tasks, showCompleted, phaseOf])
+
+  // Los contadores ya no cuentan las que están en proceso de borrarse.
+  const liveTasks = useMemo(() => tasks.filter(t => !phaseOf(t.id)), [tasks, phaseOf])
 
   const buckets = useMemo(() => {
     const groups: Record<string, Task[]> = {}
@@ -180,10 +184,10 @@ export default function TasksPage() {
   }, [visibleTasks])
 
   const counts = useMemo(() => ({
-    overdue: tasks.filter(t => t.bucket === 'overdue').length,
-    today: tasks.filter(t => t.bucket === 'today').length,
-    total_pending: tasks.filter(t => t.bucket !== 'completed').length
-  }), [tasks])
+    overdue: liveTasks.filter(t => t.bucket === 'overdue').length,
+    today: liveTasks.filter(t => t.bucket === 'today').length,
+    total_pending: liveTasks.filter(t => t.bucket !== 'completed').length
+  }), [liveTasks])
 
   // v2.3: Guard de feature gating — si no tiene la feature, no entra
   if (isLoadingFeatures) {
@@ -291,21 +295,22 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <BIcon size={16} className={cfg.color} />
                   <h3 className={`text-sm font-black uppercase tracking-wider ${cfg.color}`}>{cfg.label}</h3>
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{items.length}</span>
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{items.filter(t => !phaseOf(t.id)).length}</span>
                 </div>
                 <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                   {items.map(task => (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      onToggleComplete={() => toggleCompleteMutation.mutate({ id: task.id, completed: !task.completed_at })}
-                      onEdit={() => setEditingTask(task)}
-                      onDelete={async () => {
-                        if (await confirm('¿Eliminar esta tarea?', { title: 'Eliminar tarea', danger: true, confirmText: 'Eliminar' })) deleteTaskMutation.mutate(task.id)
-                      }}
-                      onSnooze={(hours: number) => snoozeMutation.mutate({ id: task.id, hours })}
-                      onOpenContact={() => task.contact_id && router.push(`/dashboard/inbox?contactId=${task.contact_id}`)}
-                    />
+                    <div key={task.id} className={undoableRowClass(phaseOf(task.id))}>
+                      <div className="overflow-hidden min-h-0">
+                        <TaskRow
+                          task={task}
+                          onToggleComplete={() => toggleCompleteMutation.mutate({ id: task.id, completed: !task.completed_at })}
+                          onEdit={() => setEditingTask(task)}
+                          onDelete={() => undoDelete.remove(task.id)}
+                          onSnooze={(hours: number) => snoozeMutation.mutate({ id: task.id, hours })}
+                          onOpenContact={() => task.contact_id && router.push(`/dashboard/inbox?contactId=${task.contact_id}`)}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -329,7 +334,6 @@ export default function TasksPage() {
           }}
         />
       )}
-      {ConfirmDialog}
     </div>
   )
 }
@@ -341,6 +345,7 @@ function TaskRow({ task, onToggleComplete, onEdit, onDelete, onSnooze, onOpenCon
   const completed = !!task.completed_at
   const overdue = isOverdue(task.due_at, task.completed_at)
   const [snoozeOpen, setSnoozeOpen] = useState(false)
+  const snoozeBtnRef = useRef<HTMLButtonElement>(null)
 
   return (
     <div className={`group px-4 py-3 hover:bg-slate-50/50 transition-colors ${completed ? 'opacity-60' : ''}`}>
@@ -392,10 +397,12 @@ function TaskRow({ task, onToggleComplete, onEdit, onDelete, onSnooze, onOpenCon
             </div>
 
             {/* Acciones */}
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity relative">
+            {/* pointer-coarse: en táctil no hay hover, así que las acciones van siempre visibles */}
+            <div className={`flex items-center gap-1 shrink-0 transition-opacity relative ${snoozeOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100'}`}>
               {!completed && task.due_at && (
                 <div className="relative">
                   <button
+                    ref={snoozeBtnRef}
                     onClick={() => setSnoozeOpen(o => !o)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                     title="Posponer"
@@ -403,22 +410,11 @@ function TaskRow({ task, onToggleComplete, onEdit, onDelete, onSnooze, onOpenCon
                     <Clock size={13} />
                   </button>
                   {snoozeOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden min-w-[120px] z-20">
-                      {[
-                        { h: 1, label: '+1 hora' },
-                        { h: 4, label: '+4 horas' },
-                        { h: 24, label: 'Mañana' },
-                        { h: 168, label: 'En 1 semana' }
-                      ].map(opt => (
-                        <button
-                          key={opt.h}
-                          onClick={() => { onSnooze(opt.h); setSnoozeOpen(false) }}
-                          className="w-full px-3 py-2 text-xs font-bold text-left hover:bg-slate-50"
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
+                    <SnoozeMenu
+                      anchorRef={snoozeBtnRef}
+                      onClose={() => setSnoozeOpen(false)}
+                      onPick={(h) => { onSnooze(h); setSnoozeOpen(false) }}
+                    />
                   )}
                 </div>
               )}
@@ -433,6 +429,93 @@ function TaskRow({ task, onToggleComplete, onEdit, onDelete, onSnooze, onOpenCon
         </div>
       </div>
     </div>
+  )
+}
+
+// ============================================================================
+// SNOOZE MENU — plan-agente-semana04, 1.2
+// El menú antes era `absolute` dentro de la lista, que tiene `overflow-hidden`
+// (esquinas redondeadas) → se recortaba y no se veían todas las opciones. Ahora
+// se pinta en un portal con `position: fixed`, se voltea hacia arriba si no cabe
+// abajo, y tiene altura máxima con scroll interno.
+// ============================================================================
+const SNOOZE_OPTIONS = [
+  { h: 1, label: '+1 hora' },
+  { h: 4, label: '+4 horas' },
+  { h: 24, label: 'Mañana' },
+  { h: 168, label: 'En 1 semana' }
+]
+
+function SnoozeMenu({ anchorRef, onClose, onPick }: {
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+  onClose: () => void
+  onPick: (hours: number) => void
+}) {
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number, left: number, maxHeight: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const place = () => {
+      const anchor = anchorRef.current?.getBoundingClientRect()
+      const menu = menuRef.current
+      if (!anchor || !menu) return
+      const gap = 4, margin = 8
+      const menuH = menu.scrollHeight
+      const menuW = menu.offsetWidth
+      const below = window.innerHeight - anchor.bottom - gap - margin
+      const above = anchor.top - gap - margin
+      const openUp = menuH > below && above > below
+      const maxHeight = Math.max(80, openUp ? above : below)
+      const top = openUp ? anchor.top - gap - Math.min(menuH, maxHeight) : anchor.bottom + gap
+      const left = Math.min(Math.max(margin, anchor.right - menuW), window.innerWidth - menuW - margin)
+      setPos({ top, left, maxHeight })
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [anchorRef])
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node
+      if (menuRef.current?.contains(t) || anchorRef.current?.contains(t)) return
+      onClose()
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    // Si se hace scroll de la lista el ancla se mueve: cerrar es más simple y
+    // predecible que perseguirla.
+    const onScroll = (e: Event) => { if (!menuRef.current?.contains(e.target as Node)) onClose() }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('touchstart', onDown)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('touchstart', onDown)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [anchorRef, onClose])
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="menu"
+      className="fixed z-[9999] w-max min-w-[140px] bg-white border border-slate-200 rounded-xl shadow-lg overflow-y-auto"
+      style={pos ? { top: pos.top, left: pos.left, maxHeight: pos.maxHeight } : { top: 0, left: 0, visibility: 'hidden' }}
+    >
+      {SNOOZE_OPTIONS.map(opt => (
+        <button
+          key={opt.h}
+          role="menuitem"
+          onClick={() => onPick(opt.h)}
+          className="block w-full px-3 py-2 text-xs font-bold text-left text-slate-700 whitespace-nowrap hover:bg-slate-50"
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>,
+    document.body
   )
 }
 

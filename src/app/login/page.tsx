@@ -19,6 +19,8 @@ export default function LoginPage() {
   const urlPlanSlug    = searchParams.get('plan')
   const urlTemplate    = searchParams.get('template')
   const urlSignupFlag  = searchParams.get('signup') === '1'
+  // Llega aquí desde "Salir por ahora" en el paso 5 del wizard (plan-agente-semana04, 4.1)
+  const planRequired   = searchParams.get('motivo') === 'plan-requerido'
 
   // Si vienen de la landing pública (?signup=1), arrancar en modo registro
   const [isLogin, setIsLogin] = useState(!urlSignupFlag)
@@ -290,6 +292,14 @@ export default function LoginPage() {
           <p className="text-slate-500 font-medium text-sm mt-1">
             Gestión de agendas y automatizaciones.
           </p>
+
+          {isLogin && planRequired && (
+            <div className="mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left">
+              <p className="text-xs font-bold text-amber-900">
+                {platform.name || 'iAnswer'} requiere un plan activo. Tu información se guardó: inicia sesión cuando quieras continuar y elegir tu plan.
+              </p>
+            </div>
+          )}
 
           {/* Badge plan preseleccionado (cuando viene de landing pública) */}
           {!isLogin && (urlPlanSlug || urlTemplate) && (

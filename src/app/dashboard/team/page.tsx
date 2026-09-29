@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { normalizeTeamPayload } from '../../../lib/teamPayload'
+import { useUndoableDelete, undoableRowClass } from '../../../hooks/useUndoableDelete'
+import PageHeader from '../../../components/PageHeader'
 
 export default function TeamPage() {
   const { primaryTemplate, isLoadingWorkspace } = useWorkspace()
@@ -25,31 +27,52 @@ export default function TeamPage() {
   const templateId = primaryTemplate?.id || 'generic'
   const tplConfig = getTemplateConfig(templateId)
 
-  const [companyId, setCompanyId] = useState<string>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<TeamMember | null>(null)
   const [search, setSearch] = useState('')
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('active')
   const [filterTag, setFilterTag] = useState<string>('')
 
-  const { data: members = [], isLoading } = useQuery({
-    queryKey: ['team', companyId],
+  // company_id en su propia query (misma key y forma que /dashboard/tasks, así
+  // comparten caché). Antes se guardaba con setCompanyId() DENTRO del queryFn de
+  // la lista: al volver a la página la lista salía de caché, el queryFn no
+  // corría y companyId quedaba en '' → al borrar se invalidaba ['team', ''] y la
+  // persona eliminada seguía en pantalla hasta recargar (plan-agente-semana04,
+  // 1.7). También hacía fallar "Guardar" con "Sin company".
+  const { data: profile } = useQuery({
+    queryKey: ['currentUserProfile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No hay sesión')
-      const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
-      if (!profile?.company_id) throw new Error('Sin company')
-      setCompanyId(profile.company_id)
+      if (!user) throw new Error('No autenticado')
+      const { data } = await supabase.from('profiles').select('company_id, id').eq('id', user.id).single()
+      return data
+    }
+  })
+  const companyId: string = profile?.company_id || ''
 
+  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
+    queryKey: ['team', companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('team')
         .select('*')
-        .eq('company_id', profile.company_id)
+        .eq('company_id', companyId)
         .order('full_name', { ascending: true })
       if (error) throw error
       return data as TeamMember[]
     }
   })
+  const isLoading = !companyId || isLoadingMembers
+
+  // Otras páginas que muestran al equipo desde su propia query (Agente IA, el
+  // selector de Tareas). Sin esto, al agregar a alguien aquí y volver a Agente
+  // IA seguía saliendo el estado vacío hasta 5 min (staleTime global).
+  const invalidateTeamViews = () => Promise.all([
+    qc.invalidateQueries({ queryKey: ['team'] }),
+    qc.invalidateQueries({ queryKey: ['aiAgentsData'] }),
+    qc.invalidateQueries({ queryKey: ['teamForTasks'] })
+  ])
 
   const saveMutation = useMutation({
     mutationFn: async (m: TeamMember) => {
@@ -67,21 +90,19 @@ export default function TeamPage() {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['team', companyId] })
+      invalidateTeamViews()
       toast.success('Guardado')
     }
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('team').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['team', companyId] })
-      toast.success('Eliminado')
-    }
+  // Mismo patrón que /crm/tareas: fade out + toast con "Deshacer" (1.7).
+  const undoDelete = useUndoableDelete({
+    table: 'team',
+    label: `${tplConfig.noun_singular} eliminado`,
+    errorLabel: 'No se pudo eliminar. Intenta de nuevo.',
+    onDeleted: () => invalidateTeamViews()
   })
+  const { phaseOf } = undoDelete
 
   const allTags = useMemo(() => {
     const set = new Set<string>()
@@ -96,6 +117,7 @@ export default function TeamPage() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase()
     return members.filter(m => {
+      if (phaseOf(m.id!) === 'hidden') return false
       if (filterActive === 'active' && m.is_active === false) return false
       if (filterActive === 'inactive' && m.is_active !== false) return false
       if (filterTag) {
@@ -108,7 +130,9 @@ export default function TeamPage() {
       }
       return true
     })
-  }, [members, search, filterActive, filterTag])
+  }, [members, search, filterActive, filterTag, phaseOf])
+
+  const liveCount = members.filter(m => !phaseOf(m.id!)).length
 
   const openNew = () => { setEditing(null); setDrawerOpen(true) }
   const openEdit = (m: TeamMember) => { setEditing(m); setDrawerOpen(true) }
@@ -118,12 +142,17 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-4 md:py-6">
-      {/* Header */}
+    <div>
+      {/* Header propio: antes lo ponía el layout de /crm, pero Equipo ya vive
+          fuera de ahí (plan-agente-semana04, 6.2). El padding lo da MainContainer. */}
+      <PageHeader
+        title="Equipo"
+        description="Tu equipo profesional. El bot responde sobre cada miembro como su recepcionista."
+      />
       {/* Action bar: botón Nuevo + contador */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-slate-500 font-medium">
-          {members.length} {members.length === 1 ? 'registrado' : 'registrados'}
+          {liveCount} {liveCount === 1 ? 'registrado' : 'registrados'}
         </p>
         <button
           onClick={openNew}
@@ -182,16 +211,16 @@ export default function TeamPage() {
             <Users size={28} />
           </div>
           <h3 className="text-lg font-black text-slate-900 mb-1">
-            {members.length === 0
+            {liveCount === 0
               ? `Aún no tienes ${tplConfig.noun_plural.toLowerCase()}`
               : 'Sin resultados con esos filtros'}
           </h3>
           <p className="text-sm text-slate-500 font-medium mb-6">
-            {members.length === 0
+            {liveCount === 0
               ? `Agrega al primer miembro para que el bot pueda responder sobre el equipo.`
               : 'Prueba ajustar la búsqueda o quitar los filtros.'}
           </p>
-          {members.length === 0 && (
+          {liveCount === 0 && (
             <button
               onClick={openNew}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800"
@@ -204,7 +233,11 @@ export default function TeamPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(m => (
-            <TeamCard key={m.id} member={m} onClick={() => openEdit(m)} />
+            <div key={m.id} className={undoableRowClass(phaseOf(m.id!))}>
+              <div className="overflow-hidden min-h-0">
+                <TeamCard member={m} onClick={() => openEdit(m)} />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -218,7 +251,7 @@ export default function TeamPage() {
           templateId={templateId}
           onClose={() => { setDrawerOpen(false); setEditing(null) }}
           onSave={async (m) => { await saveMutation.mutateAsync(m) }}
-          onDelete={async (id) => { await deleteMutation.mutateAsync(id) }}
+          onDelete={async (id) => { undoDelete.remove(id) }}
         />
       )}
     </div>

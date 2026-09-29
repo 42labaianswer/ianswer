@@ -5,9 +5,17 @@
 // ============================================================================
 // src/components/SubscriptionGuard.tsx
 // ----------------------------------------------------------------------------
-// Componente que se monta en el layout del dashboard. Si la suscripción está
-// en 'expired' o 'past_due' (Y ya pasaron más de 3 días de gracia), redirige
-// al usuario a /dashboard/plans forzosamente.
+// Componente que se monta en el layout del dashboard. Sin una suscripción de
+// Stripe viva (en prueba, activa, o past_due dentro de la gracia) no se entra:
+// muestra un overlay que manda a /dashboard/plans.
+//
+// v2 (plan-agente-semana04, sección 4): LISTA BLANCA vía hasDashboardAccess().
+// Antes usaba isSubscriptionBlocked (lista negra) y 'inactive' —cuentas del
+// wizard sin pagar y suscripciones canceladas— nunca se bloqueaba.
+//
+// Las cuentas que todavía no terminan el onboarding o que nunca iniciaron una
+// suscripción las atiende el OnboardingWizard (paso 5 → Stripe); aquí solo se
+// bloquea a quien ya tuvo suscripción y se le venció o se canceló.
 //
 // EXCEPCIONES (no redirige si la ruta actual es una de estas):
 //   - /dashboard/plans (donde tiene que estar para pagar)
@@ -22,13 +30,15 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { isSubscriptionBlocked } from '../lib/subscription'
+import { hasDashboardAccess } from '../lib/subscription'
 
 const ALLOWED_PATHS = ['/dashboard/plans', '/dashboard/admin', '/dashboard/help', '/dashboard/profile']
 
 interface CompanyStatus {
   subscription_status: string | null
   trial_ends_at: string | null
+  onboarding_completed: boolean | null
+  stripe_subscription_id: string | null
 }
 
 export default function SubscriptionGuard() {
@@ -52,7 +62,7 @@ export default function SubscriptionGuard() {
 
       const { data: company } = await supabase
         .from('companies')
-        .select('subscription_status, trial_ends_at')
+        .select('subscription_status, trial_ends_at, onboarding_completed, stripe_subscription_id')
         .eq('id', profile.company_id)
         .maybeSingle()
 
@@ -64,10 +74,11 @@ export default function SubscriptionGuard() {
 
   if (!checked || !status) return null
 
-  // La regla vive en src/lib/subscription.ts (probada en
-  // src/lib/__tests__/subscription.test.ts) y está replicada en el nodo
-  // "5. Validar Suscripcion" de n8n. Si cambias una, cambia la otra.
-  const shouldBlock = isSubscriptionBlocked({
+  // Cuentas sin onboarding o que nunca se suscribieron → las atiende el wizard.
+  if (!status.onboarding_completed || !status.stripe_subscription_id) return null
+
+  // La regla vive en src/lib/subscription.ts (hasDashboardAccess).
+  const shouldBlock = !hasDashboardAccess({
     status: status.subscription_status,
     trialEndsAt: status.trial_ends_at
   })
@@ -85,11 +96,11 @@ export default function SubscriptionGuard() {
           <AlertTriangle size={28} strokeWidth={2} />
         </div>
         <h2 className="text-2xl font-black text-slate-950 tracking-tight mb-3">
-          Tu suscripción expiró
+          Tu suscripción no está activa
         </h2>
         <p className="text-sm text-slate-600 font-medium leading-relaxed mb-8">
-          Tu período de prueba terminó y todavía no tienes un plan activo.
-          Activa un plan para seguir usando iAnswer.
+          Tu suscripción se canceló o no pudimos cobrar tu plan.
+          Activa un plan para seguir usando iAnswer; tu información se conserva.
         </p>
         <Link
           href="/dashboard/plans"
@@ -98,7 +109,7 @@ export default function SubscriptionGuard() {
           Activar plan ahora <ArrowRight size={14} />
         </Link>
         <p className="text-xs text-slate-400 font-medium mt-4">
-          ¿Problemas? <Link href="/dashboard/help" className="text-lime-700 font-bold hover:underline">Contactar soporte</Link>
+          ¿Problemas? <Link href="/dashboard/help" className="text-indigo-600 font-bold hover:underline">Contactar soporte</Link>
         </p>
       </div>
     </div>

@@ -24,25 +24,27 @@ import {
   TrendingUp, Palette, LifeBuoy
 } from 'lucide-react'
 import IAnswerLoader from './IAnswerLoader'
+import { hasDashboardAccess } from '../lib/subscription'
 
 // ============================================================================
-// OnboardingWizard v3.1 — Carga dinámica de plantillas desde la DB
+// OnboardingWizard v4.0 — Stripe obligatorio (plan-agente-semana04, sección 4)
 // ----------------------------------------------------------------------------
-// P1: ¿A qué te dedicas?              → template (cargado de la DB)
-// P2: ¿Cuántos mensajes recibes al mes? → sugiere plan
-// P3: ¿Cuántos usuarios usarán?         → ajusta plan
-// P4: Addons sugeridos (OPCIONAL)       → addons del template + universales
-// P5: Crear cuenta                      → nombre + resumen → /api/onboarding/complete
+// P1: ¿A qué te dedicas?                  → template (cargado de la DB)
+// P2: ¿Cuántas conversaciones recibes?    → sugiere plan (rangos = plans.max_sessions_per_month)
+// P3: ¿Cuántos usuarios usarán?           → OCULTO (ENABLE_TEAM_SIZE_STEP)
+// P4: Addons sugeridos (OPCIONAL)         → solo "de interés", ya no se activan
+// P5: Casi listo                          → nombre + elegir plan → Stripe Checkout
 //
-// Endpoint: POST /api/onboarding/complete con
-//   { template_id, company_name, plan_slug, addon_ids[] }
+// El wizard ya NO asigna plan: /api/onboarding/complete guarda el plan como
+// pendiente y el plan real lo escribe el webhook de Stripe al iniciar la
+// prueba. Si el usuario sale sin pagar y vuelve a entrar, regresa al P5
+// (modo "resume"). Al volver de Stripe se confirma la sesión con
+// /api/stripe/confirm-checkout para no depender de que el webhook llegue antes.
 // ============================================================================
 
-const VOLUME_BANDS = [
-  { id: 'small',  label: 'Menos de 1,000',       range: 'Pocos mensajes',    suggestedPlan: 'start' as const },
-  { id: 'medium', label: 'Entre 1,000 y 5,000',  range: 'Volumen medio',     suggestedPlan: 'growth' as const },
-  { id: 'large',  label: 'Más de 5,000',         range: 'Alto volumen',      suggestedPlan: 'scale' as const }
-]
+// El paso "¿Cuántas personas usarán iAnswer?" vuelve cuando existan las
+// invitaciones a equipos. Mientras tanto la sugerencia de plan solo usa el P2.
+const ENABLE_TEAM_SIZE_STEP = false
 
 const USER_BANDS = [
   { id: '1',      label: '1 usuario',          description: 'Solo yo',                        suggestedPlan: 'start' as const },
@@ -52,6 +54,35 @@ const USER_BANDS = [
 
 const PLAN_NAMES = { start: 'Start', growth: 'Growth', scale: 'Scale' }
 type PlanSlug = 'start' | 'growth' | 'scale'
+type WizardStep = 1 | 2 | 3 | 4 | 5
+
+type PlanRow = {
+  slug: PlanSlug
+  name: string
+  description: string | null
+  price_monthly_cents: number
+  max_sessions_per_month: number
+  max_team_members: number
+  max_channels: number
+  trial_days: number | null
+  stripe_price_id: string | null
+}
+
+// Rangos del P2 armados con las conversaciones reales de cada plan (misma
+// fuente que /dashboard/plans y /precios), no escritos a mano.
+function buildVolumeBands(plans: PlanRow[]) {
+  const [start, growth] = plans
+  if (!start || !growth) return []
+  const fmt = (n: number) => n.toLocaleString('es-MX')
+  return [
+    { id: 'small',  label: `Hasta ${fmt(start.max_sessions_per_month)}`,
+      range: 'Pocas conversaciones', suggestedPlan: start.slug },
+    { id: 'medium', label: `Entre ${fmt(start.max_sessions_per_month + 1)} y ${fmt(growth.max_sessions_per_month)}`,
+      range: 'Volumen medio', suggestedPlan: growth.slug },
+    { id: 'large',  label: `Más de ${fmt(growth.max_sessions_per_month)}`,
+      range: 'Alto volumen', suggestedPlan: (plans[2] || growth).slug },
+  ]
+}
 
 const ADDON_ICONS: Record<string, any> = {
   FileText, Sparkles, Phone, Plug, ShieldCheck, Zap, Wrench, GraduationCap,
@@ -93,13 +124,26 @@ export default function OnboardingWizard() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
 
   // Estado del wizard
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [step, setStep] = useState<WizardStep>(1)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [volumeBand, setVolumeBand] = useState<typeof VOLUME_BANDS[number]['id'] | null>(null)
+  const [volumeBand, setVolumeBand] = useState<string | null>(null)
   const [userBand, setUserBand] = useState<typeof USER_BANDS[number]['id'] | null>(null)
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [companyName, setCompanyName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  // Plan elegido en el P5 (arranca en el sugerido; el usuario lo puede cambiar).
+  const [chosenPlan, setChosenPlan] = useState<PlanSlug | null>(null)
+  // 'resume': terminó los pasos pero salió sin pagar → se muestra solo el P5.
+  const [mode, setMode] = useState<'full' | 'resume'>('full')
+  // Regreso de Stripe con éxito: se confirma la sesión antes de entrar.
+  const [activating, setActivating] = useState(false)
+
+  const visibleSteps: WizardStep[] = mode === 'resume'
+    ? [5]
+    : ENABLE_TEAM_SIZE_STEP ? [1, 2, 3, 4, 5] : [1, 2, 4, 5]
+  const stepIndex = Math.max(0, visibleSteps.indexOf(step))
+  const goNext = () => setStep(visibleSteps[Math.min(stepIndex + 1, visibleSteps.length - 1)])
+  const goPrev = () => setStep(visibleSteps[Math.max(stepIndex - 1, 0)])
 
   // ── Cargar plantillas desde la base de datos ──
   const { data: templates = [], isLoading: loadingTemplates } = useQuery({
@@ -115,12 +159,31 @@ export default function OnboardingWizard() {
     }
   })
 
+  // Planes reales (conversaciones, precio, price_id de Stripe)
+  const { data: plans = [] } = useQuery({
+    queryKey: ['onboarding-plans'],
+    enabled: needsOnboarding,
+    queryFn: async (): Promise<PlanRow[]> => {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('slug, name, description, price_monthly_cents, max_sessions_per_month, max_team_members, max_channels, trial_days, stripe_price_id')
+        .eq('is_active', true)
+        .eq('is_legacy', false)
+        .order('display_order')
+      if (error) throw error
+      return (data || []) as PlanRow[]
+    }
+  })
+  const volumeBands = buildVolumeBands(plans)
+
   const suggestedPlan: PlanSlug = (() => {
-    if (!volumeBand && !userBand) return 'start'
-    const vp = VOLUME_BANDS.find(b => b.id === volumeBand)?.suggestedPlan || 'start'
+    const vp = (volumeBands.find(b => b.id === volumeBand)?.suggestedPlan || 'start') as PlanSlug
+    if (!ENABLE_TEAM_SIZE_STEP || !userBand) return vp
     const up = USER_BANDS.find(b => b.id === userBand)?.suggestedPlan || 'start'
     return getMaxPlan(vp, up)
   })()
+  const planToBuy: PlanSlug = chosenPlan || suggestedPlan
+  const trialDays = plans.find(p => p.slug === planToBuy)?.trial_days ?? 7
 
   // Cargar addons disponibles para el template seleccionado (cuando llegamos al P4)
   const { data: availableAddons = [], isLoading: loadingAddons } = useQuery({
@@ -140,6 +203,58 @@ export default function OnboardingWizard() {
       })
     }
   })
+
+  // ─── Regreso de Stripe: confirmar la sesión (reintenta unos segundos) ───
+  const confirmCheckout = async (sessionId: string) => {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const res = await fetch('/api/stripe/confirm-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        })
+        const result = await res.json().catch(() => ({}))
+        if (res.ok && result.ok) {
+          toast.success('¡Listo! Tu prueba gratuita ya comenzó')
+          window.history.replaceState(null, '', window.location.pathname)
+          setTimeout(() => window.location.reload(), 700)
+          return
+        }
+        if (res.status === 403 || res.status === 400) break
+      } catch { /* reintentar */ }
+      await new Promise(r => setTimeout(r, 2000))
+    }
+    toast.error('No pudimos confirmar tu suscripción todavía. Recarga la página en unos segundos.', { duration: 8000 })
+    window.history.replaceState(null, '', window.location.pathname)
+    setTimeout(() => window.location.reload(), 3000)
+  }
+
+  // ─── Salir sin plan ───
+  // Guarda primero lo del onboarding (si el usuario ya contestó los pasos) para
+  // que al volver a iniciar sesión regrese directo al P5 y no a empezar de cero.
+  const handleExit = async () => {
+    setIsSaving(true)
+    try {
+      if (mode === 'full' && selectedTemplate && volumeBand && companyName.trim().length >= 2) {
+        await fetch('/api/onboarding/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template_id: selectedTemplate,
+            company_name: companyName.trim(),
+            plan_slug: planToBuy,
+            addon_ids: selectedAddons
+          })
+        })
+      } else if (mode === 'resume' && companyId) {
+        await supabase.from('companies').update({ pending_plan_slug: planToBuy }).eq('id', companyId)
+      }
+    } catch (e) {
+      console.warn('[Onboarding] No se pudo guardar antes de salir:', e)
+    }
+    await supabase.auth.signOut()
+    window.location.href = '/login?motivo=plan-requerido'
+  }
 
   // Verificar si necesita onboarding
   useEffect(() => {
@@ -167,7 +282,7 @@ export default function OnboardingWizard() {
         let company: any = null
         const { data: fullCompany, error: fullErr } = await supabase
           .from('companies')
-          .select('name, onboarding_completed, plan_slug')
+          .select('name, onboarding_completed, plan_slug, pending_plan_slug, subscription_status, trial_ends_at, stripe_subscription_id')
           .eq('id', profile.company_id)
           .maybeSingle()
 
@@ -192,11 +307,35 @@ export default function OnboardingWizard() {
 
         const hasPrimaryTemplate = !!(ctData && ctData.length > 0)
         const isCompleted = !!company?.onboarding_completed
+        if (company?.name && !company.name.includes('@')) setCompanyName(company.name)
+
+        const params = new URLSearchParams(window.location.search)
+        const checkout = params.get('checkout')
+        const sessionId = params.get('session_id')
+
+        if (checkout === 'success' && sessionId) {
+          // Regreso de Stripe: confirmar antes de soltar al usuario al dashboard.
+          setNeedsOnboarding(true)
+          setActivating(true)
+          setLoading(false)
+          confirmCheckout(sessionId)
+          return
+        }
 
         if (!isCompleted && !hasPrimaryTemplate) {
           setNeedsOnboarding(true)
-          if (company?.name && !company.name.includes('@')) {
-            setCompanyName(company.name)
+        } else if (
+          // Terminó el wizard pero nunca inició suscripción en Stripe → P5.
+          !company?.stripe_subscription_id &&
+          !hasDashboardAccess({ status: company?.subscription_status, trialEndsAt: company?.trial_ends_at })
+        ) {
+          setNeedsOnboarding(true)
+          setMode('resume')
+          setStep(5)
+          if (company?.pending_plan_slug) setChosenPlan(company.pending_plan_slug as PlanSlug)
+          if (checkout === 'canceled') {
+            toast('No se completó el registro en Stripe. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
+            window.history.replaceState(null, '', window.location.pathname)
           }
         }
       }
@@ -205,38 +344,67 @@ export default function OnboardingWizard() {
     checkStatus()
   }, [])
 
-  // ─── Finalizar onboarding ───
+  // ─── Finalizar: guardar lo del onboarding y mandar a Stripe Checkout ───
   const handleComplete = async () => {
-    if (!selectedTemplate || !volumeBand || !userBand || !companyName.trim() || !companyId) {
-      toast.error('Completa todos los pasos antes de finalizar')
+    const needsAnswers = mode === 'full'
+    if (!companyName.trim() || !companyId || (needsAnswers && (!selectedTemplate || !volumeBand || (ENABLE_TEAM_SIZE_STEP && !userBand)))) {
+      toast.error('Completa todos los pasos antes de continuar')
+      return
+    }
+    const plan = plans.find(p => p.slug === planToBuy)
+    if (!plan?.stripe_price_id) {
+      toast.error('Este plan todavía no se puede contratar. Elige otro o contacta a soporte.')
       return
     }
 
     setIsSaving(true)
     try {
-      const res = await fetch('/api/onboarding/complete', {
+      if (needsAnswers) {
+        const res = await fetch('/api/onboarding/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template_id: selectedTemplate,
+            company_name: companyName.trim(),
+            plan_slug: planToBuy,
+            addon_ids: selectedAddons
+          })
+        })
+        const result = await res.json()
+        if (!res.ok) {
+          const fullMsg = result.detail
+            ? `${result.error}\n\nDetalle: ${result.detail}${result.hint ? '\n\n💡 ' + result.hint : ''}`
+            : result.error || 'Error en el endpoint de onboarding'
+          console.error('[Onboarding] Server error:', result)
+          throw new Error(fullMsg)
+        }
+      } else {
+        // Resume: solo actualizar nombre y plan pendiente.
+        await supabase
+          .from('companies')
+          .update({ name: companyName.trim(), pending_plan_slug: planToBuy })
+          .eq('id', companyId)
+      }
+
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          template_id: selectedTemplate,
-          company_name: companyName.trim(),
-          plan_slug: suggestedPlan,
-          addon_ids: selectedAddons
+          priceId: plan.stripe_price_id,
+          companyId,
+          planSlug: planToBuy,
+          billingMode: 'monthly',
+          returnTo: 'wizard'
         })
       })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        const fullMsg = result.detail
-          ? `${result.error}\n\nDetalle: ${result.detail}${result.hint ? '\n\n💡 ' + result.hint : ''}`
-          : result.error || 'Error en el endpoint de onboarding'
-        console.error('[Onboarding] Server error:', result)
-        throw new Error(fullMsg)
+      const result = await res.json().catch(() => ({}))
+      if (res.status === 409) {
+        // Ya tiene suscripción (p. ej. la activó en otra pestaña): entrar.
+        window.location.reload()
+        return
       }
-
-      toast.success('¡Listo! Tu cuenta está configurada')
-      setTimeout(() => window.location.reload(), 600)
+      if (!res.ok || !result.url) throw new Error(result.error || 'No se pudo abrir el pago en Stripe')
+      window.location.href = result.url
     } catch (error: any) {
       console.error('[Onboarding] Error:', error)
       toast.error(error?.message || 'Error guardando la configuración', { duration: 8000 })
@@ -249,11 +417,24 @@ export default function OnboardingWizard() {
     (step === 2 && !!volumeBand) ||
     (step === 3 && !!userBand) ||
     step === 4 ||
-    (step === 5 && companyName.trim().length >= 2)
+    (step === 5 && companyName.trim().length >= 2 && plans.length > 0)
 
   if (loading) return null
   if (!needsOnboarding) return null
   if (typeof window === 'undefined') return null
+
+  if (activating) {
+    return createPortal(
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+        <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-10 text-center">
+          <div className="flex justify-center mb-6"><IAnswerLoader size={40} /></div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Activando tu prueba gratuita…</h2>
+          <p className="text-sm text-slate-500 font-medium">Estamos confirmando tu registro con Stripe. Esto tarda unos segundos.</p>
+        </div>
+      </div>,
+      document.body
+    )
+  }
 
   const monthlyAddonCost = (availableAddons as AddonRow[])
     .filter(a => selectedAddons.includes(a.id) && a.is_recurring)
@@ -285,20 +466,24 @@ export default function OnboardingWizard() {
               )}
               <span className="text-lg font-black text-slate-900 tracking-tight">{brandName}</span>
             </div>
-            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-              Paso {step} de 5
-            </span>
+            {mode === 'full' && (
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+                Paso {stepIndex + 1} de {visibleSteps.length}
+              </span>
+            )}
           </div>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map(n => (
-              <div
-                key={n}
-                className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
-                  n <= step ? 'bg-slate-900' : 'bg-slate-200'
-                }`}
-              />
-            ))}
-          </div>
+          {mode === 'full' && (
+            <div className="flex gap-2">
+              {visibleSteps.map((n, i) => (
+                <div
+                  key={n}
+                  className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
+                    i <= stepIndex ? 'bg-slate-900' : 'bg-slate-200'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Contenido del paso */}
@@ -359,13 +544,16 @@ export default function OnboardingWizard() {
           {step === 2 && (
             <>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
-                ¿Cuántos mensajes recibes al mes?
+                ¿Cuántas conversaciones recibes al mes?
               </h2>
               <p className="text-sm text-slate-500 font-medium mb-8">
-                Estimación aproximada (entre todos los canales). Te sugerimos un plan basado en esto.
+                Cada cliente que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien. Es una estimación: te sugerimos un plan con base en esto.
               </p>
               <div className="space-y-3 max-w-xl mx-auto">
-                {VOLUME_BANDS.map(band => {
+                {volumeBands.length === 0 && (
+                  <div className="flex justify-center py-10"><IAnswerLoader size={32} /></div>
+                )}
+                {volumeBands.map(band => {
                   const isSelected = volumeBand === band.id
                   return (
                     <button
@@ -383,7 +571,7 @@ export default function OnboardingWizard() {
                         <MessageSquare size={20} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-black text-slate-900 text-lg">{band.label}</h3>
+                        <h3 className="font-black text-slate-900 text-lg">{band.label} <span className="text-sm font-bold text-slate-500">conversaciones</span></h3>
                         <p className="text-xs text-slate-500 font-medium">{band.range}</p>
                       </div>
                       <div className="text-right">
@@ -453,7 +641,7 @@ export default function OnboardingWizard() {
                 </span>
               </div>
               <p className="text-sm text-slate-500 font-medium mb-6">
-                Te recomendamos estos addons según tu plantilla. Puedes activarlos ahora con 7 días gratis o más tarde desde el dashboard.
+                Marca los que te interesen: te los recordaremos para que los actives desde Extras cuando quieras. No se cobran ni se activan ahora.
               </p>
 
               {loadingAddons ? (
@@ -526,10 +714,10 @@ export default function OnboardingWizard() {
                         <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                           {selectedAddons.length} complemento{selectedAddons.length !== 1 ? 's' : ''} seleccionado{selectedAddons.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-[10px] font-bold uppercase opacity-70 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">7 días gratis</span>
+                        <span className="text-[10px] font-bold uppercase opacity-70 bg-white/10 px-2 py-0.5 rounded">De interés</span>
                       </div>
                       {monthlyAddonCost > 0 && (
-                        <p className="text-lg font-black">+ {centsToMxn(monthlyAddonCost)}/mes <span className="text-xs font-medium opacity-60">después del trial</span></p>
+                        <p className="text-lg font-black">+ {centsToMxn(monthlyAddonCost)}/mes <span className="text-xs font-medium opacity-60">si los activas después</span></p>
                       )}
                       {oneTimeAddonCost > 0 && (
                         <p className="text-sm font-bold">{centsToMxn(oneTimeAddonCost)} <span className="text-xs font-medium opacity-60">pago único</span></p>
@@ -541,7 +729,7 @@ export default function OnboardingWizard() {
             </>
           )}
 
-          {/* ─── P5: Resumen + crear cuenta ─── */}
+          {/* ─── P5: Casi listo → elegir plan → Stripe ─── */}
           {step === 5 && (
             <>
               <div className="text-center mb-8">
@@ -551,14 +739,16 @@ export default function OnboardingWizard() {
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
                   Casi listo
                 </h2>
-                <p className="text-sm text-slate-500 font-medium">
-                  Confirma el nombre de tu negocio para terminar la configuración.
+                <p className="text-sm text-slate-500 font-medium max-w-lg mx-auto">
+                  {mode === 'resume'
+                    ? `Para usar ${brandName} necesitas un plan activo. Elige uno e inicia tu prueba gratuita de ${trialDays} días.`
+                    : `Elige tu plan e inicia tu prueba gratuita de ${trialDays} días. Te sugerimos uno según tus respuestas.`}
                 </p>
               </div>
 
-              <div className="max-w-xl mx-auto space-y-6">
+              <div className="max-w-3xl mx-auto space-y-6">
                 {/* Input nombre */}
-                <div>
+                <div className="max-w-xl mx-auto">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">
                     Nombre de tu negocio
                   </label>
@@ -574,17 +764,54 @@ export default function OnboardingWizard() {
                   />
                 </div>
 
-                {/* Resumen rediseñado con cards */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-5">
-                    <Sparkles size={14} className="text-slate-500" />
-                    <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">
-                      Tu configuración
-                    </h3>
-                  </div>
+                {/* Selector de plan */}
+                <div>
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-3 text-center">Tu plan</p>
+                  {plans.length === 0 ? (
+                    <div className="flex justify-center py-8"><IAnswerLoader size={32} /></div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {plans.map(plan => {
+                        const isSelected = planToBuy === plan.slug
+                        const isSuggested = mode === 'full' && suggestedPlan === plan.slug
+                        return (
+                          <button
+                            key={plan.slug}
+                            type="button"
+                            onClick={() => setChosenPlan(plan.slug)}
+                            className={`relative text-left p-5 rounded-2xl border-2 transition-all ${
+                              isSelected
+                                ? 'border-slate-900 bg-slate-50 ring-4 ring-slate-900/10'
+                                : 'border-slate-100 bg-white hover:border-slate-300'
+                            }`}
+                          >
+                            {isSuggested && (
+                              <span className="absolute -top-2.5 left-4 text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white px-2 py-0.5 rounded-full">
+                                Sugerido
+                              </span>
+                            )}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <h3 className="font-black text-slate-900 text-lg tracking-tight">{plan.name}</h3>
+                              {isSelected && <CheckCircle2 size={18} className="text-slate-900 shrink-0" />}
+                            </div>
+                            <p className="text-xl font-black text-slate-900">
+                              {centsToMxn(plan.price_monthly_cents)}<span className="text-xs font-bold text-slate-500"> /mes</span>
+                            </p>
+                            <ul className="mt-3 space-y-1 text-xs text-slate-600 font-medium">
+                              <li>{plan.max_sessions_per_month.toLocaleString('es-MX')} conversaciones/mes</li>
+                              <li>{plan.max_team_members} {plan.max_team_members === 1 ? 'usuario' : 'usuarios'}</li>
+                              <li>{plan.max_channels} {plan.max_channels === 1 ? 'canal' : 'canales'}</li>
+                            </ul>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                  <div className="space-y-3">
-                    {/* Plantilla */}
+                {/* Resumen */}
+                {mode === 'full' && (
+                  <div className="max-w-xl mx-auto space-y-2">
                     {(() => {
                       const tpl = selectedTemplateData
                       const TplIcon = tpl?.icon ? getIcon(tpl.icon) : Sparkles
@@ -600,43 +827,28 @@ export default function OnboardingWizard() {
                         </div>
                       )
                     })()}
-
-                    {/* Plan */}
-                    <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100">
-                      <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                        <TrendingUp size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plan</p>
-                        <p className="text-sm font-black text-slate-900">{PLAN_NAMES[suggestedPlan]}</p>
-                      </div>
-                    </div>
-
-                    {/* Addons */}
                     {selectedAddons.length > 0 && (
-                      <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-emerald-200">
+                      <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100">
                         <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                           <PackageOpen size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complementos</p>
-                          <p className="text-sm font-black text-slate-900">
-                            {selectedAddons.length} activo{selectedAddons.length !== 1 ? 's' : ''}
-                            <span className="text-[10px] font-bold text-emerald-700 ml-2 bg-emerald-100 px-1.5 py-0.5 rounded">7 días gratis</span>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complementos de interés</p>
+                          <p className="text-sm font-bold text-slate-700">
+                            {selectedAddons.length} marcado{selectedAddons.length !== 1 ? 's' : ''} · los activas después desde Extras
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
+                )}
 
-                {/* Nota final */}
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2">
-                  <Sparkles size={14} className="text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-blue-900 font-medium leading-relaxed">
-                    Podrás cambiar tu plan, instalar más plantillas o activar/desactivar complementos en cualquier momento desde el dashboard.
-                  </p>
-                </div>
+                <p className="text-center text-xs text-slate-500 font-medium">
+                  {brandName} requiere un plan activo para funcionar.{' '}
+                  <button type="button" onClick={handleExit} className="font-bold text-slate-700 underline hover:text-slate-900">
+                    Salir por ahora
+                  </button>
+                </p>
               </div>
             </>
           )}
@@ -645,8 +857,8 @@ export default function OnboardingWizard() {
         {/* Footer con navegación */}
         <div className="px-8 py-5 border-t border-slate-100 flex items-center justify-between bg-slate-50">
           <button
-            onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4 | 5)}
-            disabled={step === 1}
+            onClick={goPrev}
+            disabled={stepIndex === 0}
             className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <ArrowLeft size={16} />
@@ -656,7 +868,7 @@ export default function OnboardingWizard() {
           <div className="flex items-center gap-3">
             {step === 4 && (
               <button
-                onClick={() => setStep(5)}
+                onClick={goNext}
                 className="px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-900"
               >
                 Omitir
@@ -665,7 +877,7 @@ export default function OnboardingWizard() {
             <button
               onClick={() => {
                 if (step === 5) handleComplete()
-                else setStep((step + 1) as 1 | 2 | 3 | 4 | 5)
+                else goNext()
               }}
               disabled={!canAdvance || isSaving}
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
@@ -673,12 +885,12 @@ export default function OnboardingWizard() {
               {isSaving ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Guardando...
+                  {step === 5 ? 'Abriendo Stripe...' : 'Guardando...'}
                 </>
               ) : step === 5 ? (
                 <>
-                  <CheckCircle2 size={16} />
-                  Finalizar
+                  Continuar con Stripe
+                  <ArrowRight size={16} />
                 </>
               ) : (
                 <>
@@ -732,7 +944,6 @@ function AddonRowSelect({
             ? `${centsToMxn(addon.price_monthly_cents)}/mes`
             : centsToMxn(addon.price_one_time_cents)}
         </p>
-        <p className="text-[10px] font-bold text-emerald-700">7 días gratis</p>
       </div>
       <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
         isSelected ? 'border-slate-900 bg-slate-900' : 'border-slate-300'

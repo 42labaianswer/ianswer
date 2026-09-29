@@ -19,13 +19,13 @@ import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '../../../../lib/resend';
 import { buildPasswordResetEmail } from '../../../../lib/emails/password-reset-email';
 import { checkRateLimit, clientKey, rateLimitHeaders, RATE_LIMITS } from '../../../../lib/rateLimit'
+import { getAppBaseUrl } from '../../../../lib/appUrl'
 
 export const runtime = 'nodejs'; // Necesitamos service_role; no edge
 
 // ─── Configuración ─────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const APP_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 // ─── Helper de respuesta neutral ───────────────────────────────────────────
 // Siempre devolvemos el mismo mensaje para no revelar si el email existe.
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${APP_BASE_URL}/reset-password`,
+        redirectTo: `${getAppBaseUrl()}/reset-password`,
       },
     });
 

@@ -73,7 +73,7 @@ export default function SobreNosotrosPage() {
         <Reveal>
           <CTABanner
             title="Únete a quienes ya descansan"
-            subtitle="Tu bot listo en 10 minutos. Pruébalo gratis. Sin tarjeta."
+            subtitle="Tu bot listo en 10 minutos. Pruébalo gratis, sin cargos durante la prueba."
             primaryCta={{ text: 'Probar gratis', href: '/login?signup=1' }}
             secondaryCta={{ text: 'Hablar con ventas', href: '/contacto' }}
           />

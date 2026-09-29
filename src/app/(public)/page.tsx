@@ -92,7 +92,7 @@ export default async function HomePage() {
 
           <Reveal delay={400}>
             <div className="mt-12 md:mt-16 flex items-center gap-3 text-xs text-slate-500">
-              <Check size={14} className="text-lime-600" /> Sin tarjeta
+              <Check size={14} className="text-lime-600" /> Sin cargos en la prueba
               <span className="text-slate-300">·</span>
               <Check size={14} className="text-lime-600" /> Prueba gratis
               <span className="text-slate-300">·</span>
