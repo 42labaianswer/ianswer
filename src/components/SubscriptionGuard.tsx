@@ -31,8 +31,10 @@ import { supabase } from '../lib/supabase'
 import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { hasDashboardAccess } from '../lib/subscription'
+import { BLOCKED_ALLOWED_PATHS } from '../lib/dashboardGate'
 
-const ALLOWED_PATHS = ['/dashboard/plans', '/dashboard/admin', '/dashboard/help', '/dashboard/profile']
+// Misma lista que usa proxy.ts para el bloqueo en el servidor.
+const ALLOWED_PATHS = BLOCKED_ALLOWED_PATHS
 
 interface CompanyStatus {
   subscription_status: string | null
