@@ -457,14 +457,17 @@ export default function OnboardingWizard() {
         <div className="px-8 pt-8 pb-4 border-b border-slate-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
+              {/* El logo de la plataforma ya trae el nombre: el texto solo va sin logo. */}
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
+                <img src={logoUrl} alt={brandName} className="h-8 object-contain" />
               ) : (
-                <div className="h-10 w-10 bg-slate-950 rounded-xl flex items-center justify-center">
-                  <Sparkles className="text-white" size={20} />
-                </div>
+                <>
+                  <div className="h-10 w-10 bg-slate-950 rounded-xl flex items-center justify-center">
+                    <Sparkles className="text-white" size={20} />
+                  </div>
+                  <span className="text-lg font-black text-slate-900 tracking-tight">{brandName}</span>
+                </>
               )}
-              <span className="text-lg font-black text-slate-900 tracking-tight">{brandName}</span>
             </div>
             {mode === 'full' && (
               <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">

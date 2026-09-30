@@ -13,6 +13,8 @@ import ThemeSync from '../../components/ThemeSync'
 import ServerThemeStyle from '../../components/ServerThemeStyle'
 import ServerThemeHydrator from '../../components/ServerThemeHydrator'
 import { getServerTheme } from '../../lib/getServerTheme'
+import { headers } from 'next/headers'
+import { GATE_HEADER } from '../../lib/dashboardGate'
 
 // ============================================================================
 // DashboardLayout v3 - Server-resolved theme (Sprint N2)
@@ -32,6 +34,27 @@ import { getServerTheme } from '../../lib/getServerTheme'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const serverTheme = await getServerTheme()
+
+  // Acceso decidido en el servidor por proxy.ts (lib/dashboardGate.ts). Si la
+  // cuenta tiene que pasar por el wizard, no se manda NADA del dashboard al
+  // navegador: solo el wizard. Así borrar el overlay no deja nada debajo.
+  const gate = (await headers()).get(GATE_HEADER)
+
+  if (gate === 'wizard') {
+    return (
+      <>
+        <ServerThemeStyle theme={serverTheme} />
+        <WorkspaceProvider>
+          <ServerThemeHydrator theme={serverTheme} />
+          <ThemeSync />
+          <div className="h-screen bg-slate-50 font-sans text-slate-900">
+            <SignupBootstrap />
+            <OnboardingWizard />
+          </div>
+        </WorkspaceProvider>
+      </>
+    )
+  }
 
   return (
     <>
