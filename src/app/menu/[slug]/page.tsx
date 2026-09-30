@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * /menu/[companySlug]/page.tsx · v2.18
+ * /menu/[slug]/page.tsx · v2.18
  * ----------------------------------------------------------------------------
  * Catálogo PÚBLICO whitelabel del menú completo de un restaurante.
  *
@@ -14,6 +14,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { hasFullBranding, getPlatformName } from '../../../lib/branding'
+import { getPublicCompanyById, companyHasTemplate } from '../../../lib/publicCompany'
 
 const supabaseAnon = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,15 +24,13 @@ const supabaseAnon = createClient(
 export const dynamic = 'force-dynamic'
 export const revalidate = 120
 
-type Params = { params: Promise<{ companySlug: string }> }
+// La carpeta es [slug] (el valor es el id de la empresa). Antes se leía
+// `companySlug`, que siempre llegaba undefined → la página daba 404.
+type Params = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Params) {
-  const { companySlug } = await params
-  const { data: company } = await supabaseAnon
-    .from('companies')
-    .select('name')
-    .eq('id', companySlug)
-    .maybeSingle()
+  const { slug: companySlug } = await params
+  const { data: company } = await getPublicCompanyById<{ name: string }>(companySlug, ['name'])
 
   return {
     title: `${company?.name || 'Restaurante'} · Menú`,
@@ -40,24 +39,17 @@ export async function generateMetadata({ params }: Params) {
 }
 
 export default async function MenuPublicPage({ params }: Params) {
-  const { companySlug } = await params
+  const { slug: companySlug } = await params
 
   // 1. Datos de company
-  const { data: company } = await supabaseAnon
-    .from('companies')
-    .select('id, name, brand_logo_url, brand_primary_color, brand_accent_color')
-    .eq('id', companySlug)
-    .maybeSingle()
+  const { data: company } = await getPublicCompanyById<{
+    id: string; name: string; logo_url: string | null; primary_color: string | null; secondary_color: string | null
+  }>(companySlug, ['id', 'name', 'logo_url', 'primary_color', 'secondary_color'])
 
   if (!company) return notFound()
 
   // Verificar que tenga template 'restaurant' instalado (reemplaza chequeo vertical_id legacy)
-  const { data: hasRestaurant } = await supabaseAnon
-    .from('company_templates')
-    .select('template_id')
-    .eq('company_id', company.id)
-    .eq('template_id', 'restaurant')
-    .maybeSingle()
+  const hasRestaurant = await companyHasTemplate(company.id, 'restaurant')
 
   if (!hasRestaurant) return notFound()
 
@@ -76,9 +68,12 @@ export default async function MenuPublicPage({ params }: Params) {
   const categories = catsRes.data || []
   const items: any[] = itemsRes.data || []
 
-  const primaryColor = company.brand_primary_color || '#ea580c'
-  const accentColor = company.brand_accent_color || '#f97316'
-  const logo = company.brand_logo_url
+  // Las columnas brand_* que se pedían antes no existen en companies (la página
+  // daba 404). Se usan las de marca reales; los valores DEFAULT de la columna
+  // cuentan como "sin configurar" para conservar los colores del menú.
+  const primaryColor = company.primary_color && company.primary_color !== '#0f172a' ? company.primary_color : '#ea580c'
+  const accentColor = company.secondary_color && company.secondary_color !== '#64748b' ? company.secondary_color : '#f97316'
+  const logo = company.logo_url
 
   // Agrupar items por categoría
   const itemsByCategory: Record<string, any[]> = {}

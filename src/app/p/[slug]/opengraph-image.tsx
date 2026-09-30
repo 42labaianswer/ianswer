@@ -1,7 +1,6 @@
 // src/app/p/[slug]/opengraph-image.tsx
 import { ImageResponse } from 'next/og';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { getPublicCompanyBySlug } from '../../../lib/publicCompany';
 
 export const runtime = 'edge';
 export const alt = 'Catálogo de propiedades';
@@ -13,27 +12,7 @@ interface Props {
 }
 
 export default async function OpengraphImage({ params }: Props) {
-  // ✅ Ahora con await
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  );
-
-  const { data: company } = await supabase
-    .from('companies')
-    .select('name, description, logo_url, primary_color')
-    .eq('slug', params.slug)
-    .maybeSingle();
+  const { data: company } = await getPublicCompanyBySlug(params.slug, ['name', 'description', 'logo_url', 'primary_color']);
 
   // ... resto del código sin cambios
 }

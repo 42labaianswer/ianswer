@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '../../../../lib/stripe'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 // ============================================================================
@@ -76,10 +77,16 @@ export async function POST(req: Request) {
         metadata: { companyId }
       })
       customerId = customer.id
-      await supabase
+      // Con service_role: desde fix_billing_bypass.sql el usuario ya no puede
+      // escribir columnas de facturación (el trigger las revierte en silencio)
+      // y cada compra crearía un cliente de Stripe nuevo. Mismo criterio que
+      // api/stripe/checkout.
+      const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      const { error: saveErr } = await admin
         .from('companies')
         .update({ stripe_customer_id: customerId })
         .eq('id', companyId)
+      if (saveErr) console.error('[Stripe Checkout Addon] No se pudo guardar stripe_customer_id:', saveErr)
     }
 
     // 4. Crear checkout session según tipo

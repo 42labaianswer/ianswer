@@ -23,6 +23,7 @@ import { cookies } from 'next/headers';
 import DirectoryClient from './DirectoryClient';
 import NotAvailable from './NotAvailable';
 import type { PublicCompany, PublicProperty } from './types';
+import { getPublicCompanyBySlug } from '../../../lib/publicCompany';
 
 // En Next.js 15, params es Promise.
 interface PageProps {
@@ -39,24 +40,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await params;
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n: string) => cookieStore.get(n)?.value,
-        set: () => {},
-        remove: () => {},
-      },
-    }
-  );
-
-  const { data: company } = await supabase
-    .from('companies')
-    .select('name, description, logo_url, slug')
-    .eq('slug', slug)
-    .maybeSingle();
+  const { data: company } = await getPublicCompanyBySlug<{
+    name: string; description: string | null; logo_url: string | null; slug: string
+  }>(slug, ['name', 'description', 'logo_url', 'slug']);
 
   if (!company) {
     return { title: 'Directorio no encontrado' };
@@ -103,21 +89,10 @@ export default async function PublicDirectoryPage({ params }: PageProps) {
   );
 
   // 1. Resolver company por slug
-  const { data: companyRow, error: companyError } = await supabase
-    .from('companies')
-    .select(`
-      id,
-      slug,
-      name,
-      description,
-      logo_url,
-      primary_color,
-      secondary_color,
-      phone_e164,
-      website
-    `)
-    .eq('slug', slug)
-    .maybeSingle();
+  const { data: companyRow, error: companyError } = await getPublicCompanyBySlug<PublicCompany>(slug, [
+    'id', 'slug', 'name', 'description', 'logo_url',
+    'primary_color', 'secondary_color', 'phone_e164', 'website',
+  ]);
 
   if (companyError) {
     console.error('[directorio] Error cargando company:', companyError);
