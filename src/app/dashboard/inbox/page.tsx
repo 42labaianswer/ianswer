@@ -3,6 +3,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import BusinessProfileBadge from '../../../components/BusinessProfileBadge'
@@ -14,10 +15,10 @@ import {
   Sparkles, Flame, CreditCard, Heart, CheckCircle2,
   Clock, ChevronDown, Bot, UserCog, BellRing, X,
   Mic, Image as ImageIcon, Play, Maximize2,
-  Paperclip, Square, Trash2
+  Paperclip, Square, Trash2, UserPlus, ChevronLeft
 } from 'lucide-react'
 import {
-  CHANNELS, normalizeChannel, channelIdentityLabel, ChannelBadge, ChannelGlyph,
+  CHANNELS, normalizeChannel, channelIdentityLabel, toChannelPlatform, ChannelBadge, ChannelGlyph,
   type ChannelKey,
 } from '../../../components/ChannelBadge'
 import IAnswerLoader from '../../../components/IAnswerLoader'
@@ -38,6 +39,8 @@ type Contact = {
   external_id: string
   platform?: string | null
   avatar_url?: string | null
+  // Conversación con mensajes pero sin fila en `contacts` (ver "huerfanos")
+  _sinContacto?: boolean
 }
 
 type Message = {
@@ -62,6 +65,8 @@ type ChannelIdentity = {
 
 export default function InboxPage() {
   const queryClient = useQueryClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
 
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
@@ -114,7 +119,7 @@ export default function InboxPage() {
   })
 
   // 3. TANSTACK QUERY: Obtener TODOS los Contactos (Para el modal de Nuevo Chat)
-  const { data: allContacts = [], isLoading: isLoadingContacts } = useQuery({
+  const { data: allContacts = [], isLoading: isLoadingContacts, isSuccess: contactsLoaded } = useQuery({
     queryKey: ['contactsData', userCompanyId],
     enabled: !!userCompanyId,
     queryFn: async () => {
@@ -123,6 +128,26 @@ export default function InboxPage() {
       return (data as Contact[]) || []
     }
   })
+
+  // 3b. Abrir la conversación que piden el Gestor de clientes, Tareas y
+  // Calendario: /dashboard/inbox?contactId=<contacts.id>. Después se limpia la
+  // URL para que no se vuelva a abrir al recargar.
+  const contactIdParam = searchParams.get('contactId')
+  const [openedFromUrl, setOpenedFromUrl] = useState<string | null>(null)
+  // isSuccess y no !isLoading: mientras no hay company_id la query está
+  // deshabilitada y isLoading es false con la lista todavía vacía.
+  if (contactIdParam && contactsLoaded && openedFromUrl !== contactIdParam) {
+    setOpenedFromUrl(contactIdParam)
+    const target = allContacts.find(c => c.id === contactIdParam)
+    if (target) setSelectedContact(target)
+  }
+  // Solo lo externo: avisar si no existe y limpiar la URL (una vez por id)
+  useEffect(() => {
+    if (!openedFromUrl) return
+    if (!allContacts.some(c => c.id === openedFromUrl)) toast.error('No se encontró ese cliente.')
+    router.replace('/dashboard/inbox', { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedFromUrl])
 
   // 4. TANSTACK QUERY: Chats activos + canal por conversación.
   // La conversación se identifica por external_id (teléfono WA / PSID / IGSID),
@@ -313,6 +338,35 @@ export default function InboxPage() {
       toast.error('Error al cambiar el estado de la IA');
       setSelectedContact(context?.prev!);
       queryClient.invalidateQueries({ queryKey: ['contactsData', userCompanyId] });
+    }
+  })
+
+  // Conversación "huérfana" (hay mensajes pero no fila en contacts): crear el
+  // contacto para que tenga ficha en el Gestor de clientes.
+  const createContactMutation = useMutation({
+    mutationFn: async (c: Contact) => {
+      const canal = channelOf(c)
+      const { data, error } = await supabase.from('contacts').insert({
+        company_id: userCompanyId,
+        external_id: c.external_id,
+        name: c.external_id,
+        phone: canal === 'whatsapp' ? c.external_id : null,
+        platform: toChannelPlatform(canal),
+      }).select('*').single()
+      if (error) throw error
+      return data as Contact
+    },
+    onSuccess: (newC) => {
+      queryClient.setQueryData(['contactsData', userCompanyId], (old: Contact[] = []) => [newC, ...old.filter(c => c.id !== newC.id)])
+      queryClient.invalidateQueries({ queryKey: ['contactsEnriched', userCompanyId] })
+      setSelectedContact(newC)
+      toast.success('Cliente guardado. Ya puedes completar su ficha.')
+    },
+    onError: (err: { code?: string }) => {
+      // contacts.external_id es único en toda la tabla (no por empresa)
+      toast.error(err?.code === '23505'
+        ? 'Ya existe un cliente con este identificador; no se pudo guardar.'
+        : 'No se pudo guardar el cliente.')
     }
   })
 
@@ -758,7 +812,7 @@ export default function InboxPage() {
       </div>
 
       {/* COLUMNA 2: Lista de Chats */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+      <div className={`${selectedContact ? "hidden xl:flex" : "flex"} flex-1 min-w-0 xl:flex-none xl:w-80 bg-white border-r border-slate-200 flex-col flex-shrink-0`}>
         <div className="p-4 border-b border-slate-100">
           <div className="flex gap-4 border-b border-slate-100 pb-4 mb-4">
             <button 
@@ -843,12 +897,21 @@ export default function InboxPage() {
       </div>
 
       {/* COLUMNA 3: Área de Chat */}
-      <div className="flex-1 flex flex-col bg-[#F8FAFC]">
+      <div className={`${selectedContact ? "flex" : "hidden xl:flex"} flex-1 min-w-0 @container flex-col bg-[#F8FAFC]`}>
         {selectedContact ? (
           <>
             {/* Header del Chat */}
-            <div className="h-[72px] bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-10">
-              <div className="flex items-center gap-4">
+            <div className="min-h-[72px] bg-white border-b border-slate-200 px-4 @2xl:px-6 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 shrink-0 shadow-sm z-10">
+              <div className="flex items-center gap-3 min-w-0 flex-1 basis-48">
+                {/* Volver a la lista (abajo de xl se ve un panel a la vez) */}
+                <button
+                  onClick={() => setSelectedContact(null)}
+                  className="xl:hidden -ml-1 p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 shrink-0"
+                  title="Volver a los chats"
+                  aria-label="Volver a los chats"
+                >
+                  <ChevronLeft size={18} />
+                </button>
                 <div className="relative">
                   {selectedContact.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -878,12 +941,38 @@ export default function InboxPage() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-4">
-                
+              <div className="flex items-center gap-2 @2xl:gap-3 shrink-0 ml-auto">
+
+                {/* Enlace a la ficha del cliente (o crearla si la conversación no tiene contacto) */}
+                {selectedContact._sinContacto ? (
+                  <button
+                    onClick={() => createContactMutation.mutate(selectedContact)}
+                    disabled={createContactMutation.isPending}
+                    className="flex items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all disabled:opacity-50"
+                    title="Guardar como cliente: esta conversación todavía no está en tu Gestor de clientes"
+                    aria-label="Guardar como cliente"
+                  >
+                    <UserPlus size={14} className="shrink-0" /> <span className="hidden @3xl:inline">Guardar como cliente</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push(`/dashboard/crm/clientes?contactId=${encodeURIComponent(selectedContact.id)}`)}
+                    title="Ver ficha del cliente"
+                    aria-label="Ver ficha del cliente"
+                    className="flex items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all"
+                  >
+                    <User size={14} className="shrink-0" /> <span className="hidden @3xl:inline">Ver ficha</span>
+                  </button>
+                )}
+
+                <div className="hidden @2xl:block h-6 w-px bg-slate-200"></div>
+
                 {/* TOGGLE DE INTELIGENCIA ARTIFICIAL */}
                 <button 
                   onClick={handleToggleAI}
                   disabled={toggleAIMutation.isPending}
+                  title={selectedContact.ai_active ? 'IA respondiendo (clic para pasar a modo humano)' : 'Modo humano (clic para activar la IA)'}
+                  aria-label={selectedContact.ai_active ? 'IA respondiendo' : 'Modo humano'}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border disabled:opacity-50
                     ${selectedContact.ai_active 
                       ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' 
@@ -891,13 +980,13 @@ export default function InboxPage() {
                     }`}
                 >
                   {selectedContact.ai_active ? (
-                    <><Bot size={14} /> IA Respondiendo</>
+                    <><Bot size={14} className="shrink-0" /> <span className="hidden @2xl:inline whitespace-nowrap">IA Respondiendo</span></>
                   ) : (
-                    <><UserCog size={14} className="text-rose-600" /> Modo Humano</>
+                    <><UserCog size={14} className="shrink-0 text-rose-600" /> <span className="hidden @2xl:inline whitespace-nowrap">Modo Humano</span></>
                   )}
                 </button>
 
-                <div className="h-6 w-px bg-slate-200"></div>
+                <div className="hidden @2xl:block h-6 w-px bg-slate-200"></div>
 
                 {/* Selector Dinámico de Lead */}
                 <div className="relative group">
@@ -924,7 +1013,7 @@ export default function InboxPage() {
                 </div>
 
                 {selectedContact.stage_updated_by === 'ai' && (
-                  <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold border border-indigo-100">
+                  <span className="hidden @4xl:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold border border-indigo-100">
                     <Bot size={11} /> Asignado por IA
                   </span>
                 )}
