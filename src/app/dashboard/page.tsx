@@ -128,18 +128,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}>
+        {/* Lleva a la bandeja con solo las conversaciones en Modo Humano */}
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/inbox?filtro=atencion')}
+          className="group min-w-0 text-left bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md hover:border-rose-200"
+          style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}
+        >
           <div className="h-14 w-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
             <BellRing size={28} />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-snug mb-1 break-words">Requieren Atención</p>
             <div className="flex items-center gap-2">
               <p className="text-3xl font-black text-slate-900">{stats?.pendingChats}</p>
               {stats?.pendingChats ? <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span> : null}
             </div>
           </div>
-        </div>
+          <ArrowUpRight size={20} className="shrink-0 text-rose-400 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+        </button>
 
         <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#10b981' }}>
           <div className="h-14 w-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">

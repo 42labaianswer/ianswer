@@ -72,6 +72,9 @@ export default function InboxPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [activeFilter, setActiveFilter] = useState<LifecycleStage | 'all'>('all')
   const [channelFilter, setChannelFilter] = useState<'all' | ChannelKey>('all')
+  // "Requieren atención": solo conversaciones en Modo Humano (ai_active = false).
+  // Llega desde la tarjeta del dashboard con ?filtro=atencion.
+  const [attentionOnly, setAttentionOnly] = useState(false)
   const [newMessage, setNewMessage] = useState('')
   
   // Estados para el Modal de Nuevo Mensaje
@@ -141,6 +144,24 @@ export default function InboxPage() {
     const target = allContacts.find(c => c.id === contactIdParam)
     if (target) setSelectedContact(target)
   }
+  // 3c. ?filtro=atencion (tarjeta "Requieren Atención" del dashboard). Si hay
+  // una sola conversación en Modo Humano, se abre directo.
+  const filtroParam = searchParams.get('filtro')
+  const [filtroFromUrl, setFiltroFromUrl] = useState<string | null>(null)
+  if (filtroParam === 'atencion' && contactsLoaded && filtroFromUrl !== filtroParam) {
+    setFiltroFromUrl(filtroParam)
+    setAttentionOnly(true)
+    setActiveFilter('all')
+    setChannelFilter('all')
+    const enAtencion = allContacts.filter(c => !c.ai_active)
+    if (enAtencion.length === 1) setSelectedContact(enAtencion[0])
+  }
+  useEffect(() => {
+    if (!filtroFromUrl) return
+    router.replace('/dashboard/inbox', { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroFromUrl])
+
   // Solo lo externo: avisar si no existe y limpiar la URL (una vez por id)
   useEffect(() => {
     if (!openedFromUrl) return
@@ -672,10 +693,15 @@ export default function InboxPage() {
 
   const activeSidebarContacts = [...contactosConChat, ...huerfanos]
 
+  // Modo Humano: misma regla que la tarjeta del dashboard (todos los contactos
+  // con ai_active = false, tengan o no mensajes), para que el número coincida.
+  const attentionContacts = allContacts.filter(c => !c.ai_active)
+  const baseContacts = attentionOnly ? attentionContacts : activeSidebarContacts
+
   // 2a. Filtro por canal (WhatsApp / Facebook / Instagram)
   const byChannelContacts = channelFilter === 'all'
-    ? activeSidebarContacts
-    : activeSidebarContacts.filter(p => channelOf(p) === channelFilter)
+    ? baseContacts
+    : baseContacts.filter(p => channelOf(p) === channelFilter)
 
   // 2b. Aplicar el filtro de etapa (funnel) sobre lo ya filtrado por canal
   const filteredContacts = activeFilter === 'all'
@@ -730,12 +756,21 @@ export default function InboxPage() {
 
         <div className="space-y-1 px-3">
           <button 
-            onClick={() => setActiveFilter('all')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${activeFilter === 'all' ? 'bg-white shadow-sm border border-slate-200 text-slate-700' : 'hover:bg-slate-200/50 text-slate-600'}`}
+            onClick={() => { setActiveFilter('all'); setAttentionOnly(false) }}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${activeFilter === 'all' && !attentionOnly ? 'bg-white shadow-sm border border-slate-200 text-slate-700' : 'hover:bg-slate-200/50 text-slate-600'}`}
           >
             <Inbox size={16} className="text-slate-500" /> Activos
             <span className="ml-auto bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
               {activeSidebarContacts.length}
+            </span>
+          </button>
+          <button
+            onClick={() => { setActiveFilter('all'); setAttentionOnly(true) }}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${attentionOnly ? 'bg-white shadow-sm border border-rose-200 text-rose-700' : 'hover:bg-slate-200/50 text-slate-600'}`}
+          >
+            <BellRing size={16} className="text-rose-500" /> Requieren atención
+            <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${attentionContacts.length ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
+              {attentionContacts.length}
             </span>
           </button>
         </div>
@@ -827,13 +862,23 @@ export default function InboxPage() {
               {channelFilter !== 'all' && <ChannelBadge channel={channelFilter} />}
               Filtro: {activeFilter === 'all' ? 'Todos' : funnels[activeFilter]?.name}
             </span>
+            {attentionOnly && (
+              <button
+                type="button"
+                onClick={() => setAttentionOnly(false)}
+                className="flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-full hover:bg-rose-100 transition-colors"
+                title="Quitar filtro"
+              >
+                <BellRing size={12} /> Requieren atención <X size={12} />
+              </button>
+            )}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {filteredContacts.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-sm font-medium">
-              No tienes chats activos en esta etapa.
+              {attentionOnly ? 'No hay conversaciones en Modo Humano.' : 'No tienes chats activos en esta etapa.'}
             </div>
           ) : (
             filteredContacts.map((p) => {
