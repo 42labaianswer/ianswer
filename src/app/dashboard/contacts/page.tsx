@@ -502,7 +502,8 @@ export default function ContactsPage() {
     if (contact) {
       setEditingContact(contact)
       setFormData({
-        phone: contact.id, name: contact.name || '',
+        // El teléfono real; contacts.id es un uuid interno (no se edita al guardar)
+        phone: contact.phone || '', name: contact.name || '',
         company_id: contact.company_id || userCompanyId || '',
         lifecycle_stage: contact.lifecycle_stage || 'new_lead',
         ai_active: contact.ai_active ?? true,
@@ -569,7 +570,8 @@ export default function ContactsPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.phone || !formData.name) return toast.error('Nombre y teléfono son obligatorios')
+    // Al editar el teléfono no se cambia (y Messenger/Instagram pueden no tenerlo)
+    if (!formData.name || (!editingContact && !formData.phone)) return toast.error('Nombre y teléfono son obligatorios')
     saveContactMutation.mutate()
   }
 
