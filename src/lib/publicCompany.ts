@@ -62,6 +62,48 @@ export async function getPublicCompanyById<T = Record<string, unknown>>(
   return { data: (data as T | null) ?? null, error }
 }
 
+/**
+ * Propiedades publicadas de una empresa (directorio /p/[slug]). Llamar solo
+ * después de comprobar el add-on con `has_public_directory_active`.
+ *
+ * Por qué con service_role (1-oct-2026): la única política pública de
+ * properties es `status = 'active'`, un estado que no existe (se guardan como
+ * disponible / apartada / borrador...) → con la clave anónima el directorio
+ * siempre salía con 0 propiedades.
+ */
+export async function getPublicProperties(companyId: string) {
+  return adminClient()
+    .from('properties')
+    .select(`
+      id,
+      company_id,
+      title,
+      slug:public_slug,
+      operation:operation_type,
+      property_type,
+      price,
+      currency,
+      address,
+      neighborhood:zone,
+      city,
+      state,
+      bedrooms,
+      bathrooms,
+      parking_spots,
+      sqm_construction:area_built_m2,
+      sqm_land:area_total_m2,
+      amenities:features,
+      description,
+      photos,
+      status,
+      created_at,
+      updated_at
+    `)
+    .eq('company_id', companyId)
+    .in('status', ['disponible', 'apartada'])
+    .order('created_at', { ascending: false })
+}
+
 /** ¿La empresa tiene instalada la plantilla indicada? (company_templates no es pública). */
 export async function companyHasTemplate(companyId: string, templateId: string): Promise<boolean> {
   const { data } = await adminClient()

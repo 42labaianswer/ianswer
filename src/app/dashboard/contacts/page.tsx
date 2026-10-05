@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -16,7 +16,7 @@ import {
   Clock, LayoutGrid, List, CheckSquare, Square, Download, UserCog, Lock,
   Share2, ExternalLink, Tag, Wand2
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import UnifiedActivityTimeline from '../../../components/UnifiedActivityTimeline'
 import BookingModal from '../../../components/BookingModal'
 import ContactKanban from '../../../components/ContactKanban'
@@ -149,6 +149,8 @@ const formatVisitDate = (dateStr?: string | null): string => {
 export default function ContactsPage() {
   const { confirm, ConfirmDialog } = useConfirm()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
   const { data: features } = usePlanFeatures()
@@ -204,7 +206,7 @@ export default function ContactsPage() {
   const userCompanyId = userProfile?.company_id
   const userId = userProfile?.id
 
-  const { data: contactsList = [], isLoading: isLoadingContacts } = useQuery({
+  const { data: contactsList = [], isLoading: isLoadingContacts, isSuccess: contactsLoaded } = useQuery({
     queryKey: ['contactsEnriched', userCompanyId],
     enabled: !!userCompanyId,
     queryFn: async () => {
@@ -500,7 +502,8 @@ export default function ContactsPage() {
     if (contact) {
       setEditingContact(contact)
       setFormData({
-        phone: contact.id, name: contact.name || '',
+        // El teléfono real; contacts.id es un uuid interno (no se edita al guardar)
+        phone: contact.phone || '', name: contact.name || '',
         company_id: contact.company_id || userCompanyId || '',
         lifecycle_stage: contact.lifecycle_stage || 'new_lead',
         ai_active: contact.ai_active ?? true,
@@ -521,6 +524,25 @@ export default function ContactsPage() {
     }
     setIsModalOpen(true)
   }
+
+  // Abrir la ficha que pide la bandeja ("Ver ficha"): ?contactId=<contacts.id>.
+  // Después se limpia la URL para que no se vuelva a abrir al recargar.
+  const contactIdParam = searchParams.get('contactId')
+  const [openedFromUrl, setOpenedFromUrl] = useState<string | null>(null)
+  // isSuccess y no !isLoading: mientras no hay company_id la query está
+  // deshabilitada y isLoading es false con la lista todavía vacía.
+  if (contactIdParam && contactsLoaded && openedFromUrl !== contactIdParam) {
+    setOpenedFromUrl(contactIdParam)
+    const target = contactsList.find(c => c.id === contactIdParam)
+    if (target) openModal(target)
+  }
+  // Solo lo externo: avisar si no existe y limpiar la URL (una vez por id)
+  useEffect(() => {
+    if (!openedFromUrl) return
+    if (!contactsList.some(c => c.id === openedFromUrl)) toast.error('No se encontró ese cliente.')
+    router.replace(pathname, { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedFromUrl])
 
   const closeModal = () => { setIsModalOpen(false); setEditingContact(null) }
   const closeImportModal = () => {
@@ -548,7 +570,8 @@ export default function ContactsPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.phone || !formData.name) return toast.error('Nombre y teléfono son obligatorios')
+    // Al editar el teléfono no se cambia (y Messenger/Instagram pueden no tenerlo)
+    if (!formData.name || (!editingContact && !formData.phone)) return toast.error('Nombre y teléfono son obligatorios')
     saveContactMutation.mutate()
   }
 

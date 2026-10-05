@@ -102,6 +102,28 @@ export async function POST(req: Request) {
     // Cliente con service role para escribir en companies sin RLS friction
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+    // ── 3b. ¿El número ya está conectado a OTRA empresa? ──
+    // companies.business_phone_id es UNIQUE: si otra empresa ya lo tiene, el
+    // update del paso 7 falla. Se revisa antes de tocar Meta (suscripción y
+    // registro del número) para no dejar nada a medias.
+    const { data: phoneOwner, error: phoneOwnerErr } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('business_phone_id', phone_number_id)
+      .neq('id', companyId)
+      .maybeSingle()
+
+    if (phoneOwnerErr) {
+      console.error('[PhoneOwnerCheckError]', phoneOwnerErr)
+    } else if (phoneOwner) {
+      console.warn('[PhoneAlreadyConnected]', { phone_number_id, companyId, ownerId: phoneOwner.id })
+      return NextResponse.json({
+        success: false,
+        error:   'Este número ya está conectado a otra cuenta de iAnswer. Si quieres moverlo a esta cuenta, contáctanos.',
+        code:    'phone_already_connected'
+      }, { status: 409 })
+    }
+
     // ── 4. Intercambiar code → Business Integration Token (long-lived) ──
     const exchangeUrl = new URL(`https://graph.facebook.com/${META_GRAPH_VERSION}/oauth/access_token`)
     exchangeUrl.searchParams.set('client_id',     META_APP_ID)
@@ -214,6 +236,14 @@ export async function POST(req: Request) {
 
     if (updateErr) {
       console.error('[DBUpdateError]', updateErr)
+      // Respaldo de 3b (dos conexiones al mismo tiempo, o falló esa consulta)
+      if (updateErr.code === '23505') {
+        return NextResponse.json({
+          success: false,
+          error:   'Este número ya está conectado a otra cuenta de iAnswer. Si quieres moverlo a esta cuenta, contáctanos.',
+          code:    'phone_already_connected'
+        }, { status: 409 })
+      }
       return NextResponse.json({
         success: false,
         error:   'Error guardando configuración en base de datos',

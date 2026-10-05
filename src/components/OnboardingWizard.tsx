@@ -131,6 +131,9 @@ export default function OnboardingWizard() {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [companyName, setCompanyName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  // Estado aparte para "Salir por ahora": con isSaving el botón principal del
+  // P5 decía "Abriendo Stripe..." aunque no se iba a Stripe.
+  const [isExiting, setIsExiting] = useState(false)
   // Plan elegido en el P5 (arranca en el sugerido; el usuario lo puede cambiar).
   const [chosenPlan, setChosenPlan] = useState<PlanSlug | null>(null)
   // 'resume': terminó los pasos pero salió sin pagar → se muestra solo el P5.
@@ -233,7 +236,8 @@ export default function OnboardingWizard() {
   // Guarda primero lo del onboarding (si el usuario ya contestó los pasos) para
   // que al volver a iniciar sesión regrese directo al P5 y no a empezar de cero.
   const handleExit = async () => {
-    setIsSaving(true)
+    if (isSaving || isExiting) return
+    setIsExiting(true)
     try {
       if (mode === 'full' && selectedTemplate && volumeBand && companyName.trim().length >= 2) {
         await fetch('/api/onboarding/complete', {
@@ -848,8 +852,14 @@ export default function OnboardingWizard() {
 
                 <p className="text-center text-xs text-slate-500 font-medium">
                   {brandName} requiere un plan activo para funcionar.{' '}
-                  <button type="button" onClick={handleExit} className="font-bold text-slate-700 underline hover:text-slate-900">
-                    Salir por ahora
+                  <button
+                    type="button"
+                    onClick={handleExit}
+                    disabled={isSaving || isExiting}
+                    className="inline-flex items-center gap-1 font-bold text-slate-700 underline hover:text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed disabled:no-underline"
+                  >
+                    {isExiting && <Loader2 size={12} className="animate-spin" />}
+                    {isExiting ? 'Saliendo...' : 'Salir por ahora'}
                   </button>
                 </p>
               </div>
@@ -861,7 +871,7 @@ export default function OnboardingWizard() {
         <div className="px-8 py-5 border-t border-slate-100 flex items-center justify-between bg-slate-50">
           <button
             onClick={goPrev}
-            disabled={stepIndex === 0}
+            disabled={stepIndex === 0 || isExiting}
             className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <ArrowLeft size={16} />
@@ -882,7 +892,7 @@ export default function OnboardingWizard() {
                 if (step === 5) handleComplete()
                 else goNext()
               }}
-              disabled={!canAdvance || isSaving}
+              disabled={!canAdvance || isSaving || isExiting}
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? (

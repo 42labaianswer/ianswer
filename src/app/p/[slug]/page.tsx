@@ -23,7 +23,7 @@ import { cookies } from 'next/headers';
 import DirectoryClient from './DirectoryClient';
 import NotAvailable from './NotAvailable';
 import type { PublicCompany, PublicProperty } from './types';
-import { getPublicCompanyBySlug } from '../../../lib/publicCompany';
+import { getPublicCompanyBySlug, getPublicProperties } from '../../../lib/publicCompany';
 
 // En Next.js 15, params es Promise.
 interface PageProps {
@@ -124,42 +124,11 @@ export default async function PublicDirectoryPage({ params }: PageProps) {
   }
 
   // 3. Cargar propiedades públicas (estados disponibles o apartadas)
-  // FIX 2026-07-13: el .select() pedía columnas que NO existen en el esquema
-  // real (slug, operation, neighborhood, postal_code, half_bathrooms,
-  // sqm_construction, sqm_land, levels, amenities). En PostgREST, pedir una
-  // columna inexistente hace fallar TODA la query → 0 propiedades, aunque
-  // estuvieran publicadas. Aquí se usan las columnas reales con alias para que
-  // el shape que espera el cliente (PublicProperty) se conserve.
-  const { data: propertiesRows, error: propertiesError } = await supabase
-    .from('properties')
-    .select(`
-      id,
-      company_id,
-      title,
-      slug:public_slug,
-      operation:operation_type,
-      property_type,
-      price,
-      currency,
-      address,
-      neighborhood:zone,
-      city,
-      state,
-      bedrooms,
-      bathrooms,
-      parking_spots,
-      sqm_construction:area_built_m2,
-      sqm_land:area_total_m2,
-      amenities:features,
-      description,
-      photos,
-      status,
-      created_at,
-      updated_at
-    `)
-    .eq('company_id', company.id)
-    .in('status', ['disponible', 'apartada'])
-    .order('created_at', { ascending: false });
+  // FIX 2026-07-13: se usan las columnas reales con alias para conservar el
+  // shape que espera el cliente (PublicProperty).
+  // FIX 2026-10-01: se leen en el servidor (ver getPublicProperties); con la
+  // clave anónima la RLS solo dejaba ver status = 'active' → siempre 0.
+  const { data: propertiesRows, error: propertiesError } = await getPublicProperties(company.id);
 
   if (propertiesError) {
     console.error('[directorio] Error cargando propiedades:', propertiesError);

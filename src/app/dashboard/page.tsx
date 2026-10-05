@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { useWorkspace } from '../../components/WorkspaceContext'
 import PageHeader from '../../components/PageHeader'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   MessageSquare, Calendar as CalendarIcon, 
   Users, Sparkles, ArrowUpRight, 
@@ -17,6 +18,7 @@ import IAnswerLoader from '../../components/IAnswerLoader'
 export default function DashboardPage() {
   const router = useRouter()
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
+  const queryClient = useQueryClient()
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['dashboardStats'],
@@ -58,6 +60,7 @@ export default function DashboardPage() {
       ].filter(Boolean)).size
 
       return {
+        companyId,
         userName: companyRes.data?.doctor_name || companyRes.data?.name || 'Administrador',
         // Si hay conversaciones sin contacto creado, no las escondemos
         totalContacts: Math.max(contactsRes.count || 0, conversaciones),
@@ -67,6 +70,28 @@ export default function DashboardPage() {
       }
     }
   })
+
+  // Tiempo real: cuando una conversación pasa a Modo Humano (o vuelve a la IA)
+  // o llega un mensaje nuevo, se vuelven a contar las tarjetas sin recargar.
+  // Se agrupan los eventos para no recalcular con cada mensaje de una ráfaga.
+  const statsCompanyId = stats?.companyId
+  useEffect(() => {
+    if (!statsCompanyId) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const refresh = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }), 800)
+    }
+    const channel = supabase
+      .channel('realtime_dashboard_stats')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts', filter: `company_id=eq.${statsCompanyId}` }, refresh)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `company_id=eq.${statsCompanyId}` }, refresh)
+      .subscribe()
+    return () => {
+      clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
+  }, [statsCompanyId, queryClient])
 
   const isPageLoading = isLoadingWorkspace || isLoadingStats
   const accentColor = vertical?.accent_color || '#4f46e5'
@@ -103,18 +128,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}>
+        {/* Lleva a la bandeja con solo las conversaciones en Modo Humano */}
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/inbox?filtro=atencion')}
+          className="group min-w-0 text-left bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md hover:border-rose-200"
+          style={{ borderBottomWidth: '4px', borderBottomColor: '#f43f5e' }}
+        >
           <div className="h-14 w-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
             <BellRing size={28} />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-snug mb-1 break-words">Requieren Atención</p>
             <div className="flex items-center gap-2">
               <p className="text-3xl font-black text-slate-900">{stats?.pendingChats}</p>
               {stats?.pendingChats ? <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span> : null}
             </div>
           </div>
-        </div>
+          <ArrowUpRight size={20} className="shrink-0 text-rose-400 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+        </button>
 
         <div className="min-w-0 bg-white p-5 @4xl:p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 transition-colors" style={{ borderBottomWidth: '4px', borderBottomColor: '#10b981' }}>
           <div className="h-14 w-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
