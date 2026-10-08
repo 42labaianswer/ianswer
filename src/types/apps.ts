@@ -1,11 +1,11 @@
 ﻿ 
 
 // ============================================================================
-// src/types/apps.ts · Shim de compatibilidad v3.0
+// src/types/apps.ts · Shim de compatibilidad
 // ----------------------------------------------------------------------------
-// El modelo del 3.0 hablaba de "apps" (app_id, AppsMap, instalación granular).
-// En el modelo v3 unificado (templates + addons + entitlements), un "app id"
-// es simplemente la clave de un módulo dentro de active_modules del template.
+// En el modelo unificado (templates + addons + entitlements), un "app id"
+// (app_id, AppsMap) es simplemente la clave de un módulo dentro de
+// active_modules del template.
 //
 // Este shim existe para que los componentes portados del 3.0 (MenuContent,
 // OrdersContent, PropertiesContent, AppGate) sigan compilando y funcionando
@@ -28,7 +28,7 @@ export const ALL_APP_IDS = [
   'hubspot_sync',
   'multi_sucursal',
   'reviews_nps',
-  // Nuevos en v3 (ya no son apps separadas, son módulos activos vía template)
+  // No son apps separadas: son módulos activos vía template
   'patients',
   'medical_memory',
   'team',

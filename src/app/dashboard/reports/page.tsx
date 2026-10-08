@@ -70,11 +70,10 @@ export default function ReportsPage() {
         qMsgPat = qMsgPat.gte('created_at', startStr).lte('created_at', endStr)
       }
 
-      // Conversaciones REALES por canal. Antes los reportes solo contaban filas
-      // de `contacts`, así que una plática de Instagram/Messenger salía en 0 si
-      // el contacto no existía. Aquí contamos conversaciones distintas
-      // (patient_id) a partir de los mensajes, que es la fuente de verdad, y las
-      // separamos por canal.
+      // Conversaciones REALES por canal. No se cuentan filas de `contacts`: una
+      // plática de Instagram/Messenger saldría en 0 si el contacto no existe.
+      // Aquí contamos conversaciones distintas (patient_id) a partir de los
+      // mensajes, que es la fuente de verdad, y las separamos por canal.
       let qMsgCanales = supabase
         .from('messages')
         .select('patient_id, channel, sender, created_at')
@@ -195,7 +194,7 @@ export default function ReportsPage() {
         }
       })
 
-      // Nueva Tasa de Conversión: Citas Agendadas Reales vs Pláticas Activas (o vs Total si no hay pláticas activas)
+      // Tasa de Conversión: Citas Agendadas Reales vs Pláticas Activas (o vs Total si no hay pláticas activas)
       const conversionBase = activeChats > 0 ? activeChats : (totalLeads > 0 ? totalLeads : 0)
       const conversionRate = conversionBase > 0 ? ((uniquePatientsWithAppointments.size / conversionBase) * 100).toFixed(1) : '0'
       // Autonomía = mensajes de IA / (IA + humano). Consistente con "Carga Operativa".
@@ -205,11 +204,10 @@ export default function ReportsPage() {
       const automationRate = _outbound > 0 ? ((_aiMsgs / _outbound) * 100).toFixed(1) : '0'
 
       // --- CÁLCULOS DE EQUIPO (LEADERBOARD) ---
-      // Antes solo se contaba `contacts.staff_id`, así que si las citas traían su
-      // propio responsable (staff_id de la cita) el leaderboard salía vacío.
-      // Ahora se atribuye por la cita cuando la cita lo dice, y si no, por el
-      // contacto. Además devolvemos SIEMPRE a todo el equipo (aunque vaya en 0)
-      // para que se vea quién existe y quién no ha movido nada.
+      // Se atribuye por la cita cuando la cita trae su propio responsable
+      // (staff_id de la cita), y si no, por el contacto (`contacts.staff_id`).
+      // Además devolvemos SIEMPRE a todo el equipo (aunque vaya en 0) para que
+      // se vea quién existe y quién no ha movido nada.
       const staffStats = team.map(t => {
         const assignedContacts = contacts.filter(c => c.staff_id === t.id)
         const assignedContactIds = new Set(assignedContacts.map(c => c.id))
@@ -414,10 +412,10 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* v2.8: BLOQUE DE RETENCIÓN (solo si feature activa) */}
+      {/* BLOQUE DE RETENCIÓN (solo si feature activa) */}
       {features?.crm_retention_metrics && <RetentionBlock />}
 
-      {/* v2.8: BLOQUE DE REFERIDOS (solo si feature activa) */}
+      {/* BLOQUE DE REFERIDOS (solo si feature activa) */}
       {features?.crm_referral_tracking && <ReferralBlock />}
       
       {/* TARJETAS DE KPIs AVANZADAS */}
@@ -450,7 +448,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* NUEVO v1.1 — Estado de citas + Recuperación de clientes (datos que no están en los KPIs de arriba) */}
+      {/* Estado de citas + Recuperación de clientes (datos que no están en los KPIs de arriba) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
           <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><CalendarCheck size={16} className="text-emerald-500"/> Citas confirmadas</p>
@@ -792,7 +790,7 @@ export default function ReportsPage() {
 
 
 // ============================================================================
-// v2.8: RetentionBlock — métricas de retención (snapshot + tendencia 6 meses)
+// RetentionBlock — métricas de retención (snapshot + tendencia 6 meses)
 // ============================================================================
 function RetentionBlock() {
   const { data: profile } = useQuery({
@@ -934,7 +932,7 @@ function RetentionBlock() {
 }
 
 // ============================================================================
-// v2.8: ReferralBlock — breakdown por fuente + top referidores
+// ReferralBlock — breakdown por fuente + top referidores
 // ============================================================================
 function ReferralBlock() {
   const { data: profile } = useQuery({

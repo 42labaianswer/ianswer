@@ -1,7 +1,7 @@
 // src/lib/emails/layout.ts
 // ----------------------------------------------------------------------------
-// Layout base compartido de los correos transaccionales de iAnswer
-// (plan-agente-semana04, 2.2). Estructura tomada de la referencia de Hostinger
+// Layout base compartido de los correos transaccionales de iAnswer.
+// Estructura tomada de la referencia de Hostinger
 // (tarjeta centrada, logo arriba, título claro, código o botón destacado, pie
 // con avisos y enlaces), con la marca de iAnswer (README del paquete de logo):
 // indigo #5B2BE8, ink #14162B, Plus Jakarta Sans con fallback Helvetica/Arial.
@@ -14,7 +14,7 @@
 //   en modo claro y oscuro; el símbolo transparente tiene el asta en ink y
 //   desaparece cuando el cliente invierte colores.
 // - Arriba: ícono y debajo "iAnswer" como texto vivo en un solo color (ink).
-//   En el pie solo va el texto, sin ícono (pedido de Rubén, 29-sep).
+//   En el pie solo va el texto, sin ícono.
 // - El código de verificación es texto real (se puede seleccionar y copiar).
 // ----------------------------------------------------------------------------
 

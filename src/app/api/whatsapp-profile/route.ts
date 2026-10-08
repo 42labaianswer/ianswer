@@ -2,11 +2,11 @@
 
 // src/app/api/whatsapp-profile/route.ts
 // ----------------------------------------------------------------------------
-// Sprint W · Editar el perfil de WhatsApp Business desde la plataforma.
+// Editar el perfil de WhatsApp Business desde la plataforma.
 //
 // En vez de que el cliente entre a Meta Business Manager, edita su perfil
 // (foto, "acerca de", descripción, dirección, email, sitios web, categoría)
-// desde nuestra página. Usamos la Graph API con el meta_token que ya tenemos.
+// desde nuestra página. Usamos la Graph API con el token de la empresa.
 //
 // GET  → lee el perfil actual
 // POST → actualiza campos de texto del perfil
@@ -59,12 +59,11 @@ async function getCompanyMeta(): Promise<
     .eq('id', profile.company_id)
     .maybeSingle()
 
-  // ⚠️ FIX token WhatsApp (Sprint Conectividad):
-  // La fuente de verdad del token es `system_user_access_token` (la que escribe
-  // el flujo de conexión y la que usan messages/send, disconnect y el
+  // ⚠️ La fuente de verdad del token es `system_user_access_token` (la que
+  // escribe el flujo de conexión y la que usan messages/send, disconnect y el
   // diagnóstico). `meta_token` es una columna legacy que casi siempre está
-  // vacía. Antes esta ruta leía SOLO `meta_token`, por eso el editor de perfil
-  // salía como "WhatsApp no conectado" aunque el canal sí estuviera conectado.
+  // vacía: leer solo `meta_token` hace que el editor de perfil diga "WhatsApp
+  // no conectado" aunque el canal sí esté conectado.
   const token = company?.system_user_access_token || company?.meta_token
 
   if (!token || !company?.business_phone_id) {

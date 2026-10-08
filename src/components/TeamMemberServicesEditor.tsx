@@ -4,7 +4,7 @@
 
 // src/components/TeamMemberServicesEditor.tsx
 // ----------------------------------------------------------------------------
-// Sprint I · Editor de asignaciones SÍ/NO de servicios por miembro del equipo.
+// Editor de asignaciones SÍ/NO de servicios por miembro del equipo.
 // Se monta dentro del TeamDrawer, en una sección colapsable al final.
 //
 // Tres estados visuales por servicio:

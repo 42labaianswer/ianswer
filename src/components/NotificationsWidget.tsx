@@ -147,11 +147,9 @@ export default function NotificationsWidget() {
         )}
       </button>
 
-      {/* AQUÍ ESTÁ EL FIX: 
-        1. z-[9999] fuerza al menú a estar literalmente por encima de TODO en la pantalla.
-        2. Le quitamos el overflow-hidden al header padre en layout.tsx si fuera necesario, 
-           pero absolute z-[9999] usualmente lo resuelve por sí solo. 
-      */}
+      {/* z-[9999] fuerza al menú a estar por encima de TODO en la pantalla.
+          Si un padre (el header de layout.tsx) tuviera overflow-hidden, podría
+          recortarlo; absolute z-[9999] normalmente basta. */}
       {isOpen && (
         <>
           {/* Backdrop solo móvil para cerrar al tocar fuera */}

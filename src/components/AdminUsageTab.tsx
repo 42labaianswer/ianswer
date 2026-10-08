@@ -4,7 +4,7 @@
 
 // src/components/AdminUsageTab.tsx
 // ----------------------------------------------------------------------------
-// Sprint U · Panel admin para ver el uso de sesiones de todas las companies.
+// Panel admin para ver el uso de sesiones de todas las companies.
 //
 // Muestra una tabla con cada company, su plan, sesiones usadas vs límite,
 // y una barra visual. Ordenado por % de uso descendente (los que están cerca

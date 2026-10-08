@@ -4,7 +4,7 @@
 
 /**
  * ============================================================================
- * OrderDrawer · v2.19
+ * OrderDrawer
  * ----------------------------------------------------------------------------
  * Drawer con todos los detalles de una orden:
  *   - Cliente (nombre, teléfono)
@@ -99,8 +99,8 @@ export default function OrderDrawer({ isOpen, onClose, order, companyId, accentC
     onError: (err: any) => toast.error(err.message)
   })
 
-  // La página pública vive en /tracking/[token] (NO /track). Antes se generaba
-  // /track/ y por eso el link daba 404. Se usa NEXT_PUBLIC_BASE_URL igual que
+  // La página pública vive en /tracking/[token] (NO /track: ese da 404).
+  // Se usa NEXT_PUBLIC_BASE_URL igual que
   // OrderTrackingTab para que el dominio sea consistente en prod.
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 const trackingUrl = order?.public_token && baseUrl ? `${baseUrl}/tracking/${order.public_token}` : ''

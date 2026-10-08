@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/sobre-nosotros/page.tsx — About (rediseño v2)
+// src/app/(public)/sobre-nosotros/page.tsx — About
 // ============================================================================
 
 import { Sparkles, Heart, Zap, Shield, Users } from 'lucide-react'

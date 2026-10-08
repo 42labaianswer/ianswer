@@ -10,8 +10,7 @@
 // Business), como cuando abres WhatsApp y ves tu propio perfil arriba.
 //
 // Al hacer click abre un MODAL con el editor de perfil de WhatsApp (foto,
-// "acerca de", descripción, etc.) en lugar de mandarte a Conectividad. Así se
-// edita el perfil sin salir de Mensajes.
+// "acerca de", descripción, etc.), así se edita el perfil sin salir de Mensajes.
 // ----------------------------------------------------------------------------
 
 import { useState } from 'react'
@@ -27,7 +26,7 @@ export default function BusinessProfileBadge({
 }: {
   businessName?: string
   accentColor?: string
-  /** @deprecated Ya no se navega; el editor abre en un modal. Se mantiene por compatibilidad. */
+  /** @deprecated No se navega; el editor abre en un modal. Se mantiene por compatibilidad. */
   editorHref?: string
 }) {
   const [open, setOpen] = useState(false)

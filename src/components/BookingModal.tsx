@@ -36,7 +36,7 @@ type BookingModalProps = {
   defaultDuration: number
   allowEditDateTime?: boolean           // si true, muestra inputs de fecha/hora
   appointmentId?: string                // solo reschedule
-  // v1.7: para notificación opcional al reagendar
+  // Para notificación opcional al reagendar
   patientName?: string
   patientPhone?: string
   busyEvents?: BusyEvent[]              // TODAS las citas del mes (la modal filtra por su fecha)
@@ -62,7 +62,7 @@ export default function BookingModal({
   const [newPatient, setNewPatient] = useState({ name: '', phone: '' })
   const [notes, setNotes] = useState('')
 
-  // v1.7: notificación opcional al paciente cuando reagendamos
+  // Notificación opcional al paciente cuando reagendamos
   const [notifyPatient, setNotifyPatient] = useState(false)
 
   // Sincronizar props -> state al abrir
@@ -117,7 +117,7 @@ export default function BookingModal({
   const submitMutation = useMutation({
     mutationFn: async () => {
 
-      // Validaciones — ahora throwean errors descriptivos en vez de bloquear el botón
+      // Validaciones: lanzan errores descriptivos en vez de bloquear el botón
       if (!date) throw new Error('Selecciona una fecha')
       if (!time) throw new Error('Selecciona una hora')
 

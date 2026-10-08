@@ -1,9 +1,9 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/page.tsx — Home (v2 rediseñada)
+// src/app/(public)/page.tsx — Home
 // ----------------------------------------------------------------------------
-// Paleta nueva: slate-950 + lime-400 + cream. Vibe editorial Linear/Vercel.
+// Paleta: slate-950 + lime-400 + cream. Vibe editorial Linear/Vercel.
 // Animaciones scroll-reveal en cada sección.
 // ============================================================================
 

@@ -136,8 +136,7 @@ export default function ProfileWidget() {
             Configuración
           </button>
 
-          {/* Antes vivía como botón al pie de /dashboard; se movió aquí para que
-              esté disponible desde cualquier página (plan-agente-semana04, 1.3). */}
+          {/* Vive aquí para que esté disponible desde cualquier página. */}
           <button
             onClick={() => { setIsOpen(false); router.push('/dashboard/templates') }}
             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 font-semibold hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors"

@@ -2,7 +2,7 @@
 
 // src/hooks/useServices.ts
 // ----------------------------------------------------------------------------
-// Sprint I · Hooks para el catálogo de servicios de la company.
+// Hooks para el catálogo de servicios de la company.
 // Usa TanStack Query siguiendo el patrón del resto del proyecto.
 // ----------------------------------------------------------------------------
 

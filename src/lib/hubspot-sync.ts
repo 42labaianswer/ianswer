@@ -2,10 +2,9 @@
 
 // src/lib/hubspot-sync.ts
 // ----------------------------------------------------------------------------
-// Sprint J.5 · Sync HubSpot → contacts usando Private App Token.
+// Sync HubSpot → contacts usando Private App Token.
 //
-// Cambios vs Sprint J:
-//   - Ya NO refresca tokens (Private Apps no caducan)
+//   - No refresca tokens (Private Apps no caducan)
 //   - Si el token es inválido, se marca la integración como failed y se pide
 //     al user que actualice manualmente en HubSpot Settings → Private Apps
 // ----------------------------------------------------------------------------

@@ -5,20 +5,18 @@
 // ----------------------------------------------------------------------------
 // Normaliza la fila de un miembro del equipo antes de guardarla.
 //
-// El problema: los campos profesionales son ESPECÍFICOS DE CADA INDUSTRIA
-// (ver teamFieldsByTemplate.ts). Una clínica captura "Especialidad"; una
-// industria genérica ni siquiera muestra ese campo. Pero algunas de esas
-// columnas quedaron NOT NULL en la base, así que al dar de alta a alguien
-// desde la plantilla "Otro" el insert reventaba con:
+// Los campos profesionales son ESPECÍFICOS DE CADA INDUSTRIA (ver
+// teamFieldsByTemplate.ts). Una clínica captura "Especialidad"; una
+// industria genérica ni siquiera muestra ese campo. Si alguna de esas
+// columnas es NOT NULL en la base, dar de alta a alguien desde la plantilla
+// "Otro" revienta con:
 //
 //   null value in column "specialty" of relation "team" violates not-null
 //
-// Solución en dos partes:
-//   · Aquí: los campos de texto específicos de industria nunca viajan como
-//     null; van como cadena vacía. Funciona con el esquema tal como está.
-//   · En la base: sql/2026-08-fix-team-campos-industria.sql quita esos
-//     NOT NULL, porque un campo de una vertical no puede ser obligatorio
-//     para todas.
+// Por eso los campos de texto específicos de industria nunca viajan como
+// null; van como cadena vacía. (En la base, esos NOT NULL se quitan en
+// sql/2026-08-fix-team-campos-industria.sql: un campo de una vertical no
+// puede ser obligatorio para todas.)
 // ============================================================================
 
 /**

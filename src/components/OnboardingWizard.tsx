@@ -27,23 +27,23 @@ import IAnswerLoader from './IAnswerLoader'
 import { hasDashboardAccess } from '../lib/subscription'
 
 // ============================================================================
-// OnboardingWizard v4.0 — Stripe obligatorio (plan-agente-semana04, sección 4)
+// OnboardingWizard — Stripe obligatorio
 // ----------------------------------------------------------------------------
 // P1: ¿A qué te dedicas?                  → template (cargado de la DB)
 // P2: ¿Cuántas conversaciones recibes?    → sugiere plan (rangos = plans.max_sessions_per_month)
 // P3: ¿Cuántos usuarios usarán?           → OCULTO (ENABLE_TEAM_SIZE_STEP)
-// P4: Addons sugeridos (OPCIONAL)         → solo "de interés", ya no se activan
+// P4: Addons sugeridos (OPCIONAL)         → solo "de interés", no se activan
 // P5: Casi listo                          → nombre + elegir plan → Stripe Checkout
 //
-// El wizard ya NO asigna plan: /api/onboarding/complete guarda el plan como
+// El wizard NO asigna plan: /api/onboarding/complete guarda el plan como
 // pendiente y el plan real lo escribe el webhook de Stripe al iniciar la
 // prueba. Si el usuario sale sin pagar y vuelve a entrar, regresa al P5
 // (modo "resume"). Al volver de Stripe se confirma la sesión con
 // /api/stripe/confirm-checkout para no depender de que el webhook llegue antes.
 // ============================================================================
 
-// El paso "¿Cuántas personas usarán iAnswer?" vuelve cuando existan las
-// invitaciones a equipos. Mientras tanto la sugerencia de plan solo usa el P2.
+// El paso "¿Cuántas personas usarán iAnswer?" queda oculto hasta que existan
+// las invitaciones a equipos; mientras, la sugerencia de plan solo usa el P2.
 const ENABLE_TEAM_SIZE_STEP = false
 
 const USER_BANDS = [
@@ -131,8 +131,8 @@ export default function OnboardingWizard() {
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [companyName, setCompanyName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  // Estado aparte para "Salir por ahora": con isSaving el botón principal del
-  // P5 decía "Abriendo Stripe..." aunque no se iba a Stripe.
+  // Estado aparte para "Salir por ahora": si usara isSaving, el botón principal
+  // del P5 mostraría "Abriendo Stripe..." aunque no se va a Stripe.
   const [isExiting, setIsExiting] = useState(false)
   // Plan elegido en el P5 (arranca en el sugerido; el usuario lo puede cambiar).
   const [chosenPlan, setChosenPlan] = useState<PlanSlug | null>(null)

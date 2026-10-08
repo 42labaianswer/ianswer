@@ -6,8 +6,8 @@
 // Nombre y foto real de los contactos de Facebook Messenger e Instagram.
 //
 // El problema: Meta no manda el nombre del usuario en el webhook de FB/IG
-// —solo su identificador—, así que los contactos entraban a la bandeja como
-// «Cliente» y sin avatar.
+// —solo su identificador—, así que sin esto los contactos entran a la bandeja
+// como «Cliente» y sin avatar.
 //
 // La solución obvia sería consultar Graph API y guardar la URL de la foto.
 // No sirve: **las URLs de foto de Meta expiran**. Guardarlas produce avatares

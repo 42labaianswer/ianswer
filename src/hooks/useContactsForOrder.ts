@@ -2,7 +2,7 @@
 
 // src/hooks/useContactsForOrder.ts
 // ----------------------------------------------------------------------------
-// Sprint AQ · Buscar contactos existentes (autocompletado) y crear uno nuevo.
+// Buscar contactos existentes (autocompletado) y crear uno nuevo.
 // ----------------------------------------------------------------------------
 
 import { useQuery } from '@tanstack/react-query'

@@ -4,7 +4,7 @@
 // ----------------------------------------------------------------------------
 // POST /api/hubspot/disconnect
 //
-// Sprint J.5 · Desconecta la integración HubSpot. Con Private App Tokens
+// Desconecta la integración HubSpot. Con Private App Tokens
 // no hay endpoint público de revocación: el user debe borrar el Private App
 // desde HubSpot Settings → Integrations → Private Apps si quiere invalidarlo.
 // Nosotros solo eliminamos el token de nuestra BD.

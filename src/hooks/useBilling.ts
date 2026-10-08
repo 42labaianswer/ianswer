@@ -2,7 +2,7 @@
 
 // src/hooks/useBilling.ts
 // ----------------------------------------------------------------------------
-// Sprint U · Hooks para billing (plan + addons + próximo pago) y uso de sesiones.
+// Hooks para billing (plan + addons + próximo pago) y uso de sesiones.
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

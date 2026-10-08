@@ -2,7 +2,7 @@
 
 // src/hooks/useWhatsAppProfile.ts
 // ----------------------------------------------------------------------------
-// Sprint W · Hooks para leer/editar el perfil de WhatsApp Business.
+// Hooks para leer/editar el perfil de WhatsApp Business.
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

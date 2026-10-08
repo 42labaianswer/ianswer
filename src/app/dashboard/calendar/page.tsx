@@ -230,7 +230,7 @@ export default function CalendarPage() {
   }, [specificData])
 
   // ============================================================================
-  // v1.9: Próximas Citas
+  // Próximas Citas
   // ============================================================================
   const { data: upcomingData = [] } = useQuery({
     queryKey: ['upcomingAppointments', companyId, selectedAgendaId],
@@ -515,7 +515,7 @@ export default function CalendarPage() {
       )}
 
       {/* ============================================================ */}
-      {/* v1.9: TARJETAS KPI - solo si hay agenda y calendar_id */}
+      {/* TARJETAS KPI - solo si hay agenda y calendar_id */}
       {/* ============================================================ */}
       {activeAgenda && hasCalendarId && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -910,7 +910,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* MODALES (Booking, Cancel, QuickReminder) - SIN CAMBIOS */}
+      {/* MODALES (Booking, Cancel, QuickReminder) */}
       <BookingModal
         isOpen={!!bookingSlot}
         onClose={() => setBookingSlot(null)}
@@ -999,7 +999,7 @@ export default function CalendarPage() {
 }
 
 // ============================================================================
-// COMPONENTES AUXILIARES (sin cambios)
+// COMPONENTES AUXILIARES
 // ============================================================================
 
 type UpcomingItem = {

@@ -6,12 +6,9 @@
 // Regla ÚNICA de bloqueo por suscripción.
 //
 // ⚠️  Esta misma regla está replicada en el nodo "5. Validar Suscripcion" del
-//     flujo de n8n `enviar-whatsapp-admin`. Ya divergieron una vez —n8n usaba
-//     lista blanca, la app lista negra— y el resultado fue un HTTP 402 en
-//     producción: empresas con plan activo no podían responder desde la
+//     flujo de n8n `enviar-whatsapp-admin`. Si divergen, el envío falla con
+//     HTTP 402 y empresas con plan activo no pueden responder desde la
 //     bandeja. Si cambias esta función, cambia también ese nodo.
-//
-//     Ver docs/fix-envio-402-suscripcion-n8n.md
 //
 // Criterio: LISTA NEGRA. Se bloquea solo lo que inequívocamente hay que
 // bloquear. Un estado desconocido NO bloquea — es preferible dejar pasar un
@@ -46,16 +43,16 @@ export function isSubscriptionBlocked(
 }
 
 // ============================================================================
-// Acceso al DASHBOARD — lista BLANCA (plan-agente-semana04, sección 4).
+// Acceso al DASHBOARD — lista BLANCA.
 // ----------------------------------------------------------------------------
-// Distinta a propósito de isSubscriptionBlocked (que sigue en lista negra
-// porque está replicada en n8n para los envíos desde la bandeja). Para entrar
+// Distinta a propósito de isSubscriptionBlocked (que es lista negra porque
+// está replicada en n8n para los envíos desde la bandeja). Para entrar
 // al dashboard hace falta una suscripción de Stripe viva: en prueba, activa, o
 // con un cobro fallido todavía dentro de los días de gracia.
 //
-// Motivo: con la lista negra, 'inactive' (cuentas que terminaron el wizard sin
-// pasar por Stripe, y suscripciones canceladas) no se bloqueaba nunca — acceso
-// ilimitado sin pagar. Ver docs/Semana 4/reporte-fin-prueba-stripe-3.1.md.
+// Motivo: con lista negra, 'inactive' (cuentas que terminaron el wizard sin
+// pasar por Stripe, y suscripciones canceladas) no se bloquearía nunca — acceso
+// ilimitado sin pagar.
 // ============================================================================
 
 export const DASHBOARD_ALLOWED_STATUSES = ['trialing', 'active'] as const

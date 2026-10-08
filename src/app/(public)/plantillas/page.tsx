@@ -3,8 +3,8 @@
 // ============================================================================
 // src/app/(public)/plantillas/page.tsx
 // ----------------------------------------------------------------------------
-// Esta ruta antiguamente listaba "plantillas". Ahora el concepto se unificó
-// con "industrias" — los enlaces viejos se redirigen.
+// "Plantillas" e "industrias" son el mismo concepto: esta ruta redirige a
+// /industrias para que los enlaces existentes sigan funcionando.
 // ============================================================================
 
 import { redirect } from 'next/navigation'

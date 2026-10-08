@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 // ============================================================================
-// useAddons (v3.0)
+// useAddons
 // ----------------------------------------------------------------------------
 // Lista addons del catálogo filtrado por templates instalados + addons activos.
 // Incluye mutación para iniciar checkout (vía API) y cancelar.
@@ -34,7 +34,7 @@ export function useAddonsCatalog() {
 
       if (!profile?.company_id) return []
 
-      // RPC nueva del Sprint 4 — devuelve solo addons disponibles para los
+      // La RPC devuelve solo addons disponibles para los
       // templates instalados (o universales).
       const { data, error } = await supabase
         .rpc('get_company_available_addons', { p_company_id: profile.company_id })

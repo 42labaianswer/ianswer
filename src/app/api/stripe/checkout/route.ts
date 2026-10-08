@@ -14,13 +14,11 @@ import { getAppBaseUrl } from '../../../../lib/appUrl'
 //   - Auto-reparación si el cliente fue borrado de Stripe
 //   - Soporte para billing mensual o anual
 //   - returnTo: 'wizard' (paso 5 del onboarding) o 'plans' (/dashboard/plans)
-//
-// Cambios plan-agente-semana04 (sección 4):
-//   - La prueba gratuita PIDE TARJETA (decisión de Rubén/Roy; ver términos).
-//     Antes usaba payment_method_collection 'if_required' → sin tarjeta, al
-//     terminar la prueba no había con qué cobrar.
-//   - La prueba se da una sola vez por empresa (antes una empresa en 'trialing'
-//     podía volver a hacer checkout y recibir otros 7 días).
+//   - La prueba gratuita PIDE TARJETA (ver términos): con
+//     payment_method_collection 'if_required' no habría con qué cobrar al
+//     terminar la prueba.
+//   - La prueba se da una sola vez por empresa: una empresa en 'trialing' no
+//     puede volver a hacer checkout para recibir otros 7 días.
 //   - Si ya hay una suscripción viva, no se crea otra (se cobraría doble):
 //     los cambios de plan van por el portal de Stripe.
 //   - Checkout en español (locale es-419).

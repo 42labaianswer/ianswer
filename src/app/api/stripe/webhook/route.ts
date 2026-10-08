@@ -15,7 +15,7 @@ import {
 // ============================================================================
 // POST /api/stripe/webhook
 // ----------------------------------------------------------------------------
-// Webhook unificado v3.0 (plan-agente-semana04, sección 4 + 4.4). Maneja:
+// Webhook unificado. Maneja:
 //
 // PLAN BASE (Start / Growth / Scale) — el plan y la prueba SOLO se escriben aquí
 // (y en api/stripe/confirm-checkout, con la misma lógica de lib/stripePlan.ts):
@@ -32,9 +32,9 @@ import {
 //
 // El metadata.checkoutType discrimina entre 'plan' y 'addon'.
 //
-// Versión de API 2026-04-22.dahlia: la factura ya no trae `subscription` en la
-// raíz (ahora invoice.parent.subscription_details.subscription) — antes de este
-// cambio, payment_succeeded/payment_failed llegaban pero no hacían nada.
+// Versión de API 2026-04-22.dahlia: la factura no trae `subscription` en la
+// raíz, sino en invoice.parent.subscription_details.subscription (ver
+// invoiceSubscriptionId en lib/stripePlan.ts).
 // Eventos suscritos en Stripe (destino ianswer.pro): los 6 de arriba.
 // ============================================================================
 
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
           break
         }
 
-        // Plan base. Antes escribía 'inactive', que no bloqueaba el dashboard.
+        // Plan base. 'expired' (no 'inactive') porque está en BLOCKED_STATUSES.
         const company = await companyBySubscription(sub.id)
         await supabaseAdmin
           .from('companies')
@@ -206,8 +206,8 @@ export async function POST(req: Request) {
           break
         }
 
-        // Plan base (con o sin metadata: las suscripciones creadas antes del
-        // cambio también tienen checkoutType 'plan').
+        // Plan base (con o sin metadata: una suscripción sin checkoutType se
+        // trata como plan).
         await applyPlanSubscription(supabaseAdmin, sub)
         break
       }
@@ -244,7 +244,7 @@ export async function POST(req: Request) {
         if (!subscriptionId) break
 
         // La factura de $0 que Stripe emite al iniciar la prueba NO es un pago:
-        // antes pisaba 'trialing' con 'active' y creaba un CFDI de $0.
+        // no debe pisar 'trialing' con 'active' ni crear un CFDI de $0.
         const totalCents = invoice.amount_paid ?? invoice.total ?? 0
         if (totalCents <= 0) break
 
@@ -253,7 +253,7 @@ export async function POST(req: Request) {
           .update({ subscription_status: 'active', account_status: 'active' } as never)
           .eq('stripe_subscription_id', subscriptionId)
 
-        // ── Sprint G: crear invoice draft (CFDI México) ──
+        // ── Crear invoice draft (CFDI México) ──
         // El draft se queda en status 'draft' hasta que el admin (o un cron) lo
         // timbre con el PAC contratado.
         try {

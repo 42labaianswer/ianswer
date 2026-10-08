@@ -14,7 +14,7 @@ import { useConfirm } from '../../../../hooks/useConfirm'
 import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 // ============================================================================
-// AddonsAdminTab v2.26
+// AddonsAdminTab
 // ----------------------------------------------------------------------------
 // CRUD completo de addons del catálogo. Edita identidad, precio, Stripe,
 // feature_flags, capacity_grants y gating por plan/template.

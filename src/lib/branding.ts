@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// lib/branding.ts · v3.0 Sprint 5
+// lib/branding.ts
 // ----------------------------------------------------------------------------
 // Helper SSR para verificar si una company tiene el addon full_branding activo.
 // Usado en /menu/[slug], /propiedad/[slug] y /tracking/[order] para decidir si

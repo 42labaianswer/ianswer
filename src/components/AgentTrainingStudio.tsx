@@ -4,7 +4,7 @@
 
 // src/components/AgentTrainingStudio.tsx
 // ----------------------------------------------------------------------------
-// Sprint R · Estudio de entrenamiento del agente.
+// Estudio de entrenamiento del agente.
 //
 // Dos modos de trabajo (tabs internos):
 //   1. "Entrevista": un chat donde el asistente te entrevista como si

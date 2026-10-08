@@ -304,9 +304,8 @@ export default function WhatsAppConnectPage() {
       )}
 
       {/*
-        Editor de perfil de WhatsApp Business — antes vivía suelto en la pantalla
-        de Conectividad, sin contexto. Ahora vive aquí, dentro del canal, y solo
-        cuando WhatsApp ya está conectado (que es cuando tiene sentido editarlo).
+        Editor de perfil de WhatsApp Business — solo cuando WhatsApp ya está
+        conectado (que es cuando tiene sentido editarlo).
       */}
       {config?.connected && (
         <div className="mt-8">

@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/industrias/page.tsx — Índice de industrias (rediseño v2)
+// src/app/(public)/industrias/page.tsx — Índice de industrias
 // ============================================================================
 
 import Link from 'next/link'

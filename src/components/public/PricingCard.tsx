@@ -3,7 +3,7 @@
 // ============================================================================
 // src/components/public/PricingCard.tsx
 // ----------------------------------------------------------------------------
-// Card de plan con paleta nueva (emerald + stone). Altura uniforme. El plan
+// Card de plan con paleta (emerald + stone). Altura uniforme. El plan
 // destacado va con border gradient emerald, NO con scale (para no romper grid).
 // Botón al fondo siempre.
 // ============================================================================

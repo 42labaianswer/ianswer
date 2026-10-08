@@ -19,7 +19,7 @@ export default function LoginPage() {
   const urlPlanSlug    = searchParams.get('plan')
   const urlTemplate    = searchParams.get('template')
   const urlSignupFlag  = searchParams.get('signup') === '1'
-  // Llega aquí desde "Salir por ahora" en el paso 5 del wizard (plan-agente-semana04, 4.1)
+  // Llega aquí desde "Salir por ahora" en el paso 5 del wizard
   const planRequired   = searchParams.get('motivo') === 'plan-requerido'
 
   // Si vienen de la landing pública (?signup=1), arrancar en modo registro
@@ -32,10 +32,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Paso de verificacion de correo tras registro (Tarea 6, parte 2): el
-  // registro ya no deja al usuario directo en el dashboard ni solo con un
-  // toast -- pide un codigo de 6 digitos que llega por correo antes de
-  // iniciar sesion.
+  // Paso de verificacion de correo tras registro: pide un codigo de 6
+  // digitos que llega por correo antes de iniciar sesion.
   const [signupStep, setSignupStep] = useState<'form' | 'code'>('form')
   const [code, setCode] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
@@ -88,7 +86,7 @@ export default function LoginPage() {
         if (error) throw new Error('Credenciales incorrectas.')
         return { needsEmailConfirmation: false }
       } else {
-        // El registro ya no llama a supabase.auth.signUp() directo: pasa por
+        // El registro no llama a supabase.auth.signUp() directo: pasa por
         // /api/auth/register (cliente admin, email_confirm: false) que manda
         // un codigo de 6 digitos por Resend con plantilla propia -- no el
         // correo de confirmacion por defecto de Supabase. Mismo criterio que

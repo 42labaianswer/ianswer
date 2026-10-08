@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 // ============================================================================
-// useTemplates (v2.26)
+// useTemplates
 // ----------------------------------------------------------------------------
 // Lista templates del catálogo + templates instalados en la company.
 // Incluye mutaciones para instalar, desinstalar y cambiar primario.

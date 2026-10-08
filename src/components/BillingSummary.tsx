@@ -4,7 +4,7 @@
 
 // src/components/BillingSummary.tsx
 // ----------------------------------------------------------------------------
-// Sprint U · Resumen de facturación: próximo pago (plan + addons) + gestión.
+// Resumen de facturación: próximo pago (plan + addons) + gestión.
 //
 // Muestra:
 //   - El desglose del próximo cobro: plan base + cada addon activo
@@ -47,7 +47,7 @@ export default function BillingSummary({
   accentColor?: string
   // Si es null, el plan actual fue asignado manualmente por un admin (o por el
   // onboarding automático) sin pasar por Stripe — no hay nada que gestionar/
-  // cancelar en el portal de Stripe. Ver diagnóstico del P1 de Stripe, semana 4.
+  // cancelar en el portal de Stripe.
   stripeCustomerId?: string | null
 }) {
   const { data: addons = [], isLoading } = useActiveAddonsDetailed(companyId)

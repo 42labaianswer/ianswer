@@ -4,8 +4,7 @@
 // ----------------------------------------------------------------------------
 // POST /api/hubspot/sync
 //
-// Sprint J.5 · Sync manual. Sin cambios estructurales vs Sprint J,
-// solo importa el nuevo hubspot-sync que ya no maneja refresh de tokens.
+// Sync manual.
 // ----------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server';

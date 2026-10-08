@@ -4,10 +4,10 @@
 
 /**
  * ============================================================================
- * MenuImportWizard · v2.18
+ * MenuImportWizard
  * ----------------------------------------------------------------------------
  * Wizard para importar menú desde PDF. Mismo patrón que PropertyImportWizard
- * de v2.17 pero adaptado a menús.
+ * pero adaptado a menús.
  *
  * Diferencia clave: DeepSeek devuelve items + sus categorías. Antes de insertar
  * los items, creamos las categorías nuevas que no existen.

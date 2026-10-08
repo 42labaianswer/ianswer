@@ -2,7 +2,7 @@
 
 // src/app/api/agent-training/route.ts
 // ----------------------------------------------------------------------------
-// Sprint R · Endpoint del entrenador conversacional.
+// Endpoint del entrenador conversacional.
 //
 // Dos modos (via body.action):
 //   - 'interview': el asistente entrevista al usuario. Recibe el historial de

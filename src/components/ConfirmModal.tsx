@@ -15,7 +15,7 @@ export type ConfirmModalProps = {
   onCancel: () => void
 }
 
-// Modal de confirmación genérico para reemplazar los confirm()/alert() nativos
+// Modal de confirmación genérico, en lugar de los confirm()/alert() nativos
 // del navegador en toda la plataforma. Estilo alineado con CancelDialog.
 export default function ConfirmModal({
   isOpen,

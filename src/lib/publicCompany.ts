@@ -5,11 +5,10 @@
 // (/p/[slug], /menu/[slug], opengraph). Solo para Server Components / rutas
 // del servidor: usa service_role, que nunca llega al navegador.
 //
-// Por qué (29-sep-2026, fix_open_policies_parte2.sql): companies tenía un
-// SELECT abierto a todos ("Duenos ven su propia clinica" USING true) que
-// dejaba leer con la clave pública los tokens de Meta, los IDs de Stripe, etc.
-// de todas las empresas. Esas páginas eran la razón de mantenerlo. Ahora la
-// política se quita y aquí solo se pueden pedir columnas de la lista blanca.
+// Por qué: companies no tiene un SELECT público (ver fix_open_policies_parte2.sql),
+// porque con la clave pública dejaría leer los tokens de Meta, los IDs de
+// Stripe, etc. de todas las empresas. Aquí solo se pueden pedir columnas de la
+// lista blanca.
 // ============================================================================
 
 import { createClient } from '@supabase/supabase-js'
@@ -66,10 +65,10 @@ export async function getPublicCompanyById<T = Record<string, unknown>>(
  * Propiedades publicadas de una empresa (directorio /p/[slug]). Llamar solo
  * después de comprobar el add-on con `has_public_directory_active`.
  *
- * Por qué con service_role (1-oct-2026): la única política pública de
- * properties es `status = 'active'`, un estado que no existe (se guardan como
+ * Por qué con service_role: la única política pública de properties es
+ * `status = 'active'`, un estado que no existe (se guardan como
  * disponible / apartada / borrador...) → con la clave anónima el directorio
- * siempre salía con 0 propiedades.
+ * saldría siempre con 0 propiedades.
  */
 export async function getPublicProperties(companyId: string) {
   return adminClient()

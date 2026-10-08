@@ -7,19 +7,15 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '../lib/supabase'
 // ============================================================================
-// WorkspaceContext (v2.26)
+// WorkspaceContext
 // ----------------------------------------------------------------------------
-// Refactorizado para soportar el modelo de templates + addons.
+// Estado del workspace sobre el modelo de templates + addons.
 //
-// Cambios vs v1.5:
-//   - El concepto "vertical" del modelo viejo se llama ahora `primaryTemplate`.
-//     El shim de compat fue removido en el Sprint 3 (fresh-install only).
-//   - `installedTemplates` es nuevo: lista de TODOS los templates instalados.
+//   - `primaryTemplate`: el template primario de la company.
+//   - `installedTemplates`: lista de TODOS los templates instalados.
 //   - `modules` se computa fusionando active_modules de TODOS los templates +
 //     features de addons activos (por ejemplo `multi_location_enabled`).
 //   - `labels` se toma del template primario.
-//   - Se mantiene la misma forma de consumir desde componentes para minimizar
-//     cambios en el resto del código.
 // ============================================================================
 
 // ── Protección contra llamadas colgadas ──────────────────────────────────
@@ -31,7 +27,7 @@ import { supabase } from '../lib/supabase'
 // Orders, Dashboard, Contacts, Properties) atorada en "Cargando..." hasta
 // recargar. `withTimeout` fuerza que cada llamada falle a tiempo en vez de
 // colgarse indefinidamente, para que el try/catch/finally de abajo siempre
-// pueda terminar. (Hallazgo de la investigación de la Tarea 5, 21-sep.)
+// pueda terminar.
 function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -313,7 +309,7 @@ export const useWorkspace = create<WorkspaceState>()(
       }
     }),
     {
-      name: 'workspace-cache-v3',  // bump: invalida caches viejos con tabs fantasma
+      name: 'workspace-cache-v3',  // cambiar el nombre invalida los caches persistidos (p. ej. con tabs fantasma)
       partialize: (state) => ({
         labels: state.labels,
         modules: state.modules,

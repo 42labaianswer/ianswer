@@ -391,7 +391,7 @@ export default function InboxPage() {
     }
   })
 
-  // v2.12: Estados para multimedia outbound
+  // Estados para multimedia outbound
   const [pendingImage, setPendingImage] = useState<{ file: File, preview: string, caption: string } | null>(null)
   const [pendingAudio, setPendingAudio] = useState<{ blob: Blob, duration: number, preview: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
@@ -402,7 +402,7 @@ export default function InboxPage() {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recordingStreamRef = useRef<MediaStream | null>(null)
 
-  // v2.12: Subir archivo a Supabase Storage (devuelve URL pública)
+  // Subir archivo a Supabase Storage (devuelve URL pública)
   const uploadToStorage = async (file: Blob, ext: string, folder: 'audio' | 'image'): Promise<string> => {
     const ts = Date.now()
     const path = `${folder}/admin/${selectedContact!.id}/${ts}.${ext}`
@@ -417,7 +417,7 @@ export default function InboxPage() {
     return data.publicUrl
   }
 
-  // v2.12: Manejo de adjuntar imagen
+  // Manejo de adjuntar imagen
   const handleAttachImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -440,7 +440,7 @@ export default function InboxPage() {
 
   const cancelPendingImage = () => setPendingImage(null)
 
-  // v2.12: Grabación de audio con MediaRecorder
+  // Grabación de audio con MediaRecorder
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -510,7 +510,7 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // v2.12: Mutación de envío extendida — soporta text / audio / image
+  // Mutación de envío — soporta text / audio / image
   type SendPayload = 
     | { type: 'text', content: string }
     | { type: 'audio', file: Blob, ext: string }
@@ -671,7 +671,7 @@ export default function InboxPage() {
 
   // ⚠️ Red de seguridad: si hay mensajes de una conversación pero el contacto
   // no existe en `contacts` (p. ej. n8n no lo creó para Facebook/Instagram),
-  // la conversación quedaba INVISIBLE en el buzón aunque el mensaje sí llegó.
+  // la conversación quedaría INVISIBLE en el buzón aunque el mensaje sí llegó.
   // Aquí la mostramos igual, con un contacto sintético, para que nunca se
   // pierda un cliente por un hueco de datos.
   const idsConContacto = new Set(allContacts.map(c => c.external_id))
@@ -1087,7 +1087,7 @@ export default function InboxPage() {
                   const isOptimistic = msg.id.startsWith('temp-')
                   const accentColor = vertical?.accent_color || '#0f172a'
 
-                  // v2.11: Detectar tipo de mensaje para render
+                  // Detectar tipo de mensaje para render
                   const msgType = msg.message_type || 'text'
                   const hasMedia = !!msg.media_url
 
@@ -1199,7 +1199,7 @@ export default function InboxPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input v2.12: multimedia */}
+            {/* Input multimedia */}
             <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 space-y-2">
 
               {/* file input oculto */}

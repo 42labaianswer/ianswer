@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/app/dashboard/crm/layout.tsx · v4.0 (responsive)
+// src/app/dashboard/crm/layout.tsx (responsive)
 // ----------------------------------------------------------------------------
 // Desktop: sidebar interno vertical pegado al sidebar principal.
 // Mobile: tabs horizontales scrolleables arriba.

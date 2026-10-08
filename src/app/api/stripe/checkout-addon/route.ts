@@ -77,9 +77,9 @@ export async function POST(req: Request) {
         metadata: { companyId }
       })
       customerId = customer.id
-      // Con service_role: desde fix_billing_bypass.sql el usuario ya no puede
-      // escribir columnas de facturación (el trigger las revierte en silencio)
-      // y cada compra crearía un cliente de Stripe nuevo. Mismo criterio que
+      // Con service_role: el usuario no puede escribir columnas de facturación
+      // (un trigger las revierte en silencio, ver fix_billing_bypass.sql) y cada
+      // compra crearía un cliente de Stripe nuevo. Mismo criterio que
       // api/stripe/checkout.
       const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
       const { error: saveErr } = await admin

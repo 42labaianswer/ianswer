@@ -18,11 +18,11 @@ type CancelDialogProps = {
   patientPhone?: string
   dateLabel?: string
   onSuccess: () => void
-  // v2.7: nuevo prop para distinguir cancelación vs no-show
+  // Distingue cancelación vs no-show
   mode?: Mode
 }
 
-// v2.7: razones predefinidas de no-show
+// Razones predefinidas de no-show
 const NOSHOW_REASONS = [
   { value: 'olvido',     label: 'Olvidó la cita' },
   { value: 'trabajo',    label: 'Tuvo que trabajar' },

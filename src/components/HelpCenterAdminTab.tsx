@@ -21,7 +21,7 @@ type HelpArticle = {
   category: string
   category_icon: string
   media_url: string | null
-  // ── v2: campos para publicación pública ──────────────────────────────────
+  // ── Campos para publicación pública ──────────────────────────────────────
   is_public?: boolean
   summary?: string | null
   slug?: string | null
@@ -56,7 +56,7 @@ export default function HelpCenterAdminTab() {
     category_icon: 'BookOpen',
     content: '',
     media_url: '',
-    // v2: publicación pública
+    // Publicación pública
     is_public: false,
     summary: '',
     reading_time_minutes: 3
@@ -241,7 +241,7 @@ export default function HelpCenterAdminTab() {
             )}
           </div>
 
-          {/* ── v2: Publicación en sitio público ────────────────────────── */}
+          {/* ── Publicación en sitio público ────────────────────────────── */}
           <div className="border-t border-slate-100 pt-5 space-y-3">
             <label className="flex items-center gap-3 cursor-pointer group">
               <input

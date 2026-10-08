@@ -3,13 +3,10 @@
 // ============================================================================
 // src/app/api/agent/menu/route.ts
 // ----------------------------------------------------------------------------
-// Herramienta `buscar_platillo` del agente de restaurante.
+// Herramienta `buscar_platillo` del agente de restaurante. Consulta el menú
+// directamente en la base de datos.
 //
-// Antes apuntaba a un campo `n8n_webhook_url_menu` de la tabla `companies` que
-// nunca existió, así que la herramienta no devolvía nada. Ahora consulta el
-// menú directamente.
-//
-// Contrato de entrada (el mismo que ya enviaba la herramienta):
+// Contrato de entrada:
 //   { companyId, query, action? }
 // ============================================================================
 

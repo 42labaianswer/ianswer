@@ -15,7 +15,7 @@ import { useConfirm } from '../../../../hooks/useConfirm'
 import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 // ============================================================================
-// TemplatesAdminTab v2.26
+// TemplatesAdminTab
 // ----------------------------------------------------------------------------
 // CRUD completo de templates. Crear, editar, duplicar, soft-delete.
 // Cada template define: identidad, colores, ui_labels, active_modules,

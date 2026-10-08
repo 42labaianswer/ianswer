@@ -8,7 +8,7 @@ import { Lock, Sparkles, ArrowRight } from 'lucide-react'
 import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
-// FeatureGate v3.0
+// FeatureGate
 // ----------------------------------------------------------------------------
 // Wrapper que protege bloques de UI detrás de un feature flag o capacidad.
 //

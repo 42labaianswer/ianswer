@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * /propiedad/[slug]/page.tsx · v2.17
+ * /propiedad/[slug]/page.tsx
  * ----------------------------------------------------------------------------
  * Página pública (sin auth) de una propiedad individual.
  *
@@ -64,7 +64,7 @@ export default async function PropertyPublicPage({ params }: Params) {
 
   if (!prop) return notFound()
 
-  // v3.0 Sprint 5: Gate full_branding
+  // Gate full_branding
   const [fullBranding, platformName] = await Promise.all([
     hasFullBranding(prop.company_id),
     getPlatformName()

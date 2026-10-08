@@ -55,7 +55,7 @@ type EnrichedContact = {
   reminders_sent: number
   reminders_confirmed: number
   reminders_cancelled: number
-  // v2.8: referidos
+  // Referidos
   referral_source?: ReferralSource | null
   referred_by_contact_id?: string | null
 }
@@ -139,7 +139,7 @@ const formatNextAppointment = (next?: any): { label: string, isSoon: boolean } |
   }
 }
 
-// v2.5: formato corto para fechas de primera/última visita
+// Formato corto para fechas de primera/última visita
 const formatVisitDate = (dateStr?: string | null): string => {
   if (!dateStr) return '—'
   const d = new Date(dateStr + 'T00:00:00')
@@ -169,10 +169,10 @@ export default function ContactsPage() {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'tasks'>('info')
   const [editingContact, setEditingContact] = useState<EnrichedContact | null>(null)
 
-  // v2.2: vista tabla o kanban
+  // Vista tabla o kanban
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
 
-  // v2.2: bulk selection
+  // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
@@ -189,7 +189,7 @@ export default function ContactsPage() {
   const [formData, setFormData] = useState({
     phone: '', name: '', company_id: '', lifecycle_stage: 'new_lead' as LifecycleStage,
     ai_active: true, symptoms: '', notes: '', gender: '', birth_date: '', staff_id: '',
-    // v2.8: referidos
+    // Referidos
     referral_source: '' as ReferralSource | '',
     referred_by_contact_id: ''
   })
@@ -216,7 +216,7 @@ export default function ContactsPage() {
     }
   })
 
-  // v2.9: Tags y assignments (solo si feature activa)
+  // Tags y assignments (solo si feature activa)
   const { data: allTags = [] } = useQuery({
     queryKey: ['allTags', userCompanyId],
     enabled: !!userCompanyId && !!features?.crm_tags_visual,
@@ -289,7 +289,7 @@ export default function ContactsPage() {
         gender: formData.gender || null,
         birth_date: formData.birth_date || null,
         staff_id: formData.staff_id || null,
-        // v2.8: referidos
+        // Referidos
         referral_source: formData.referral_source || null,
         referred_by_contact_id: formData.referral_source === 'patient' ? (formData.referred_by_contact_id || null) : null
       }
@@ -347,7 +347,7 @@ export default function ContactsPage() {
     }
   })
 
-  // v2.2: BULK mutations
+  // BULK mutations
   const bulkUpdateStage = useMutation({
     mutationFn: async ({ ids, stage }: { ids: string[], stage: LifecycleStage }) => {
       const { error } = await supabase.from('contacts').update({ lifecycle_stage: stage, stage_updated_by: 'human' }).in('id', ids)
@@ -402,10 +402,8 @@ export default function ContactsPage() {
       })
       if (recordsToInsert.length === 0) throw new Error('No se encontraron teléfonos válidos.')
 
-      // Antes esto hacía upsert con onConflict: 'id' e ignoreDuplicates. Como
-      // el id era el teléfono —único en toda la plataforma— un contacto que ya
-      // existía EN OTRA EMPRESA se saltaba en silencio y nunca se importaba.
-      // Ahora se deduplica dentro de la empresa, por (company_id, external_id).
+      // Se deduplica dentro de la empresa, por (company_id, external_id): un
+      // mismo teléfono puede existir EN OTRA EMPRESA y aun así debe importarse.
       const telefonos = recordsToInsert.map(r => r.external_id)
       const { data: existentes, error: lookupError } = await supabase
         .from('contacts')
@@ -579,7 +577,7 @@ export default function ContactsPage() {
     if (await confirm('¿Eliminar este contacto? No se puede deshacer.', { title: 'Eliminar contacto', danger: true, confirmText: 'Eliminar' })) deleteContactMutation.mutate(id)
   }
 
-  // v2.2: Exportar CSV de los seleccionados
+  // Exportar CSV de los seleccionados
   const handleExportCSV = () => {
     const ids = Array.from(selectedIds)
     const rows = contactsList.filter(c => ids.includes(c.id))
@@ -604,7 +602,7 @@ export default function ContactsPage() {
     toast.success(`${rows.length} contactos exportados`)
   }
 
-  // v2.2: Selección bulk
+  // Selección bulk
   const toggleSelect = (id: string) => {
     setSelectedIds(s => {
       const next = new Set(s)
@@ -719,7 +717,7 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* v2.2: Barra BULK ACTIONS - aparece cuando hay seleccionados Y tiene feature */}
+      {/* Barra BULK ACTIONS - aparece cuando hay seleccionados Y tiene feature */}
       {selectedIds.size > 0 && features?.crm_bulk_actions && (
         <div className="bg-slate-900 text-white rounded-2xl px-5 py-3 flex flex-wrap items-center gap-3 shadow-lg sticky top-4 z-30 animate-in slide-in-from-top-4">
           <div className="flex items-center gap-2">
@@ -793,7 +791,7 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* v2.2: Renderizar Tabla O Kanban. Si no hay feature Kanban → siempre tabla */}
+      {/* Renderizar Tabla O Kanban. Si no hay feature Kanban → siempre tabla */}
       {(viewMode === 'kanban' && features?.crm_kanban) ? (
         isLoadingAll ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-20 flex justify-center">
@@ -942,7 +940,7 @@ export default function ContactsPage() {
                     </div>
                   </div>
 
-                  {/* v2.5: Primera y última visita */}
+                  {/* Primera y última visita */}
                   {(editingContact.first_visit_at || editingContact.last_visit_at) && (
                     <div className="px-6 py-4 border-b border-slate-200 space-y-2.5">
                       {editingContact.first_visit_at && (
@@ -1117,7 +1115,7 @@ export default function ContactsPage() {
                       </div>
                     </div>
 
-                    {/* v2.9: Etiquetas */}
+                    {/* Etiquetas */}
                     {features?.crm_tags_visual && editingContact && (
                       <div>
                         <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1133,7 +1131,7 @@ export default function ContactsPage() {
                       </div>
                     )}
 
-                    {/* v2.8: Tracking de referidos */}
+                    {/* Tracking de referidos */}
                     {features?.crm_referral_tracking && (
                       <div>
                         <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1516,7 +1514,7 @@ function ContactRow({
 
 
 // ============================================================================
-// v2.8: ReferralSourcePicker — selector de fuente de referido
+// ReferralSourcePicker — selector de fuente de referido
 // ============================================================================
 function ReferralSourcePicker({
   value, referredByContactId, onChange, companyId, currentContactId
@@ -1658,7 +1656,7 @@ function ReferralSourcePicker({
 }
 
 // ============================================================================
-// v2.8: BroughtContactsSection — pacientes que este contacto ha referido
+// BroughtContactsSection — pacientes que este contacto ha referido
 // ============================================================================
 function BroughtContactsSection({ contactId }: { contactId: string }) {
   const { data: brought = [], isLoading } = useQuery({
@@ -1714,7 +1712,7 @@ function BroughtContactsSection({ contactId }: { contactId: string }) {
 
 
 // ============================================================================
-// v2.9: ContactTagsPicker — asignar/quitar tags al contacto
+// ContactTagsPicker — asignar/quitar tags al contacto
 // ============================================================================
 function ContactTagsPicker({
   contactId, allTags

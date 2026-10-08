@@ -4,7 +4,7 @@
 
 // src/app/dashboard/properties/catalogo-web/page.tsx
 // ----------------------------------------------------------------------------
-// Sprint H.5 · Panel de configuración del Catálogo Web (Directorio Público).
+// Panel de configuración del Catálogo Web (Directorio Público).
 //
 // Permite al usuario:
 //   - Ver y copiar su link público (/p/{slug})

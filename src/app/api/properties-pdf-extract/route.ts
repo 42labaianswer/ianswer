@@ -5,10 +5,10 @@ import { extractText, getDocumentProxy } from 'unpdf'
 
 /**
  * ============================================================================
- * /api/properties-pdf-extract  ·  v2.18 (unpdf)
+ * /api/properties-pdf-extract
  * ----------------------------------------------------------------------------
- * Usa unpdf en lugar de pdf-parse: librería nativa de Node sin pdfjs-dist,
- * sin necesidad de polyfills de DOMMatrix/DOMPoint.
+ * Usa unpdf: librería nativa de Node sin pdfjs-dist, no necesita polyfills
+ * de DOMMatrix/DOMPoint.
  * ============================================================================
  */
 

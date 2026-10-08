@@ -196,7 +196,7 @@ export default function AIAgentBuilderPage() {
       ? `EMERGENCIAS: Si mencionan dolor intenso, sangrado o urgencias, DETÉN LA CONVERSACIÓN y mándalos a Urgencias (911). No diagnostiques.`
       : `NOTA: No emitas diagnósticos profesionales ni prometas resultados fuera de tu conocimiento.`
 
-    // Sprint S: campos nuevos de personalidad
+    // Campos de personalidad
     let formalityLine = ''
     if (member.ai_formality === 'tu') formalityLine = 'TRATO: Habla de TÚ (informal).'
     else if (member.ai_formality === 'usted') formalityLine = 'TRATO: Habla de USTED (formal).'
@@ -438,8 +438,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
       )}
 
       {!selectedMember && team.length === 0 ? (
-        // Estado vacío sin nadie en Equipo (plan-agente-semana04, 1.8): antes
-        // solo decía "Selecciona un perfil" sin explicar qué hacer.
+        // Estado vacío sin nadie en Equipo: explica qué hacer para empezar.
         <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 px-6 py-12 sm:px-12 flex flex-col items-center text-center">
           <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${accent}15`, color: accent }}>
             <BrainCircuit size={30} />
@@ -537,7 +536,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                   </div>
                 </div>
 
-                {/* Sprint S: Formalidad tú/usted */}
+                {/* Formalidad tú/usted */}
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Languages size={13} /> Trato</label>
                   <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
@@ -547,7 +546,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                   </div>
                 </div>
 
-                {/* Sprint S: Saludo y despedida */}
+                {/* Saludo y despedida */}
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><MessageSquareText size={13} /> Saludo (primer mensaje)</label>
@@ -618,13 +617,13 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                   </div>
                 </div>
 
-                {/* Sprint S: Palabras prohibidas */}
+                {/* Palabras prohibidas */}
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Ban size={14} /> Frases prohibidas</label>
                   <textarea disabled={!isAdvancedPlan} value={selectedMember.ai_forbidden_phrases || ''} onChange={e => patch({ ai_forbidden_phrases: e.target.value })} placeholder="Cosas que el agente NUNCA debe decir (una por línea). Ej: prometer descuentos, decir 'no sé'..." rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-200 resize-none" />
                 </div>
 
-                {/* Sprint S: Disponibilidad */}
+                {/* Disponibilidad */}
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><Clock3 size={14} /> Disponibilidad / horario del bot</label>
                   <input disabled={!isAdvancedPlan} value={selectedMember.ai_availability_note || ''} onChange={e => patch({ ai_availability_note: e.target.value })} placeholder="Ej: Respondo 24/7, pero pedidos solo de 9 a 6..." className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-200" />

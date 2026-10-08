@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/integraciones/page.tsx — Integrations (rediseño v2)
+// src/app/(public)/integraciones/page.tsx — Integrations
 // ============================================================================
 
 import { createClient } from '@supabase/supabase-js'

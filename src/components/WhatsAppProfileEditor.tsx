@@ -4,7 +4,7 @@
 
 // src/components/WhatsAppProfileEditor.tsx
 // ----------------------------------------------------------------------------
-// Sprint W · Panel para editar el perfil de WhatsApp Business desde la
+// Panel para editar el perfil de WhatsApp Business desde la
 // plataforma, sin entrar a Meta Business Manager.
 //
 // El cliente edita: foto, "acerca de", descripción, dirección, email, sitios

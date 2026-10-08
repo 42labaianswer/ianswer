@@ -9,9 +9,8 @@
 // Stripe viva (en prueba, activa, o past_due dentro de la gracia) no se entra:
 // muestra un overlay que manda a /dashboard/plans.
 //
-// v2 (plan-agente-semana04, sección 4): LISTA BLANCA vía hasDashboardAccess().
-// Antes usaba isSubscriptionBlocked (lista negra) y 'inactive' —cuentas del
-// wizard sin pagar y suscripciones canceladas— nunca se bloqueaba.
+// LISTA BLANCA vía hasDashboardAccess(): todo estado no permitido se bloquea,
+// incluido 'inactive' (cuentas del wizard sin pagar y suscripciones canceladas).
 //
 // Las cuentas que todavía no terminan el onboarding o que nunca iniciaron una
 // suscripción las atiende el OnboardingWizard (paso 5 → Stripe); aquí solo se

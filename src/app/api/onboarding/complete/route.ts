@@ -1,13 +1,13 @@
 ﻿ 
 
 // ============================================================================
-// src/app/api/onboarding/complete/route.ts · v3.0 DEFENSIVO
+// src/app/api/onboarding/complete/route.ts
 // ----------------------------------------------------------------------------
-// Endpoint que completa el onboarding (v4, plan-agente-semana04 4.2):
+// Endpoint que completa el onboarding:
 //   1. Guarda company.name, el plan elegido como pendiente (pending_plan_slug),
 //      los complementos de interés y onboarding_completed.
 //   2. Instala el template principal vía RPC install_template.
-// Ya NO asigna plan ni activa complementos: eso pasa por Stripe (checkout +
+// NO asigna plan ni activa complementos: eso pasa por Stripe (checkout +
 // webhook). Requiere database/add_onboarding_pending_plan.sql.
 //
 // Devuelve errores específicos (no genéricos) para que el frontend muestre
@@ -100,12 +100,11 @@ export async function POST(req: Request) {
     }
 
     // ---- 4) Guardar lo del onboarding (SIN plan) ----
-    // plan-agente-semana04, 4.2: este endpoint ya NO asigna plan ni activa
-    // complementos. El plan y la prueba solo los escribe el webhook de Stripe
-    // (lib/stripePlan.ts). Aquí se guarda el plan elegido como *pendiente* y los
-    // complementos como "de interés".
+    // Este endpoint NO asigna plan ni activa complementos. El plan y la prueba
+    // solo los escribe el webhook de Stripe (lib/stripePlan.ts). Aquí se guarda
+    // el plan elegido como *pendiente* y los complementos como "de interés".
     // No se toca selected_plan_slug: dispara el trigger
-    // companies_set_trial_ends_at, que armaba una prueba sin pasar por Stripe.
+    // companies_set_trial_ends_at, que arma una prueba sin pasar por Stripe.
     const cleanAddonIds = addon_ids.filter((a): a is string => typeof a === 'string').slice(0, 20)
     const { error: updateErr } = await supabase
       .from('companies')

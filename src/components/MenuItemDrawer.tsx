@@ -4,7 +4,7 @@
 
 /**
  * ============================================================================
- * MenuItemDrawer · v2.18
+ * MenuItemDrawer
  * ----------------------------------------------------------------------------
  * Editor de un item de menú con 2 tabs:
  *   - Datos: name, description, price, category, tags, allergens, foto

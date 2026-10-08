@@ -14,7 +14,7 @@ export default function WidgetPage({ params }: { params: any }) {
   const [disabledSlots, setDisabledSlots] = useState<any[]>([])
   const [busyEvents, setBusyEvents] = useState<any[]>([])
   const [webhookUrl, setWebhookUrl] = useState('')                 // calendario sync
-  const [bookingWebhookUrl, setBookingWebhookUrl] = useState('')   // NUEVO v1.3 — agendar-widget
+  const [bookingWebhookUrl, setBookingWebhookUrl] = useState('')   // agendar-widget
 
   const [isLoading, setIsLoading] = useState(true)
   const [isBooking, setIsBooking] = useState(false)
@@ -29,7 +29,7 @@ export default function WidgetPage({ params }: { params: any }) {
 
   const formatYMD = (d: Date) => `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
 
-  // 0. FIX NEXT.JS 15: Desenvolver los params dinámicos
+  // 0. Next.js 15: desenvolver los params dinámicos (son una Promise)
   useEffect(() => {
     Promise.resolve(params).then((resolvedParams) => {
       setAgendaId(resolvedParams.agendaId)
@@ -163,7 +163,7 @@ export default function WidgetPage({ params }: { params: any }) {
     setBookingError(null)
     
     try {
-      // FIX v1.3: la URL viene del admin (platform_settings.n8n_webhook_widget)
+      // La URL viene del admin (platform_settings.n8n_webhook_widget)
       if (!bookingWebhookUrl) {
         throw new Error('El webhook del Widget no esta configurado. Avisa al administrador.')
       }

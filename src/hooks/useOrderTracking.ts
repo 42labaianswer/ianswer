@@ -2,7 +2,7 @@
 
 // src/hooks/useOrderTracking.ts
 // ----------------------------------------------------------------------------
-// Sprint O · Hooks para el addon de Tracking de Pedidos.
+// Hooks para el addon de Tracking de Pedidos.
 // ----------------------------------------------------------------------------
 
 import { useQuery } from '@tanstack/react-query'

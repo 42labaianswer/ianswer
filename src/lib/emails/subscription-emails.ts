@@ -1,6 +1,6 @@
 // src/lib/emails/subscription-emails.ts
 // ----------------------------------------------------------------------------
-// Avisos de suscripción (plan-agente-semana04, 4.4). Stripe avisa por webhook
+// Avisos de suscripción. Stripe avisa por webhook
 // y iAnswer manda el correo por Resend con el layout compartido — los correos
 // automáticos de Stripe se quedan apagados para no duplicar avisos.
 //

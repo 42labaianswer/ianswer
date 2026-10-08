@@ -2,7 +2,7 @@
 
 // src/components/ServerThemeStyle.tsx
 // ----------------------------------------------------------------------------
-// Sprint N2 · Inyecta las CSS variables del theme YA RESUELTO en el servidor.
+// Inyecta las CSS variables del theme YA RESUELTO en el servidor.
 //
 // Este es un Server Component (sin 'use client'). Recibe el theme que
 // getServerTheme() resolvió desde la BD y lo escribe como un <style> inline

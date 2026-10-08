@@ -6,8 +6,8 @@
 // ----------------------------------------------------------------------------
 // Página pública: el usuario llega aquí desde el link del email.
 // El link trae ?token_hash=…&type=recovery (forgot-password): se valida con
-// verifyOtp, que abre la sesión temporal de recuperación. Los links viejos
-// (los que pasaban por /auth/v1/verify) siguen funcionando con el evento
+// verifyOtp, que abre la sesión temporal de recuperación. Los links que pasan
+// por /auth/v1/verify de Supabase se atienden con el evento
 // PASSWORD_RECOVERY. Pasos:
 //   1. Validar el token (o esperar PASSWORD_RECOVERY / detectar sesión válida)
 //   2. Mostrar form de nueva contraseña + confirmación
@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
       };
     }
 
-    // Link viejo: cuando Supabase procesa el link de recovery, dispara el evento
+    // Link vía /auth/v1/verify: cuando Supabase procesa el link de recovery, dispara el evento
     // PASSWORD_RECOVERY y establece una sesión temporal.
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;

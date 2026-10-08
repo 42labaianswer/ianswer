@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/recursos/ayuda/page.tsx — Help center (rediseño v2)
+// src/app/(public)/recursos/ayuda/page.tsx — Help center
 // ============================================================================
 
 import Link from 'next/link'

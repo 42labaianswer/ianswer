@@ -2,7 +2,7 @@
 
 // src/components/ThemeSync.tsx
 // ----------------------------------------------------------------------------
-// Sprint N · Sincroniza las CSS variables --ia-theme / --ia-accent con el
+// Sincroniza las CSS variables --ia-theme / --ia-accent con el
 // estado del workspace (Zustand) durante toda la sesión.
 //
 // El ThemeScript (en el <head>) hace la aplicación inicial ANTES del paint

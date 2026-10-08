@@ -150,10 +150,9 @@ export async function POST(req: Request) {
     const igAccount               = page.instagram_business_account // { id, username } o undefined
 
     // ── 6. Suscribir la app a los webhooks de la página (Messenger + Instagram) ──
-    // ⚠️ Antes esta llamada era completamente silenciosa (try/catch vacío, sin
-    // mirar la respuesta): si Meta la rechazaba, la app decía "conectado" pero
-    // los mensajes NUNCA llegaban, sin ninguna pista para el usuario. Ahora
-    // verificamos el resultado y lo devolvemos para poder avisarlo en pantalla.
+    // ⚠️ Si Meta rechaza esta suscripción, la página queda "conectada" pero los
+    // mensajes NUNCA llegan. Por eso se verifica el resultado y se devuelve
+    // para poder avisarlo en pantalla.
     let webhookSubscribed = false
     let webhookFields: string[] = []
     let webhookError: string | null = null

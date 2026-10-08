@@ -26,17 +26,15 @@ import AdminUsageTab from '../../../components/AdminUsageTab'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 // ============================================================================
-// Admin Page v2.26
+// Admin Page
 // ----------------------------------------------------------------------------
 // Solo accesible para usuarios con profiles.is_admin = true (verificado por
 // is_current_user_admin() y por RLS en cada tabla).
 //
-// Tabs:
+// Tabs (ver TABS abajo):
 //   - Plans      → edita los 3 planes Start/Growth/Scale
 //   - Templates  → CRUD de plantillas verticales
 //   - Addons     → CRUD de addons
-//   - (Las tabs existentes del 1.5: Tenant, Branding, Landing, Legal,
-//      Webhooks — se pueden añadir aquí cuando las tengas.)
 // ============================================================================
 
 type TabId = 'plans' | 'templates' | 'addons' | 'branding' | 'landing' | 'site' | 'helpdesk' | 'legal' | 'webhooks' | 'audit' | 'invoicing' | 'usage'

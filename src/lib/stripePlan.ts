@@ -7,11 +7,11 @@
 //   - la confirmación al regresar de Checkout (api/stripe/confirm-checkout),
 //     para no depender de que el webhook llegue antes que el usuario.
 //
-// Regla (plan-agente-semana04, 4.2): el plan y la prueba SOLO se escriben
-// desde aquí, con datos que vienen de Stripe. El wizard ya no asigna plan.
+// Regla: el plan y la prueba SOLO se escriben desde aquí, con datos que
+// vienen de Stripe. El wizard no asigna plan.
 //
 // Notas de la versión de API 2026-04-22.dahlia:
-//   - invoice.subscription ya no existe → invoice.parent.subscription_details.subscription
+//   - invoice.subscription no existe → invoice.parent.subscription_details.subscription
 //   - current_period_end vive en los items de la suscripción, no en la raíz.
 // ============================================================================
 

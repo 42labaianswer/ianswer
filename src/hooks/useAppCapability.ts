@@ -1,13 +1,13 @@
 ﻿ 
 
 // ============================================================================
-// hooks/useAppCapability.ts · Shim v3.0
+// hooks/useAppCapability.ts · Shim de compatibilidad
 // ----------------------------------------------------------------------------
-// En el 3.0, capabilities eran un jsonb mergeado de apps + plan_app_limits.
-// En el modelo unificado, las capabilities por feature viven en
-// entitlements.features (merge resuelto de plan + addons).
+// Las capabilities por feature viven en entitlements.features (merge resuelto
+// de plan + addons).
 //
-// Esto preserva la firma del 3.0 para que componentes portados no se rompan.
+// Conserva la firma por app (appId + capability) que usan los componentes
+// portados del 3.0, para que no se rompan.
 // ============================================================================
 
 import { useEntitlements } from './useEntitlements'
@@ -19,7 +19,7 @@ import type { AppId } from '../types/apps'
  *
  *   useAppCapability('agenda', 'voice_notes') → boolean
  *
- * En el nuevo modelo: ignoramos `appId` (las capabilities están centralizadas
+ * Ignora `appId` (las capabilities están centralizadas
  * en entitlements.features) y solo miramos el flag.
  */
 export function useAppCapability(_appId: AppId, capability: string): boolean {

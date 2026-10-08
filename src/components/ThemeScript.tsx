@@ -2,14 +2,15 @@
 
 // src/components/ThemeScript.tsx
 // ----------------------------------------------------------------------------
-// Sprint N · Script anti-FOUC (flash of unstyled content)
+// Script anti-FOUC (flash of unstyled content)
 //
 // PROBLEMA que resuelve:
-//   El theme de la industria (theme_color / accent_color) se cargaba en 2 fases:
+//   Sin este script, el theme de la industria (theme_color / accent_color) se
+//   aplica en varias fases:
 //     1. Defaults genéricos (#020617 / #4f46e5) en el primer render
 //     2. Zustand hidrata localStorage → primer repintado
 //     3. refreshWorkspace() trae de Supabase → segundo repintado
-//   El usuario veía "carga sobre carga": theme básico → theme de industria.
+//   y el usuario ve "carga sobre carga": theme básico → theme de industria.
 //
 // SOLUCIÓN:
 //   Este script corre ANTES de que React monte (es un <script> síncrono en el

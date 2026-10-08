@@ -3,7 +3,7 @@
 // ============================================================================
 // src/components/public/CTABanner.tsx
 // ----------------------------------------------------------------------------
-// Banner CTA con paleta nueva: slate-950 + lime-400 accent.
+// Banner CTA con paleta slate-950 + lime-400 accent.
 // ============================================================================
 
 import Link from 'next/link'
