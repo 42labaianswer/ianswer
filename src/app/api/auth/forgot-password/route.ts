@@ -106,11 +106,18 @@ export async function POST(req: NextRequest) {
     return neutralResponse();
   }
 
-  const recoveryLink = linkData?.properties?.action_link;
-  if (!recoveryLink) {
-    console.error('[forgot-password] generateLink no devolvió action_link');
+  // El enlace va DIRECTO a nuestra página con el token, y ella lo valida con
+  // verifyOtp. No se usa action_link: ese pasa por /auth/v1/verify de Supabase,
+  // que solo respeta redirectTo si está en sus "Redirect URLs"; si no, manda al
+  // Site URL del proyecto (en producción, localhost → el correo no servía).
+  // Con token_hash el Site URL deja de importar para este flujo.
+  const hashedToken = linkData?.properties?.hashed_token;
+  if (!hashedToken) {
+    console.error('[forgot-password] generateLink no devolvió hashed_token');
     return neutralResponse();
   }
+  const recoveryLink =
+    `${getAppBaseUrl()}/reset-password?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`;
 
   // 5. Enviar email vía Resend -- se manda DESPUÉS de responder (after()),
   // para no sumar la latencia de Resend al tiempo de respuesta de esta ruta.

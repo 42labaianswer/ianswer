@@ -5,9 +5,11 @@
 // src/app/reset-password/page.tsx
 // ----------------------------------------------------------------------------
 // Página pública: el usuario llega aquí desde el link del email.
-// Supabase ya estableció una sesión temporal de tipo PASSWORD_RECOVERY al
-// procesar el token del link, así que aquí solo necesitamos:
-//   1. Esperar el evento PASSWORD_RECOVERY (o detectar sesión válida)
+// El link trae ?token_hash=…&type=recovery (forgot-password): se valida con
+// verifyOtp, que abre la sesión temporal de recuperación. Los links viejos
+// (los que pasaban por /auth/v1/verify) siguen funcionando con el evento
+// PASSWORD_RECOVERY. Pasos:
+//   1. Validar el token (o esperar PASSWORD_RECOVERY / detectar sesión válida)
 //   2. Mostrar form de nueva contraseña + confirmación
 //   3. Llamar supabase.auth.updateUser({ password })
 //   4. Redirigir a /dashboard
@@ -77,7 +79,31 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     let cancelled = false;
 
-    // Cuando Supabase procesa el link de recovery, dispara el evento
+    // Link nuevo: validar el token_hash aquí. Se hace en el navegador (no en el
+    // servidor) para que los antivirus de correo que abren los enlaces no
+    // gasten el token, que es de un solo uso.
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get('token_hash');
+    if (tokenHash && params.get('type') === 'recovery') {
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error }) => {
+          if (cancelled) return;
+          // Quitar el token de la URL (historial, recargas, capturas)
+          window.history.replaceState(null, '', window.location.pathname);
+          if (error) {
+            console.warn('[reset-password] verifyOtp falló:', error.message);
+            setFlowState('invalid');
+          } else {
+            setFlowState('ready');
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Link viejo: cuando Supabase procesa el link de recovery, dispara el evento
     // PASSWORD_RECOVERY y establece una sesión temporal.
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
