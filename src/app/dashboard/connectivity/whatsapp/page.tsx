@@ -147,10 +147,11 @@ export default function WhatsAppConnectPage() {
     if (!(await confirm('¿Desconectar WhatsApp? Dejarás de recibir y responder mensajes por este canal.', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
-      await supabase.from('companies').update({
+      const { error } = await supabase.from('companies').update({
         business_phone_id: null, waba_id: null, system_user_access_token: null,
         waba_display_phone: null, waba_verified_name: null, waba_connected_at: null
       }).eq('id', companyId)
+      if (error) throw error
       toast.success('WhatsApp desconectado')
       setConfig(null)
       setForm({ business_phone_id: '', waba_id: '', system_user_access_token: '', display_phone: '', verified_name: '' })
