@@ -8,12 +8,9 @@ import { createServerClient } from '@supabase/ssr'
 // src/app/api/messages/send/route.ts
 // ----------------------------------------------------------------------------
 // Envía un mensaje escrito por una persona del negocio desde la bandeja de
-// Mensajes, por el canal que corresponda al contacto.
-//
-// Antes esto pasaba por un webhook de n8n que solo sabía enviar por WhatsApp,
-// así que responderle a un cliente de Messenger o Instagram no le llegaba.
-// Ahora se resuelve aquí: se detecta el canal del contacto y se envía por la
-// Graph API correspondiente.
+// Mensajes, por el canal que corresponda al contacto: se detecta el canal
+// (WhatsApp, Messenger o Instagram) y se envía por la Graph API
+// correspondiente.
 //
 // Entrada: { patient_id, content, message_type?, media_url?, media_caption? }
 // ============================================================================

@@ -29,7 +29,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, AlertCircle, ExternalLink } from 'lucide-react'
 
-// ─── Logo "f" de Facebook inline (lucide-react ya no incluye este icono) ──
+// ─── Logo "f" de Facebook inline (lucide-react no incluye este icono) ─────
 // Es legal usar el logotipo "f" oficial en botones de login con Meta.
 function FacebookLogo({ size = 20 }: { size?: number }) {
   return (
@@ -63,19 +63,19 @@ export default function ConnectWhatsAppButton({
   const [working, setWorking]     = useState(false)
   const [errorMsg, setErrorMsg]   = useState<string | null>(null)
 
-  // ─── Ya no bloqueamos el botón mientras esperamos el SDK de Meta ────────
-  // (mismo criterio que ya usa ConnectMetaButton para Facebook/Instagram):
+  // ─── No se bloquea el botón mientras se espera el SDK de Meta ───────────
+  // (mismo criterio que ConnectMetaButton para Facebook/Instagram):
   // si el usuario hace clic antes de que window.FB esté listo, handleClick()
-  // ya lo detecta y muestra "Facebook SDK no cargó. Recarga la página." —
-  // evitamos que el botón se quede deshabilitado/girando indefinidamente si
-  // el SDK tarda o un bloqueador de anuncios lo retrasa.
+  // lo detecta y muestra "Facebook SDK no cargó. Recarga la página." —
+  // así el botón no se queda deshabilitado/girando indefinidamente si el SDK
+  // tarda o un bloqueador de anuncios lo retrasa.
 
   // ─── Escuchar el evento postMessage de Embedded Signup ──────────────────
   // Meta envía un postMessage con { type: 'WA_EMBEDDED_SIGNUP', event: '...', data: {...} }
   useEffect(() => {
     // ⚠️ El popup de Embedded Signup v4 publica desde business.facebook.com.
-    // Antes solo aceptábamos www/web.facebook.com, así que los datos de la
-    // sesión (phone_number_id / waba_id) se descartaban en silencio.
+    // Si ese origen no se acepta, los datos de la sesión (phone_number_id /
+    // waba_id) se descartan en silencio.
     const ORIGENES_VALIDOS = [
       'https://www.facebook.com',
       'https://web.facebook.com',
@@ -213,8 +213,8 @@ export default function ConnectWhatsAppButton({
     // ⚠️ FB.login NO acepta un callback `async`: el SDK lo rechaza ("Expression
     // is of type asyncfunction, not function") y el popup nunca abre — el botón
     // se queda girando en "Conectando...". El callback debe ser una función
-    // normal; adentro llamamos a una async aparte. (Mismo fix que ya existe en
-    // las páginas de Facebook e Instagram.)
+    // normal; adentro llamamos a una async aparte. (Mismo patrón que en las
+    // páginas de Facebook e Instagram.)
     window.FB.login(
       (response: any) => {
         settled = true
@@ -226,9 +226,9 @@ export default function ConnectWhatsAppButton({
         response_type:                   'code',
         override_default_response_type:  true,
         // ⚠️ Extras del Embedded Signup v4 (los que genera el panel de Meta).
-        // El formato viejo (`feature: 'whatsapp_embedded_signup'`, `version: 3`)
-        // hacía que el popup no devolviera el callback y el botón se quedaba
-        // girando en "Conectando...".
+        // Con el formato de v3 (`feature: 'whatsapp_embedded_signup'`, `version: 3`)
+        // el popup no devuelve el callback y el botón se queda girando en
+        // "Conectando...".
         extras: {
           setup: {},
           featureType: '',

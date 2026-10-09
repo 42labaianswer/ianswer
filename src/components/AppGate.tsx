@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/components/AppGate.tsx · Sprint S2
+// src/components/AppGate.tsx
 // ----------------------------------------------------------------------------
 // Componente para envolver páginas de apps. Si la company no tiene la app
 // instalada (o el sistema viejo no la marca activa), muestra paywall.

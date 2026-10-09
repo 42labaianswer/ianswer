@@ -2,15 +2,12 @@
 // src/lib/appUrl.ts
 // ----------------------------------------------------------------------------
 // URL pública de la app para armar enlaces que salen por correo (recuperar
-// contraseña, etc.). plan-agente-semana04, 2.1.
+// contraseña, etc.).
 //
-// Antes forgot-password leía solo NEXT_PUBLIC_BASE_URL; en Vercel solo existe
-// NEXT_PUBLIC_SITE_URL, así que el redirectTo quedaba "undefined/reset-password",
-// Supabase lo rechazaba y caía a su Site URL (que en producción decía localhost).
-//
-// - Acepta cualquiera de las 3 variables que ya existen en el proyecto.
+// - Acepta cualquiera de las 3 variables: en Vercel solo existe
+//   NEXT_PUBLIC_SITE_URL.
 // - Quita la "/" final (NEXT_PUBLIC_SITE_URL en Vercel termina en "/", lo que
-//   armaba "https://www.ianswer.pro//reset-password").
+//   arma "https://www.ianswer.pro//reset-password").
 // - En producción nunca devuelve localhost.
 //
 // No se usa el Host/Origin del request a propósito: en un flujo de recuperación

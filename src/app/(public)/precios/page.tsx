@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/app/(public)/precios/page.tsx — Pricing v2 (rediseñada)
+// src/app/(public)/precios/page.tsx — Pricing
 // ============================================================================
 
 import { useState, useEffect } from 'react'

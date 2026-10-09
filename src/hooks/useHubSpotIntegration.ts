@@ -2,12 +2,10 @@
 
 // src/hooks/useHubSpotIntegration.ts
 // ----------------------------------------------------------------------------
-// Sprint J.5 · Hooks HubSpot con modelo Private App Token.
+// Hooks HubSpot con modelo Private App Token (sin OAuth).
 //
-// Cambios vs Sprint J (OAuth):
-//   - QUITADO: useConnectHubSpot (que hacía window.location redirect a OAuth)
-//   - AGREGADO: useConnectHubSpotWithToken (POST a /api/hubspot/connect con token)
-//   - HubSpotIntegration type: sin refresh_token, sin expires_at
+//   - useConnectHubSpotWithToken hace POST a /api/hubspot/connect con el token
+//   - HubSpotIntegration no tiene refresh_token ni expires_at
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

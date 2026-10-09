@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/app/dashboard/properties/page.tsx · v3.2
+// src/app/dashboard/properties/page.tsx
 // ----------------------------------------------------------------------------
 // Solo verifica modules.properties del template instalado.
 // Si la industria no incluye propiedades, el sidebar tampoco muestra el tab

@@ -4,9 +4,8 @@
 // src/app/api/agent/orders/route.ts
 // ----------------------------------------------------------------------------
 // Herramientas `crear_orden_restaurante` y `consultar_estado_orden`.
-// Antes apuntaban a un campo `n8n_webhook_url_orders` que nunca existió.
 //
-// Contrato de entrada (el mismo que ya enviaban las herramientas):
+// Contrato de entrada:
 //   crear:     { companyId, action: 'crear_orden', customer_name, customer_phone,
 //                items: [{name, qty, price, notes?}], delivery_type, delivery_address?, notes? }
 //   consultar: { companyId, action: 'consultar_estado', customer_phone }

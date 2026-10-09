@@ -6,9 +6,9 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
 // ============================================================================
-// useEntitlements (v2.26)
+// useEntitlements
 // ----------------------------------------------------------------------------
-// REEMPLAZA usePlanFeatures de v1.5/2.x.
+// usePlanFeatures es solo una capa de compatibilidad sobre este hook.
 //
 // Lee de la función RPC `get_company_entitlements(company_id)` que combina
 // plan base + addons + templates en un solo objeto.

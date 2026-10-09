@@ -5,7 +5,7 @@
 // ============================================================================
 // src/app/dashboard/addons/page.tsx — Marketplace estilo Google Play/App Store
 // ----------------------------------------------------------------------------
-// Rediseño v4.0: tiles cuadrados con iconos grandes (sin texto descriptivo).
+// Tiles cuadrados con iconos grandes (sin texto descriptivo).
 // Al hacer click en una tile se abre AddonDetailModal con la info + instalar.
 // ============================================================================
 

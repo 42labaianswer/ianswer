@@ -76,7 +76,7 @@ export default function TagsPage() {
         .select('*, description, ai_context, display_order, created_at, updated_at')
         .eq('company_id', companyId)
       // v_tag_usage_stats no incluye description/ai_context. Necesitamos un join manual.
-      // Ajusto: traer todo de tags y mergear con counts
+      // Se trae todo de tags y se mergea con los counts
       const { data: rawTags } = await supabase
         .from('tags')
         .select('*')

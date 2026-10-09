@@ -1,10 +1,10 @@
 /**
  * ============================================================================
- * /track/[token]/page.tsx · v2.20
+ * /tracking/[token]/page.tsx
  * ----------------------------------------------------------------------------
  * Página pública (sin auth) de tracking de orden.
  *
- * URL:/track/<public_token>
+ * URL:/tracking/<public_token>
  *
  * Branding del restaurante:
  *   - Logo en header
@@ -61,7 +61,7 @@ export default async function TrackPage({ params }: Params) {
   if (error || !data || data.length === 0) return notFound()
   const order = data[0]
 
-  // v3.0 Sprint 5: Gate full_branding
+  // Gate full_branding
   const [fullBranding, platformName] = await Promise.all([
     hasFullBranding(order.company_id),
     getPlatformName()

@@ -7,10 +7,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// SOLUCIÓN: Cambiamos el tipado de params a Promise<{ agendaId: string }>
+// En Next.js 15 params es una Promise<{ agendaId: string }>
 export async function GET(req: Request, { params }: { params: Promise<{ agendaId: string }> }) {
   try {
-    // NEXT.JS 15 FIX: Ahora debemos hacer "await" a params antes de usarlo
+    // Next.js 15: hay que hacer "await" a params antes de usarlo
     const resolvedParams = await params;
     const agendaId = resolvedParams.agendaId;
 
@@ -42,11 +42,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ agendaId
       company: compRes.data,
       workingHours: whRes.data || [],
       disabledSlots: dsRes.data || [],
-      // Compatibilidad: webhookUrl sigue siendo el del calendario (sincronizador)
+      // webhookUrl es el del calendario (sincronizador)
       webhookUrl: platRes.data?.n8n_webhook_calendar || '',
-      // NUEVO v1.3: URL del workflow "Widget - Agendar Cita"
+      // URL del workflow "Widget - Agendar Cita"
       bookingWebhookUrl: platRes.data?.n8n_webhook_widget || '',
-      // NUEVO v1.3: URL opcional del workflow "Seguimiento 24h" (manual trigger)
+      // URL opcional del workflow "Seguimiento 24h" (manual trigger)
       followUpWebhookUrl: platRes.data?.n8n_webhook_follow_up_24h || ''
     })
 

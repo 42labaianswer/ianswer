@@ -4,7 +4,7 @@
 
 // src/components/ContactAutocomplete.tsx
 // ----------------------------------------------------------------------------
-// Sprint AQ · Campo de cliente con autocompletado.
+// Campo de cliente con autocompletado.
 //
 // Mientras escribes el nombre, filtra los contactos existentes. Si eliges uno,
 // llena nombre + teléfono. Si no existe, se crea al guardar la orden (eso lo

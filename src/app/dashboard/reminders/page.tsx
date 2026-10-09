@@ -203,7 +203,7 @@ export default function RemindersPage() {
     onError: (e: any) => toast.error(e.message)
   })
 
-  // v2.4: Guard de feature gating
+  // Guard de feature gating
   if (isLoadingFeatures) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -330,7 +330,7 @@ export default function RemindersPage() {
 // TAB: REGLAS
 // ============================================================================
 
-// v2.6: detecta reglas de retención (reactivación o post-cita) para destacarlas
+// Detecta reglas de retención (reactivación o post-cita) para destacarlas
 function isRetentionRule(rule: ReminderRule): boolean {
   // Reactivación: contact_inactivity con offset de 7+ días
   if (rule.trigger_source === 'contact_inactivity' && rule.trigger_offset_minutes >= 60 * 24 * 7) return true
@@ -372,7 +372,7 @@ function RulesTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {[...rules].sort((a, b) => {
-        // v2.6: reglas de retención pausadas suben al inicio para invitar a activarlas
+        // Reglas de retención pausadas suben al inicio para invitar a activarlas
         const aIsRetention = isRetentionRule(a) && !a.is_active
         const bIsRetention = isRetentionRule(b) && !b.is_active
         if (aIsRetention && !bIsRetention) return -1
@@ -384,7 +384,7 @@ function RulesTab({
           ? (agendas.find(a => a.id === rule.agenda_id)?.name || 'Agenda específica')
           : 'Todas las agendas'
 
-        // v2.6: detectar si es regla de retención (reactivación o post-cita)
+        // Detectar si es regla de retención (reactivación o post-cita)
         const isRetention = isRetentionRule(rule)
         const isReactivation = rule.trigger_source === 'contact_inactivity' && rule.trigger_offset_minutes >= 60 * 24 * 7
         const showRetentionHint = isRetention && !rule.is_active
@@ -619,7 +619,7 @@ function MetricsTab({ companyId }: { companyId: string }) {
     }
   })
 
-  // v2.6: métricas de reactivación
+  // Métricas de reactivación
   const { data: retention } = useQuery({
     queryKey: ['reactivationMetrics', companyId],
     queryFn: async () => {
@@ -679,7 +679,7 @@ function MetricsTab({ companyId }: { companyId: string }) {
         </div>
       </div>
 
-      {/* v2.6: Retención y reactivación */}
+      {/* Retención y reactivación */}
       <div className="bg-gradient-to-br from-emerald-50/60 via-white to-blue-50/40 rounded-2xl border border-emerald-100 p-6">
         <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">

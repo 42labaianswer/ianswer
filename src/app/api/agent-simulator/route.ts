@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// /api/agent-simulator/route.ts · v3.0 Sprint 5
+// /api/agent-simulator/route.ts
 // ----------------------------------------------------------------------------
 // Endpoint del simulador del agente. Gateado por addon ai_agent_simulator.
 // Si la company no tiene el addon activo, devuelve 403.
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   try {
     const { messages, system_prompt } = await req.json()
 
-    // ── Gate Sprint 5: verificar feature ai_agent_simulator ──
+    // ── Gate: verificar feature ai_agent_simulator ──
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -3,7 +3,7 @@
 // ============================================================================
 // src/hooks/useUndoableDelete.tsx
 // ----------------------------------------------------------------------------
-// Borrado diferido con "Deshacer" (plan-agente-semana04, 1.1 y 1.7).
+// Borrado diferido con "Deshacer".
 //
 // Al eliminar, la fila se anima hacia afuera y se oculta de la vista, pero el
 // DELETE real no se manda hasta que expira el toast (UNDO_MS). "Deshacer"

@@ -4,7 +4,7 @@
 
 // src/components/UsageMeter.tsx
 // ----------------------------------------------------------------------------
-// Sprint U · Medidor de uso de sesiones (estilo Claude).
+// Medidor de uso de sesiones (estilo Claude).
 //
 // Muestra una barra de progreso con las sesiones usadas del mes vs el límite
 // del plan. Cambia de color según el % (verde → amarillo → rojo) y muestra
@@ -36,8 +36,7 @@ export default function UsageMeter({
     )
   }
 
-  // Antes esto devolvía null y el widget desaparecía sin explicar nada.
-  // Si la RPC get_usage_current_month falla o no existe, conviene decirlo:
+  // No devolver null: si la RPC get_usage_current_month falla o no existe, conviene decirlo:
   // un contador en blanco se confunde con "no has usado nada".
   if (error || !usage) {
     return (

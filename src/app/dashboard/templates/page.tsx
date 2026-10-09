@@ -69,7 +69,7 @@ export default function TemplatesPage() {
     }
   })
 
-  // v3.2: Solo UNA plantilla activa a la vez.
+  // Solo UNA plantilla activa a la vez.
   // Esta mutation borra todas las plantillas instaladas y deja solo la nueva.
   const switchTemplateMutation = useMutation({
     mutationFn: async (templateId: string) => {

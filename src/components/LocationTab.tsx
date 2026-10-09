@@ -32,7 +32,7 @@ export default function LocationTab({ companyId, planSlug }: { companyId: string
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [formData, setFormData] = useState({ name: '', phone_id: '' })
 
-  // v3.0 Sprint 5: maxLocations viene de entitlements (que ya mergea plan + addon multi_location)
+  // maxLocations viene de entitlements (que ya mergea plan + addon multi_location)
   // Fallback al hardcoded por plan si entitlements aún no cargó
   const maxLocations = (entitlements as any)?.capacity?.max_locations
     ?? (planSlug === 'scale' ? 10 : planSlug === 'growth' ? 3 : 1)

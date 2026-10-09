@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/components/AddonTile.tsx — v2 estilo Wix App Market
+// src/components/AddonTile.tsx — estilo Wix App Market
 // ----------------------------------------------------------------------------
 // Card horizontal: icono grande con fondo sólido a la izquierda + nombre y
 // pequeña intro a la derecha. Badge de estado arriba a la derecha.

@@ -2,7 +2,7 @@
 
 // src/hooks/useOrderMaker.ts
 // ----------------------------------------------------------------------------
-// Sprint Q · Hooks para crear órdenes manuales conectadas al menú.
+// Hooks para crear órdenes manuales conectadas al menú.
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

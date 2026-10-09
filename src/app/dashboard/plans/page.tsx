@@ -54,7 +54,6 @@ export default function PlansPage() {
   const [billingMode, setBillingMode] = useState<'monthly' | 'yearly'>('monthly')
 
   // Toast de éxito/cancelado tras volver de Stripe Checkout o del portal.
-  // (Antes solo lo hacía /dashboard/billing — fusionado aquí, ver P1 Stripe semana 4.)
   useEffect(() => {
     const success = searchParams.get('success')
     const canceled = searchParams.get('canceled')
@@ -159,8 +158,8 @@ export default function PlansPage() {
 
       // Un plan asignado a mano no pasa por Stripe, así que nadie pone
       // subscription_status = 'active'. Sin esto la empresa se queda en
-      // 'inactive' y el flujo de n8n la trataba como suscripción muerta
-      // (era el origen real del HTTP 402 al responder desde la bandeja).
+      // 'inactive' y el flujo de n8n la trata como suscripción muerta
+      // (responde HTTP 402 al contestar desde la bandeja).
       const { error: statusError } = await supabase
         .from('companies')
         .update({ subscription_status: 'active', account_status: 'active' })
@@ -202,22 +201,20 @@ export default function PlansPage() {
   }
 
   const plans = data?.plans || []
-  // Fallback a selected_plan_slug igual que hacía /dashboard/billing: por si una
-  // cuenta trae el plan elegido pero plan_slug todavía no se confirmó.
+  // Fallback a selected_plan_slug por si una cuenta trae el plan elegido pero
+  // plan_slug todavía no se confirmó.
   const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
   const planIsLive = ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
   const isActive = data?.company?.account_status === 'active'
 
-  // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado).
-  // Antes decía "-20%" fijo en el código, aunque el descuento real cargado en Stripe/DB
-  // es de 17% — ver diagnóstico del P1 de Stripe, semana 4.
+  // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado):
+  // el badge debe coincidir con lo cargado en Stripe/DB. 17 es solo el fallback.
   const referencePlan = plans.find(p => p.price_yearly_cents && p.price_monthly_cents)
   const yearlyDiscountBadge = referencePlan
     ? Math.round((1 - (referencePlan.price_yearly_cents! / (referencePlan.price_monthly_cents * 12))) * 100)
     : 17
 
-  // Estado de trial/expiración — fusionado desde /dashboard/billing (ver P1 Stripe
-  // semana 4: esa página se retira, /dashboard/plans pasa a ser la única).
+  // Estado de trial/expiración. /dashboard/plans es la única pantalla de plan y facturación.
   const trialEnd = data?.company?.trial_ends_at ? new Date(data.company.trial_ends_at) : null
   const daysRemaining = trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -234,7 +231,7 @@ export default function PlansPage() {
         description="Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas en todos los planes — lo que limita es el volumen y el tamaño del equipo."
       />
 
-      {/* Estado de trial / expiración — fusionado desde /dashboard/billing */}
+      {/* Estado de trial / expiración */}
       {(isTrialing || isExpired) && (
         <div className={`mb-8 rounded-2xl p-5 border flex items-start gap-3 ${
           isExpired ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-100'

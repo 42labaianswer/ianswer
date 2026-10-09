@@ -6,8 +6,8 @@
 //
 // Body: { private_app_token: string }
 //
-// Reemplaza el flow OAuth del Sprint J. En lugar de authorize + callback,
-// el user pega su Private App Token directamente. Validamos que:
+// Sin flow OAuth: el user pega su Private App Token directamente.
+// Validamos que:
 //   1. El addon esté activo
 //   2. El token sea válido (llamando a HubSpot account-info)
 //   3. Tenga los scopes necesarios (haciendo un fetch de prueba de contactos)

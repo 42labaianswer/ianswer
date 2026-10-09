@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * /menu/[slug]/page.tsx · v2.18
+ * /menu/[slug]/page.tsx
  * ----------------------------------------------------------------------------
  * Catálogo PÚBLICO whitelabel del menú completo de un restaurante.
  *
@@ -24,8 +24,8 @@ const supabaseAnon = createClient(
 export const dynamic = 'force-dynamic'
 export const revalidate = 120
 
-// La carpeta es [slug] (el valor es el id de la empresa). Antes se leía
-// `companySlug`, que siempre llegaba undefined → la página daba 404.
+// La carpeta es [slug] (el valor es el id de la empresa), así que el param se
+// llama `slug`; cualquier otro nombre llega undefined.
 type Params = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Params) {
@@ -48,12 +48,12 @@ export default async function MenuPublicPage({ params }: Params) {
 
   if (!company) return notFound()
 
-  // Verificar que tenga template 'restaurant' instalado (reemplaza chequeo vertical_id legacy)
+  // Verificar que tenga template 'restaurant' instalado
   const hasRestaurant = await companyHasTemplate(company.id, 'restaurant')
 
   if (!hasRestaurant) return notFound()
 
-  // v3.0 Sprint 5: Gate full_branding (footer "Powered by")
+  // Gate full_branding (footer "Powered by")
   const [fullBranding, platformName] = await Promise.all([
     hasFullBranding(company.id),
     getPlatformName()
@@ -68,9 +68,9 @@ export default async function MenuPublicPage({ params }: Params) {
   const categories = catsRes.data || []
   const items: any[] = itemsRes.data || []
 
-  // Las columnas brand_* que se pedían antes no existen en companies (la página
-  // daba 404). Se usan las de marca reales; los valores DEFAULT de la columna
-  // cuentan como "sin configurar" para conservar los colores del menú.
+  // companies no tiene columnas brand_*: se usan primary_color/secondary_color.
+  // Los valores DEFAULT de la columna cuentan como "sin configurar" para
+  // conservar los colores del menú.
   const primaryColor = company.primary_color && company.primary_color !== '#0f172a' ? company.primary_color : '#ea580c'
   const accentColor = company.secondary_color && company.secondary_color !== '#64748b' ? company.secondary_color : '#f97316'
   const logo = company.logo_url

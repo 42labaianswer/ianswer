@@ -4,7 +4,7 @@
 
 /**
  * ============================================================================
- * OrderKanbanBoard · v2.19
+ * OrderKanbanBoard
  * ----------------------------------------------------------------------------
  * Kanban con columnas dinámicas según companies.order_statuses.
  * Drag and drop con HTML5 nativo (sin librería externa).

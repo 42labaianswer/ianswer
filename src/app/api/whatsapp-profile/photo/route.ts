@@ -2,7 +2,7 @@
 
 // src/app/api/whatsapp-profile/photo/route.ts
 // ----------------------------------------------------------------------------
-// Sprint W · Subir la foto de perfil de WhatsApp Business.
+// Subir la foto de perfil de WhatsApp Business.
 //
 // Meta requiere un flujo de 2 pasos para la foto:
 //   1. Subir el archivo a la Resumable Upload API → obtienes un "handle"
@@ -44,7 +44,7 @@ async function getCompanyMeta() {
     .from('companies').select('system_user_access_token, meta_token, business_phone_id')
     .eq('id', profile.company_id).maybeSingle()
   // Fuente de verdad del token = system_user_access_token; meta_token es legacy
-  // (mismo fix que en whatsapp-profile/route.ts).
+  // (mismo criterio que en whatsapp-profile/route.ts).
   const token = company?.system_user_access_token || company?.meta_token
   if (!token || !company?.business_phone_id) return null
   return { token, phoneId: company.business_phone_id }

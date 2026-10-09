@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { extractText, getDocumentProxy } from 'unpdf'
 
 /**
- * /api/menu-pdf-extract  ·  v2.19 (unpdf)
+ * /api/menu-pdf-extract  ·  unpdf
  */
 
 export const runtime = 'nodejs'

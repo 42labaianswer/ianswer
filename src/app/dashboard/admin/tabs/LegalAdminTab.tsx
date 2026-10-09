@@ -30,7 +30,7 @@ const defaultLegal = {
   abuse_email: '',
   contact_address: '',
   whatsapp_number: '',
-  // Nuevos: para la página de contacto
+  // Grupo 6: Página de contacto
   contact_title: 'Hablemos.',
   contact_subtitle: 'Déjanos un mensaje y te responderemos en breve.',
 }
@@ -153,7 +153,7 @@ export default function LegalAdminTab() {
             </div>
           </div>
 
-          {/* Grupo 5: Contacto Adicional (nuevo) */}
+          {/* Grupo 5: Contacto Adicional */}
           <div className="space-y-4 md:col-span-2">
             <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">5. Contacto y Correos Adicionales</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,7 +185,7 @@ export default function LegalAdminTab() {
             </div>
           </div>
 
-          {/* Grupo 6: Página de Contacto (nuevo) */}
+          {/* Grupo 6: Página de Contacto */}
           <div className="space-y-4 md:col-span-2">
             <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">6. Página de Contacto</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

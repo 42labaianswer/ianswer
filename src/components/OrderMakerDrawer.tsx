@@ -4,7 +4,7 @@
 
 // src/components/OrderMakerDrawer.tsx
 // ----------------------------------------------------------------------------
-// Sprint Q · Drawer para crear una orden manual conectada al menú.
+// Drawer para crear una orden manual conectada al menú.
 //
 // Flujo:
 //   1. Panel izquierdo: el menú agrupado por categorías, con buscador.

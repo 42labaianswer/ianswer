@@ -2,7 +2,7 @@
 
 // src/hooks/usePublicDirectoryConfig.ts
 // ----------------------------------------------------------------------------
-// Sprint H.5 · Hooks para gestionar el branding del directorio público de
+// Hooks para gestionar el branding del directorio público de
 // propiedades de una company.
 //
 // Lee/escribe en la tabla companies (las columnas se agregaron en

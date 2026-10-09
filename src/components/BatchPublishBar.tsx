@@ -4,9 +4,9 @@
 
 // src/components/BatchPublishBar.tsx
 // ----------------------------------------------------------------------------
-// Sprint AK · Barra flotante de acciones en lote (batch) — mejorada.
+// Barra flotante de acciones en lote (batch).
 //
-// Ahora incluye: seleccionar todo, publicar, despublicar y borrar.
+// Incluye: seleccionar todo, publicar, despublicar y borrar.
 // Se usa tanto en menú como en propiedades.
 // ----------------------------------------------------------------------------
 

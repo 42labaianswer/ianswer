@@ -4,13 +4,8 @@
 
 // src/app/dashboard/services/page.tsx
 // ----------------------------------------------------------------------------
-// Sprint I · CRUD del catálogo de servicios de la company.
+// CRUD del catálogo de servicios de la company.
 // Lista + drawer crear/editar + delete con confirm.
-//
-// [HOTFIX 2026-06-28] Correcciones de TypeScript:
-//   - PageHeader no acepta prop `icon`; se quita.
-//   - PageHeader usa `actions` (plural), no `action`.
-//   - Se importan FormEvent y ReactNode explícitamente de React.
 // ----------------------------------------------------------------------------
 
 import { useState, useEffect, type FormEvent, type ReactNode } from 'react';

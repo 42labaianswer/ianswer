@@ -2,16 +2,16 @@
 
 // src/lib/getServerTheme.ts
 // ----------------------------------------------------------------------------
-// Sprint N2 · Resuelve el theme de la industria EN EL SERVIDOR.
+// Resuelve el theme de la industria EN EL SERVIDOR.
 //
 // Por qué existe:
-//   El theme (theme_color / accent_color) vivía 100% en el cliente (Zustand +
-//   fetch). El servidor mandaba HTML con el sidebar genérico, y el navegador
-//   tenía que hidratar JS + fetchear antes de aplicar el theme correcto. Con
-//   Cmd+Shift+R (que descarta cache de red) el JS tarda más → se ve el
-//   "pre-tema" genérico encima del cual se pinta el real.
+//   Si el theme (theme_color / accent_color) se resuelve solo en el cliente
+//   (Zustand + fetch), el servidor manda HTML con el sidebar genérico y el
+//   navegador tiene que hidratar JS + fetchear antes de aplicar el theme
+//   correcto. Con Cmd+Shift+R (que descarta cache de red) el JS tarda más →
+//   se ve el "pre-tema" genérico encima del cual se pinta el real.
 //
-// Solución:
+// Cómo:
 //   Este helper lee la cookie de sesión en el Server Component, saca la
 //   company del usuario y su industria primaria, y devuelve el theme YA
 //   RESUELTO. El layout lo inyecta en el HTML inicial (CSS vars en el <html>),

@@ -1,5 +1,5 @@
 // ============================================================================
-// src/app/(public)/recursos/ayuda/[slug]/page.tsx — Artículo (rediseño v2)
+// src/app/(public)/recursos/ayuda/[slug]/page.tsx — Artículo
 // ============================================================================
 
 import { createClient } from '@supabase/supabase-js'

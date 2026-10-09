@@ -2,12 +2,12 @@
 // components/IAnswerLoader.tsx
 // ----------------------------------------------------------------------------
 // Loader de marca para pantallas/secciones de carga que TARDAN (dashboard
-// cargando, tabs de admin, login/recuperar contraseña, listas, etc). No es un
-// reemplazo de los spinners de botón/acción rápida ("Guardando...",
-// "Enviando...", "Conectando...") — esos se quedan con
-// <Loader2 className="animate-spin" /> de lucide-react, tal como estaban.
+// cargando, tabs de admin, login/recuperar contraseña, listas, etc). No sustituye
+// a los spinners de botón/acción rápida ("Guardando...", "Enviando...",
+// "Conectando...") — esos usan <Loader2 className="animate-spin" /> de
+// lucide-react.
 //
-// Animación: el punto de la "i" orbita alrededor de la asta (como pidió Roy),
+// Animación: el punto de la "i" orbita alrededor de la asta,
 // una vuelta completa en loop. La asta se queda fija.
 //
 // Colores tomados de la guía de marca (docs/identidad de la marca/README.md):
@@ -16,7 +16,7 @@
 // ============================================================================
 
 interface IAnswerLoaderProps {
-  /** Tamaño en px del símbolo. Equivalente a los w-8/w-10 que reemplaza. */
+  /** Tamaño en px del símbolo. Equivale a w-8/w-10 de Tailwind (32/40). */
   size?: number
   /** 'light' para fondo claro (default), 'dark' para fondo Ink/oscuro. */
   variant?: 'light' | 'dark'

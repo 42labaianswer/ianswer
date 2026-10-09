@@ -4,8 +4,7 @@
 // ----------------------------------------------------------------------------
 // GET /api/cron/hubspot-sync
 //
-// Sprint J.5 · Cron cada 6 horas. Sin cambios vs Sprint J salvo por el import
-// del nuevo hubspot-sync que ya no maneja refresh de tokens.
+// Cron cada 6 horas.
 //
 // Configurar en vercel.json:
 //   { "crons": [{ "path": "/api/cron/hubspot-sync", "schedule": "0 star/6 * * *" }] }

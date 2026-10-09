@@ -9,11 +9,10 @@
 // teléfono solo. `external_id` es el teléfono en WhatsApp, el PSID en
 // Messenger y el IGSID en Instagram; `id` es un identificador interno opaco.
 //
-// Historia: el alta de contactos usaba  id = teléfono. Como `id` es la llave
-// primaria, resultaba único en toda la plataforma: dos empresas no podían
-// tener al mismo cliente y la importación de CSV se saltaba filas en silencio.
-// Corregido en agosto de 2026 (hallazgo D-1), con la restricción
-// `unique (company_id, external_id)` respaldándolo en la base.
+// Nunca usar id = teléfono: como `id` es la llave primaria, sería único en
+// toda la plataforma, dos empresas no podrían tener al mismo cliente y la
+// importación de CSV se saltaría filas en silencio. La base lo respalda con
+// la restricción `unique (company_id, external_id)`.
 // ============================================================================
 
 import { toChannelPlatform, type ChannelPlatform } from './channels'

@@ -10,10 +10,9 @@
 //   - Último mensaje recibido
 //   - Prueba en vivo de punta a punta (Meta → n8n → IA → Meta)
 //
-// Antes esta lógica vivía solo en /dashboard/connectivity/diagnostico (los tres
-// canales juntos). Ahora es un componente reutilizable para mostrarlo DENTRO de
-// cada canal ("ver diagnóstico de Facebook y te sale el de Facebook") y también
-// para reconstruir la vista global sin duplicar código.
+// Se muestra DENTRO de cada canal ("ver diagnóstico de Facebook y te sale el de
+// Facebook") y también arma la vista global de /dashboard/connectivity/diagnostico
+// sin duplicar código.
 //
 // Dos modos:
 //   1. Autónomo  → no recibe `data`; hace su propio fetch a /api/channels/diagnostics

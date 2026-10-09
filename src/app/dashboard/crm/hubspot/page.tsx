@@ -4,7 +4,7 @@
 
 // src/app/dashboard/crm/hubspot/page.tsx
 // ----------------------------------------------------------------------------
-// Sprint J.5 · Página de configuración HubSpot con Private App Token.
+// Página de configuración HubSpot con Private App Token.
 //
 // 3 estados:
 //   1. Sin addon activo    → paywall

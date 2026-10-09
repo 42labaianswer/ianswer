@@ -4,10 +4,9 @@
 // src/app/api/agent/properties/route.ts
 // ----------------------------------------------------------------------------
 // Herramientas `buscar_propiedad` y `detalle_propiedad` del agente
-// inmobiliario. Antes apuntaban a un campo `n8n_webhook_url_propiedades` que
-// nunca existió en `companies`.
+// inmobiliario.
 //
-// Contrato de entrada (el mismo que ya enviaban las herramientas):
+// Contrato de entrada:
 //   { companyId, action: 'buscar' | 'detalle', ...filtros | propertyId }
 // ============================================================================
 

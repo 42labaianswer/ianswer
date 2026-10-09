@@ -2,7 +2,7 @@
 
 // src/hooks/useTeamMemberServices.ts
 // ----------------------------------------------------------------------------
-// Sprint I · Hooks para gestionar las asignaciones de servicios SÍ/NO ofrecidos
+// Hooks para gestionar las asignaciones de servicios SÍ/NO ofrecidos
 // por miembro del equipo. Usa la RPC `get_services_for_member` que devuelve
 // TODOS los servicios de la company con LEFT JOIN al estado de asignación.
 // ----------------------------------------------------------------------------

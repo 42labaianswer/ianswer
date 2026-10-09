@@ -2,9 +2,9 @@
 
 /**
  * ============================================================================
- * OrderTrackingClient · v2.20
+ * OrderTrackingClient
  * ----------------------------------------------------------------------------
- * Client component del /track/<token>.
+ * Client component del /tracking/<token>.
  * Hace polling cada 30s para actualizar el estado.
  * Renderiza timeline vertical con animaciones sutiles.
  * ============================================================================

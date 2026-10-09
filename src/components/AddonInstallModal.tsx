@@ -4,7 +4,7 @@
 
 // src/components/AddonInstallModal.tsx
 // ----------------------------------------------------------------------------
-// Sprint AA · Modal de instalación animado para addons.
+// Modal de instalación animado para addons.
 //
 // Muestra una secuencia de "instalando en tu plataforma..." con pasos que se
 // van completando, y al final un check de éxito. Da la sensación de que el

@@ -7,16 +7,14 @@ import { computeDashboardGate, isBlockedAllowedPath, GATE_HEADER, type Dashboard
 // ============================================================================
 // src/proxy.ts
 // ----------------------------------------------------------------------------
-// Migración del antiguo src/middleware.ts a la convención "proxy" de Next.js 16.
-// La lógica es idéntica: mismo control de sesión, mismos redireccionamientos y
-// el mismo pase para los bots sociales. Solo cambia el nombre del archivo y el
-// de la función exportada, que es lo que pedía la advertencia de compilación.
+// Proxy de Next.js 16 (convención que sustituye a middleware.ts): control de
+// sesión, redireccionamientos y pase para los bots sociales.
 //
-// IMPORTANTE: al aplicar este archivo hay que ELIMINAR src/middleware.ts, o
-// Next.js seguirá usando el antiguo y volverá a mostrar la advertencia.
-// 29-sep-2026: además decide en el servidor el acceso a /dashboard/* según la
-// suscripción (ver lib/dashboardGate.ts). Antes era solo un overlay del lado
-// del cliente y se podía saltar borrando el div en "Inspeccionar".
+// No debe existir src/middleware.ts junto a este archivo: Next.js lo usaría y
+// mostraría la advertencia de compilación.
+//
+// También decide en el servidor el acceso a /dashboard/* según la suscripción
+// (ver lib/dashboardGate.ts).
 // ============================================================================
 
 export async function proxy(request: NextRequest) {
@@ -51,14 +49,20 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
 
-  const isPublicRoute = request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/login'
+  // La contraseña olvidada solo se cambia con el enlace del correo (lleva
+  // token_hash). Sin él: con sesión al dashboard, sin sesión al login.
+  if (pathname === '/reset-password' && !request.nextUrl.searchParams.has('token_hash')) {
+    return redirectKeepingCookies(new URL(user ? '/dashboard' : '/login', request.url), response)
+  }
+
+  const isPublicRoute = pathname === '/' || pathname === '/login' || pathname === '/forgot-password'
 
   if (user && isPublicRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const pathname = request.nextUrl.pathname
   const isDashboard = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
 
   if (!user && isDashboard) {

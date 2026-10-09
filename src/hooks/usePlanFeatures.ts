@@ -3,12 +3,12 @@
 'use client'
 
 // ============================================================================
-// usePlanFeatures (compat layer v2.26)
+// usePlanFeatures (capa de compatibilidad)
 // ----------------------------------------------------------------------------
-// Mantenemos esta firma para que TODO el código viejo que importa
-// `usePlanFeatures` y `useFeature` siga funcionando sin tocar nada.
+// Mantiene esta firma para que TODO el código que importa `usePlanFeatures`
+// y `useFeature` siga funcionando sin tocar nada.
 //
-// Internamente delega a useEntitlements (el nuevo hook unificado).
+// Internamente delega a useEntitlements (el hook unificado).
 // ============================================================================
 
 import { useEntitlements, EntitlementFeatures } from './useEntitlements'

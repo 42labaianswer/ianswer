@@ -4,7 +4,7 @@
 
 // src/components/OrderTrackingTab.tsx
 // ----------------------------------------------------------------------------
-// Sprint O · Tab de Tracking dentro de Órdenes.
+// Tab de Tracking dentro de Órdenes.
 //
 // Muestra las órdenes activas con su link público de rastreo. Permite:
 //   - Copiar el link de tracking de cada orden para compartirlo

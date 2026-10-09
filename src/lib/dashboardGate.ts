@@ -1,14 +1,14 @@
 // ============================================================================
 // src/lib/dashboardGate.ts
 // ----------------------------------------------------------------------------
-// Decide EN EL SERVIDOR qué puede ver una cuenta en /dashboard (29-sep-2026).
+// Decide EN EL SERVIDOR qué puede ver una cuenta en /dashboard.
 //
-// Antes el wizard (OnboardingWizard) y el bloqueo (SubscriptionGuard) eran
-// solo overlays del lado del cliente: el dashboard completo llegaba al
-// navegador y bastaba con borrar el div del overlay en "Inspeccionar" para
-// usarlo sin pasar por Stripe.
+// Se hace en el servidor porque el wizard (OnboardingWizard) y el bloqueo
+// (SubscriptionGuard) son overlays del lado del cliente: si el dashboard
+// completo llega al navegador, basta con borrar el div del overlay en
+// "Inspeccionar" para usarlo sin pasar por Stripe.
 //
-// Ahora proxy.ts calcula el estado con esta función en cada petición a
+// proxy.ts calcula el estado con esta función en cada petición a
 // /dashboard/* (también en las navegaciones internas de Next) y:
 //   - 'wizard'  → redirige todo a /dashboard, y el layout renderiza SOLO el
 //                 wizard (sin sidebar ni páginas).

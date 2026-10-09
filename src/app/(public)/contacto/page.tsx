@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/contacto/page.tsx — Contacto (rediseño v2)
+// src/app/(public)/contacto/page.tsx — Contacto
 // ============================================================================
 
 import { Mail, MessageCircle, MapPin, Sparkles } from 'lucide-react'

@@ -59,7 +59,7 @@ export function normalizeVertical(value: unknown): WhatsAppVertical | null {
   if (typeof value !== 'string') return null
   const v = value.trim().toUpperCase()
   if (!v) return null
-  // 'UNDEFINED' venía del selector viejo: se ignora, no se traduce.
+  // 'UNDEFINED' puede venir en datos guardados: se ignora, no se traduce.
   if (v === 'UNDEFINED' || v === 'NULL') return null
   return (WHATSAPP_VERTICALS as readonly string[]).includes(v)
     ? (v as WhatsAppVertical)

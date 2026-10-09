@@ -12,7 +12,7 @@ import { applyPlanSubscription } from '../../../../lib/stripePlan'
 // checkout.session.completed. Esta ruta le pregunta a Stripe por la sesión y,
 // si la suscripción ya existe, escribe el mismo estado que escribiría el
 // webhook (lib/stripePlan.ts). Es idempotente: si el webhook ya llegó, no
-// cambia nada. plan-agente-semana04, 4.1 (paso 5 → Stripe → dashboard).
+// cambia nada. Flujo: paso 5 del onboarding → Stripe → dashboard.
 //
 // Seguridad: el estado sale de Stripe, no del navegador; y la sesión tiene que
 // pertenecer a la empresa del usuario autenticado.

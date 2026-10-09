@@ -6,8 +6,8 @@
 // src/app/dashboard/connectivity/diagnostico/page.tsx
 // ----------------------------------------------------------------------------
 // Vista GLOBAL: el semáforo de los tres canales juntos, más la prueba de punta
-// a punta. Sigue existiendo como "ver todo de un vistazo", pero ahora cada
-// canal también trae su propio diagnóstico dentro de su página
+// a punta, para "ver todo de un vistazo". Cada canal también trae su propio
+// diagnóstico dentro de su página
 // (/dashboard/connectivity/whatsapp | facebook | instagram).
 //
 // Toda la lógica del semáforo y la prueba en vivo vive en un solo componente

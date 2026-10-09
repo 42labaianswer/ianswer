@@ -5,8 +5,7 @@
 // ============================================================================
 // ConnectMetaButton · Conecta Facebook (Messenger) e Instagram con un clic.
 // ----------------------------------------------------------------------------
-// Reemplaza el placeholder anterior que guardaba un token falso. Ahora hace
-// FB.login real con los permisos de páginas + mensajería + Instagram, y manda
+// Hace FB.login real con los permisos de páginas + mensajería + Instagram, y manda
 // el token al backend (/api/meta/connect/exchange) que detecta la página y su
 // cuenta de Instagram vinculada y las guarda en integrations.
 //

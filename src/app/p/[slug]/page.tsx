@@ -1,14 +1,6 @@
 // src/app/p/[slug]/page.tsx
 // Server Component · entrada del directorio público
 //
-// [HOTFIX v2 · 2026-06-28] Cambios:
-//   1. `cookies()` ahora se hace con `await` (cambio breaking de Next.js 15:
-//      cookies/headers/params/searchParams retornan Promise).
-//   2. Se eliminó el factory function `getServerSupabase()` y se hace inline
-//      en cada función async, siguiendo el patrón usado en el resto del
-//      proyecto (consistencia con webhooks, route handlers, etc.).
-//   3. params también es Promise<{ slug }> en Next 15 → se hace await.
-//
 // Flujo:
 //   1. Resuelve la company por su slug
 //   2. Verifica gating via RPC has_public_directory_active
@@ -124,10 +116,10 @@ export default async function PublicDirectoryPage({ params }: PageProps) {
   }
 
   // 3. Cargar propiedades públicas (estados disponibles o apartadas)
-  // FIX 2026-07-13: se usan las columnas reales con alias para conservar el
-  // shape que espera el cliente (PublicProperty).
-  // FIX 2026-10-01: se leen en el servidor (ver getPublicProperties); con la
-  // clave anónima la RLS solo dejaba ver status = 'active' → siempre 0.
+  // Se usan las columnas reales con alias para conservar el shape que espera
+  // el cliente (PublicProperty). Se leen en el servidor (ver
+  // getPublicProperties): con la clave anónima la RLS solo deja ver
+  // status = 'active', un estado que no existe.
   const { data: propertiesRows, error: propertiesError } = await getPublicProperties(company.id);
 
   if (propertiesError) {

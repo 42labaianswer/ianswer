@@ -2,9 +2,9 @@
 
 // src/hooks/useAddonRefresh.ts
 // ----------------------------------------------------------------------------
-// Sprint AA · Refresco global tras activar/desactivar un addon.
+// Refresco global tras activar/desactivar un addon.
 //
-// El problema: al activar un addon, los tabs nuevos (Tracking en Órdenes,
+// Al activar un addon, los tabs nuevos (Tracking en Órdenes,
 // Entrenamiento en Agente IA, etc.) dependen de queries que viven en otras
 // páginas. Invalidar solo 'active-addons' no basta; hay que invalidar TODAS
 // las queries de gating para que esos tabs aparezcan sin recargar la página.

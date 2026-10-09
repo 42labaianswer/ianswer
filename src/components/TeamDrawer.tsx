@@ -121,7 +121,7 @@ export default function TeamDrawer({
   const handleDelete = async () => {
     if (!data.id || !onDelete) return
     // Sin modal: el borrado es diferido y se puede deshacer desde el toast
-    // (useUndoableDelete en /dashboard/team, plan-agente-semana04 1.7).
+    // (useUndoableDelete en /dashboard/team).
     setSaving(true)
     try {
       await onDelete(data.id)

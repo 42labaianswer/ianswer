@@ -113,7 +113,7 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
     onSuccess: () => {
       toast.success('Horarios guardados correctamente')
       queryClient.invalidateQueries({ queryKey: ['workingHours', selectedAgendaId] })
-      // FIX v1.6.2: que el calendar se entere de los nuevos horarios al instante
+      // Que el calendar se entere de los nuevos horarios al instante
       queryClient.invalidateQueries({ queryKey: ['calendarSpecifics'] })
       queryClient.invalidateQueries({ queryKey: ['calendarBaseData'] })
     },

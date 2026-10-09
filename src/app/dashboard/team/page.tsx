@@ -3,7 +3,7 @@
 'use client'
 
 // ============================================================================
-// src/app/dashboard/team/page.tsx · v2.0
+// src/app/dashboard/team/page.tsx
 // Directorio CRM de miembros del equipo, adaptable por plantilla.
 // ============================================================================
 
@@ -34,11 +34,9 @@ export default function TeamPage() {
   const [filterTag, setFilterTag] = useState<string>('')
 
   // company_id en su propia query (misma key y forma que /dashboard/tasks, así
-  // comparten caché). Antes se guardaba con setCompanyId() DENTRO del queryFn de
-  // la lista: al volver a la página la lista salía de caché, el queryFn no
-  // corría y companyId quedaba en '' → al borrar se invalidaba ['team', ''] y la
-  // persona eliminada seguía en pantalla hasta recargar (plan-agente-semana04,
-  // 1.7). También hacía fallar "Guardar" con "Sin company".
+  // comparten caché). No se guarda con setCompanyId() DENTRO del queryFn de la
+  // lista: si la lista sale de caché el queryFn no corre, companyId queda en ''
+  // y tanto el borrado (invalida ['team', '']) como "Guardar" fallan.
   const { data: profile } = useQuery({
     queryKey: ['currentUserProfile'],
     queryFn: async () => {
@@ -95,7 +93,7 @@ export default function TeamPage() {
     }
   })
 
-  // Mismo patrón que /crm/tareas: fade out + toast con "Deshacer" (1.7).
+  // Mismo patrón que /crm/tareas: fade out + toast con "Deshacer".
   const undoDelete = useUndoableDelete({
     table: 'team',
     label: `${tplConfig.noun_singular} eliminado`,
@@ -143,8 +141,8 @@ export default function TeamPage() {
 
   return (
     <div>
-      {/* Header propio: antes lo ponía el layout de /crm, pero Equipo ya vive
-          fuera de ahí (plan-agente-semana04, 6.2). El padding lo da MainContainer. */}
+      {/* Header propio: Equipo vive fuera del layout de /crm. El padding lo da
+          MainContainer. */}
       <PageHeader
         title="Equipo"
         description="Tu equipo profesional. El bot responde sobre cada miembro como su recepcionista."

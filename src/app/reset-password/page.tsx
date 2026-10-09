@@ -4,12 +4,12 @@
 
 // src/app/reset-password/page.tsx
 // ----------------------------------------------------------------------------
-// Página pública: el usuario llega aquí desde el link del email.
-// El link trae ?token_hash=…&type=recovery (forgot-password): se valida con
-// verifyOtp, que abre la sesión temporal de recuperación. Los links viejos
-// (los que pasaban por /auth/v1/verify) siguen funcionando con el evento
-// PASSWORD_RECOVERY. Pasos:
-//   1. Validar el token (o esperar PASSWORD_RECOVERY / detectar sesión válida)
+// Página pública: el usuario llega aquí desde el link del email, que trae
+// ?token_hash=…&type=recovery (api/auth/forgot-password).
+// Solo el token del correo habilita el formulario: una sesión ya iniciada NO
+// basta, para que nadie con acceso a una sesión abierta cambie la contraseña
+// sin pasar por el correo. Pasos:
+//   1. Validar el token con verifyOtp (abre la sesión de recuperación)
 //   2. Mostrar form de nueva contraseña + confirmación
 //   3. Llamar supabase.auth.updateUser({ password })
 //   4. Redirigir a /dashboard
@@ -75,64 +75,32 @@ export default function ResetPasswordPage() {
     loadDesign();
   }, []);
 
-  // ─── Detectar sesión PASSWORD_RECOVERY ─────────────────────────────────
+  // ─── Validar el token del correo ───────────────────────────────────────
+  // En el navegador y no en el servidor: los antivirus de correo que abren los
+  // enlaces no ejecutan JS, así que no gastan el token (es de un solo uso).
   useEffect(() => {
     let cancelled = false;
-
-    // Link nuevo: validar el token_hash aquí. Se hace en el navegador (no en el
-    // servidor) para que los antivirus de correo que abren los enlaces no
-    // gasten el token, que es de un solo uso.
     const params = new URLSearchParams(window.location.search);
     const tokenHash = params.get('token_hash');
-    if (tokenHash && params.get('type') === 'recovery') {
-      supabase.auth
-        .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
-        .then(({ error }) => {
-          if (cancelled) return;
-          // Quitar el token de la URL (historial, recargas, capturas)
-          window.history.replaceState(null, '', window.location.pathname);
-          if (error) {
-            console.warn('[reset-password] verifyOtp falló:', error.message);
-            setFlowState('invalid');
-          } else {
-            setFlowState('ready');
-          }
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
+    const verificacion = tokenHash && params.get('type') === 'recovery'
+      ? supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+      : Promise.resolve({ error: new Error('El enlace no trae token de recuperación') });
 
-    // Link viejo: cuando Supabase procesa el link de recovery, dispara el evento
-    // PASSWORD_RECOVERY y establece una sesión temporal.
-    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
-      if (cancelled) return;
-      if (event === 'PASSWORD_RECOVERY') {
-        setFlowState('ready');
-      } else if (event === 'SIGNED_IN' && session) {
-        // Si ya hay sesión válida (ej. usuario refrescó la página después de
-        // que Supabase procesó el token), también permitimos cambiar password.
-        setFlowState('ready');
-      }
-    });
-
-    // Fallback: verificar sesión actual por si el evento ya pasó
-    const timeoutId = setTimeout(async () => {
-      if (cancelled) return;
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        setFlowState('ready');
-      } else {
-        // No hay sesión y el evento PASSWORD_RECOVERY no llegó.
-        // El link probablemente expiró o ya se usó.
-        setFlowState('invalid');
-      }
-    }, 1500);
+    verificacion
+      .then(({ error }) => {
+        if (cancelled) return;
+        // Quitar el token de la URL (historial, recargas, capturas)
+        window.history.replaceState(null, '', window.location.pathname);
+        if (error) {
+          console.warn('[reset-password] verifyOtp falló:', error.message);
+          setFlowState('invalid');
+        } else {
+          setFlowState('ready');
+        }
+      });
 
     return () => {
       cancelled = true;
-      subscription.subscription.unsubscribe();
-      clearTimeout(timeoutId);
     };
   }, []);
 

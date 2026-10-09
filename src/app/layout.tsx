@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Datos frescos + sin bloqueo de bots (soluciona el 403 en redes sociales)
+// Datos frescos + sin bloqueo de bots (evita el 403 en redes sociales)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 

@@ -2,7 +2,7 @@
 
 // src/components/ServerThemeHydrator.tsx
 // ----------------------------------------------------------------------------
-// Sprint N2 · Puente server → cliente para el theme.
+// Puente server → cliente para el theme.
 //
 // El dashboard layout (Server Component) resuelve la industria desde la BD con
 // getServerTheme() y pasa el resultado a este componente. Aquí, en el primer

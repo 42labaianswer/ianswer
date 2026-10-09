@@ -4,12 +4,12 @@
 
 /**
  * ============================================================================
- * PropertyImportWizard · v2.17
+ * PropertyImportWizard
  * ----------------------------------------------------------------------------
  * Wizard de 3 fases para importar propiedades:
  *
  *   FASE 1 — Subir PDF
- *     Upload a Storage bucket agent-pdfs (reusamos el de v2.15).
+ *     Upload a Storage bucket agent-pdfs (bucket compartido).
  *
  *   FASE 2 — DeepSeek extrae todas las propiedades
  *     Llama a /api/properties-pdf-extract que devuelve un array.

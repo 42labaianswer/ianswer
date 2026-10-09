@@ -92,7 +92,7 @@ export default function WebhooksAdminTab() {
     n8n_workflow_widget_json: '',
     n8n_workflow_cancel_json: '',
     n8n_workflow_reschedule_json: '',
-    n8n_workflow_reminder_json: ''    // v2.0: solo respaldo, sin URL externa
+    n8n_workflow_reminder_json: ''    // solo respaldo, sin URL externa
   })
 
   const { data, isLoading } = useQuery({
@@ -281,7 +281,7 @@ export default function WebhooksAdminTab() {
             />
           </div>
 
-          {/* 6. Procesador de Recordatorios (v2.0) — solo respaldo, sin URL */}
+          {/* 6. Procesador de Recordatorios — solo respaldo, sin URL */}
           <div className="p-6 bg-purple-50/50 rounded-2xl border border-purple-200">
             <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
               Procesador de Recordatorios
@@ -300,7 +300,7 @@ export default function WebhooksAdminTab() {
             />
           </div>
 
-          {/* 7. NUEVO v1.6 — Cancelar Cita */}
+          {/* 7. Cancelar Cita */}
           <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-200">
             <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
               Cancelar Cita
@@ -316,7 +316,7 @@ export default function WebhooksAdminTab() {
             />
           </div>
 
-          {/* 8. NUEVO v1.6 — Reagendar Cita */}
+          {/* 8. Reagendar Cita */}
           <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-200">
             <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
               Reagendar Cita

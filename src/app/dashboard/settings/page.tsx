@@ -17,7 +17,7 @@ import ProfileTab from '../../../components/ProfileTab'
 import WorkingHoursTab from '../../../components/WorkingHoursTab'
 import AgendasTab from '../../../components/AgendaTab'
 import LocationTab from '../../../components/LocationTab'
-import WidgetTab from '../../../components/WidgetTab' // <-- NUEVO COMPONENTE
+import WidgetTab from '../../../components/WidgetTab'
 import SubscriptionSyncOnSuccess from '../../../components/SubscriptionSyncOnSuccess'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
@@ -72,8 +72,8 @@ export default function SettingsPage() {
 
   const { companyId, planSlug, subscriptionStatus, planName } = data || {}
 
-  // Estado de la suscripción en español y con su color (antes: "ESTADO: TRIALING"
-  // en rojo — solo 'active' se veía bien, una prueba vigente parecía un error).
+  // Estado de la suscripción en español y con su color: una prueba vigente
+  // ('trialing') no debe verse como error.
   const STATUS_BADGES: Record<string, { label: string, className: string }> = {
     active:   { label: 'Activa',          className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
     trialing: { label: 'En prueba',       className: 'bg-indigo-400/20 text-indigo-200 border-indigo-400/30' },
@@ -123,7 +123,7 @@ export default function SettingsPage() {
       {/* DISEÑO POR PESTAÑAS (TABS) */}
       {/* Menú al lado del contenido (y fijo al hacer scroll) solo cuando hay
           espacio; en angosto va arriba como pestañas horizontales, sin sticky
-          (antes se quedaba pegado arriba tapando el contenido). */}
+          (pegado arriba taparía el contenido). */}
       <div className="@container">
       <div className="flex flex-col @4xl:flex-row gap-6 @4xl:gap-8 items-start">
         

@@ -2,14 +2,11 @@
 
 // src/lib/hubspot.ts
 // ----------------------------------------------------------------------------
-// Sprint J.5 · Helpers de HubSpot API v3 con Private App Tokens.
+// Helpers de HubSpot API v3 con Private App Tokens (sin OAuth).
 //
-// Cambios vs Sprint J (OAuth):
-//   - QUITADO: buildAuthorizeUrl, exchangeCodeForTokens, refreshAccessToken,
-//     generateOAuthState, revokeToken (ya no aplican con Private Apps)
-//   - AGREGADO: validatePrivateAppToken() que verifica que el token funciona
-//   - AGREGADO: getAccountInfo() para obtener portal_id + info del portal
-//   - fetchContactsPage y normalizeHubSpotContact SIN CAMBIOS
+//   - validatePrivateAppToken() verifica que el token funciona
+//   - getAccountInfo() obtiene portal_id + info del portal
+//   - fetchContactsPage y normalizeHubSpotContact leen y normalizan contactos
 // ----------------------------------------------------------------------------
 
 // ─── Config ────────────────────────────────────────────────────────────────

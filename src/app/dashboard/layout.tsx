@@ -17,7 +17,7 @@ import { headers } from 'next/headers'
 import { GATE_HEADER } from '../../lib/dashboardGate'
 
 // ============================================================================
-// DashboardLayout v3 - Server-resolved theme (Sprint N2)
+// DashboardLayout - Server-resolved theme
 // ----------------------------------------------------------------------------
 // Layout ASYNC Server Component. Antes de renderizar resuelve la industria del
 // usuario desde la BD (getServerTheme) y:
@@ -28,8 +28,8 @@ import { GATE_HEADER } from '../../lib/dashboardGate'
 //      (ServerThemeHydrator), para que el Sidebar muestre el branding correcto
 //      desde el primer frame, sin el "PLATAFORMA" generico.
 //
-// El fetch cliente (refreshWorkspace) sigue corriendo en background para datos
-// frescos, pero ya no es responsable del primer pintado.
+// El fetch cliente (refreshWorkspace) corre en background para datos frescos,
+// pero no es responsable del primer pintado.
 // ============================================================================
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

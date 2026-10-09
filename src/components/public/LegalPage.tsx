@@ -1,9 +1,9 @@
 ﻿ 
 
 // ============================================================================
-// src/components/public/LegalPage.tsx — Layout reusable para legales (v2)
+// src/components/public/LegalPage.tsx — Layout reusable para legales
 // ----------------------------------------------------------------------------
-// Paleta nueva: cream bg + slate-950 primary + lime-600 accents.
+// Paleta: cream bg + slate-950 primary + lime-600 accents.
 // ============================================================================
 
 import { Calendar } from 'lucide-react'

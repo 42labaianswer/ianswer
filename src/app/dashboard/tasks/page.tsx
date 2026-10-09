@@ -140,8 +140,7 @@ export default function TasksPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasksEnriched'] })
   })
 
-  // Borrado diferido con "Deshacer" — sin modal de confirmación (aprobado por
-  // Rubén/Roy, plan-agente-semana04 1.1).
+  // Borrado diferido con "Deshacer" — sin modal de confirmación.
   const undoDelete = useUndoableDelete({
     table: 'tasks',
     label: 'Tarea eliminada',
@@ -171,7 +170,7 @@ export default function TasksPage() {
     return shown.filter(t => t.bucket !== 'completed')
   }, [tasks, showCompleted, phaseOf])
 
-  // Los contadores ya no cuentan las que están en proceso de borrarse.
+  // Los contadores no cuentan las que están en proceso de borrarse.
   const liveTasks = useMemo(() => tasks.filter(t => !phaseOf(t.id)), [tasks, phaseOf])
 
   const buckets = useMemo(() => {
@@ -189,7 +188,7 @@ export default function TasksPage() {
     total_pending: liveTasks.filter(t => t.bucket !== 'completed').length
   }), [liveTasks])
 
-  // v2.3: Guard de feature gating — si no tiene la feature, no entra
+  // Guard de feature gating — si no tiene la feature, no entra
   if (isLoadingFeatures) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -433,11 +432,11 @@ function TaskRow({ task, onToggleComplete, onEdit, onDelete, onSnooze, onOpenCon
 }
 
 // ============================================================================
-// SNOOZE MENU — plan-agente-semana04, 1.2
-// El menú antes era `absolute` dentro de la lista, que tiene `overflow-hidden`
-// (esquinas redondeadas) → se recortaba y no se veían todas las opciones. Ahora
-// se pinta en un portal con `position: fixed`, se voltea hacia arriba si no cabe
-// abajo, y tiene altura máxima con scroll interno.
+// SNOOZE MENU
+// Se pinta en un portal con `position: fixed` porque la lista tiene
+// `overflow-hidden` (esquinas redondeadas) y recortaría un menú `absolute`.
+// Se voltea hacia arriba si no cabe abajo, y tiene altura máxima con scroll
+// interno.
 // ============================================================================
 const SNOOZE_OPTIONS = [
   { h: 1, label: '+1 hora' },

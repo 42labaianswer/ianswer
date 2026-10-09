@@ -1,11 +1,10 @@
 ﻿ 
 
 // ============================================================================
-// hooks/useInstalledApps.ts · Shim v3.0
+// hooks/useInstalledApps.ts · Shim de compatibilidad
 // ----------------------------------------------------------------------------
-// El 3.0 consultaba public.company_apps directamente. En el modelo unificado
-// (templates + addons), un "app instalado" = un módulo activo en algún template
-// instalado por la company.
+// En el modelo unificado (templates + addons), un "app instalado" = un módulo
+// activo en algún template instalado por la company.
 //
 // Devuelve un AppsMap leyendo entitlements.templates[].active_modules.
 // ============================================================================
@@ -42,8 +41,8 @@ export function useInstalledApps() {
 }
 
 /**
- * En el 3.0 esto detectaba si la company ya estaba migrada al modelo de apps.
- * En el modelo unificado siempre devolvemos true (el modelo nuevo siempre aplica).
+ * Se conserva por compatibilidad con los componentes portados: en el modelo
+ * unificado siempre devuelve true.
  */
 export function useHasNewAppsModel(): boolean {
   return true

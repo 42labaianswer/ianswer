@@ -12,7 +12,7 @@ export default function AgendaManager({ companyId }: { companyId: string }) {
 
   useEffect(() => {
     async function loadData() {
-      // FIX: Accedemos al primer elemento del array de planes devuelto por el JOIN
+      // El JOIN devuelve plans como array: se usa su primer elemento
       const { data: company } = await supabase
         .from('companies')
         .select(`

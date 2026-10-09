@@ -1,7 +1,7 @@
 ﻿ 
 
 // ============================================================================
-// src/app/(public)/funciones/page.tsx — Features (rediseño v2)
+// src/app/(public)/funciones/page.tsx — Features
 // ============================================================================
 
 import { createClient } from '@supabase/supabase-js'

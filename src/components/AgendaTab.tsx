@@ -40,16 +40,16 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     room_name: ''
   })
 
-  // v3.0: maxAgendas viene de entitlements (mergea plan + addons). Fallback a 1.
+  // maxAgendas viene de entitlements (mergea plan + addons). Fallback a 1.
   const maxAgendas = (entitlements as any)?.capacity?.max_agendas ?? 1
-  // Para mostrar los selectores avanzados (multi-location, doctor, room) ahora dependen
-  // del feature flag multi_location_enabled (que viene activado en todos los planes v3).
+  // Los selectores avanzados (multi-location, doctor, room) dependen del feature
+  // flag multi_location_enabled (activado en todos los planes actuales).
   const showAdvancedTypes = !!(entitlements?.features as Record<string, any> | undefined)?.multi_location_enabled
 
   // 1. TANSTACK QUERY: Obtener configuraciones y dependencias
   const { data, isLoading } = useQuery({
     queryKey: ['agendasContextData', companyId],
-    enabled: !!companyId, // <--- EL FIX ESTRELLA: Esperamos a tener el ID antes de buscar
+    enabled: !!companyId, // Espera a tener el ID antes de buscar
     queryFn: async () => {
       const [platformRes, agendasRes, locRes, teamRes] = await Promise.all([
         supabase.from('platform_settings').select('google_service_account, n8n_webhook_calendar').limit(1).maybeSingle(), // Fallback seguro

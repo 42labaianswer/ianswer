@@ -12,7 +12,7 @@ import {
 import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 // ============================================================================
-// PlansAdminTab v2.26
+// PlansAdminTab
 // ----------------------------------------------------------------------------
 // Admin de los 3 planes: Start / Growth / Scale.
 // Edita: capacidades, precios, features (texto + flags), stripe price IDs.

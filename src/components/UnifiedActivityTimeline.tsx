@@ -12,7 +12,7 @@ import {
 import IAnswerLoader from './IAnswerLoader'
 
 // ============================================================================
-// UnifiedActivityTimeline (v2.1)
+// UnifiedActivityTimeline
 // Mezcla citas, mensajes y recordatorios en un timeline cronológico único.
 // ============================================================================
 

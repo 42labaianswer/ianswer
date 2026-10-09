@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   // El enlace va DIRECTO a nuestra página con el token, y ella lo valida con
   // verifyOtp. No se usa action_link: ese pasa por /auth/v1/verify de Supabase,
   // que solo respeta redirectTo si está en sus "Redirect URLs"; si no, manda al
-  // Site URL del proyecto (en producción, localhost → el correo no servía).
+  // Site URL del proyecto (en producción apunta a localhost).
   // Con token_hash el Site URL deja de importar para este flujo.
   const hashedToken = linkData?.properties?.hashed_token;
   if (!hashedToken) {

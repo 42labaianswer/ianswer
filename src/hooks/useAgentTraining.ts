@@ -2,7 +2,7 @@
 
 // src/hooks/useAgentTraining.ts
 // ----------------------------------------------------------------------------
-// Sprint R · Hooks para el entrenamiento del agente.
+// Hooks para el entrenamiento del agente.
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

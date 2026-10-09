@@ -25,13 +25,13 @@ const InstagramIcon = ({ size = 24, className = "", strokeWidth = 2 }) => (
 
 type Platform = 'whatsapp' | 'messenger' | 'instagram'
 
-// ⚠️ FIX estado WhatsApp (Sprint Conectividad):
+// ⚠️ Estado de WhatsApp:
 // WhatsApp NO vive en la tabla `integrations` (ahí solo van Messenger e
 // Instagram). Sus credenciales viven en `companies` (business_phone_id +
 // system_user_access_token) — igual que las lee el diagnóstico, messages/send
-// y disconnect. Antes esta pantalla decidía "conectado" y el contador SOLO con
-// `integrations`, por eso WhatsApp salía como "Conectar Canal" aunque ya
-// estuviera conectado, y el contador marcaba 2/10 sin contarlo.
+// y disconnect. Si "conectado" y el contador se calculan solo con
+// `integrations`, WhatsApp sale como "Conectar Canal" aunque esté conectado
+// y no cuenta para el límite de canales.
 interface ConnectivityState {
   connectedPlatforms: Platform[]
 }
@@ -72,15 +72,15 @@ export default function ConnectivityPage() {
   const connectedPlatforms = state?.connectedPlatforms ?? []
   const isPlatformConnected = (p: Platform) => connectedPlatforms.includes(p)
 
-  // v3.0 Sprint 5: validar capacity max_channels
+  // Validar capacity max_channels
   const maxChannels = entitlements?.capacity?.max_channels ?? 1
   const usedChannels = connectedPlatforms.length
   const atLimit = usedChannels >= maxChannels
 
-  // ⚠️ FIX #7: separamos `route` (carpeta real en /dashboard/connectivity/*)
-  // de `platform` (valor que vive en la tabla `integrations`, con CHECK
-  // whatsapp/messenger/instagram). Antes el canal de Facebook usaba id
-  // 'messenger' para navegar -> /connectivity/messenger (carpeta inexistente) -> 404.
+  // ⚠️ `route` (carpeta real en /dashboard/connectivity/*) y `platform` (valor
+  // que vive en la tabla `integrations`, con CHECK whatsapp/messenger/instagram)
+  // son distintos: el canal de Facebook tiene platform 'messenger' pero su
+  // carpeta es /connectivity/facebook (/connectivity/messenger no existe -> 404).
   const channels = [
     {
       route: 'whatsapp',
@@ -171,7 +171,7 @@ export default function ConnectivityPage() {
 
               <button
                 onClick={() => {
-                  // v3.0 Sprint 5: si está al límite y no es uno ya conectado, redirigir al addon
+                  // Si está al límite y no es uno ya conectado, redirigir al addon
                   if (atLimit && !isConnected) {
                     router.push('/dashboard/addons?highlight=extra_channel')
                     return
@@ -199,13 +199,6 @@ export default function ConnectivityPage() {
           )
         })}
       </div>
-
-      {/*
-        El editor de perfil de WhatsApp Business se movió a la página del canal:
-        /dashboard/connectivity/whatsapp (solo aparece cuando WhatsApp está
-        conectado). Antes vivía aquí afuera y confundía: se veía siempre, sin
-        contexto, y encima leía la columna de token equivocada.
-      */}
     </div>
   )
 }
