@@ -49,14 +49,20 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
 
-  const isPublicRoute = request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/login'
+  // La contraseña olvidada solo se cambia con el enlace del correo (lleva
+  // token_hash). Sin él: con sesión al dashboard, sin sesión al login.
+  if (pathname === '/reset-password' && !request.nextUrl.searchParams.has('token_hash')) {
+    return redirectKeepingCookies(new URL(user ? '/dashboard' : '/login', request.url), response)
+  }
+
+  const isPublicRoute = pathname === '/' || pathname === '/login' || pathname === '/forgot-password'
 
   if (user && isPublicRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const pathname = request.nextUrl.pathname
   const isDashboard = pathname === '/dashboard' || pathname.startsWith('/dashboard/')
 
   if (!user && isDashboard) {
