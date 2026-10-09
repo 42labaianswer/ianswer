@@ -90,8 +90,11 @@ export default function Sidebar() {
     { name: 'Mi Plan',    href: '/dashboard/plans',     icon: CreditCard,  show: true }
   ]
 
-  const themeColor  = primaryTemplate?.theme_color  || '#020617'
-  const accentColor = primaryTemplate?.accent_color || '#4f46e5'
+  // Variables CSS en vez del store: el servidor (ServerThemeStyle) y el
+  // ThemeScript las fijan antes del primer paint y ThemeSync las mantiene al
+  // día, así el HTML del servidor y el render del cliente usan el mismo valor.
+  const themeColor  = 'var(--ia-theme)'
+  const accentColor = 'var(--ia-accent)'
   const brandReady  = !!platform.name
 
   const renderItem = (item: MenuItem) => {
@@ -172,7 +175,7 @@ export default function Sidebar() {
           ) : (
             <div
               className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg border border-white/20 shrink-0"
-              style={{ backgroundColor: `${accentColor}30` }}
+              style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 19%, transparent)` }}
             >
               <Zap className="text-white fill-white" size={20} />
             </div>
