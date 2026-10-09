@@ -52,6 +52,10 @@ export function normalizeTeamPayload<T extends Record<string, any>>(input: T): T
     if (out[key] === undefined || out[key] === null) out[key] = []
   }
 
+  // team.title tiene default 'Dr.' en la base: si no se manda, cualquier
+  // miembro nuevo (un mesero, un asesor) quedaría como "Dr.".
+  if (out.title === undefined || out.title === null) out.title = ''
+
   // `years_experience` es numérico: vacío es null, no 0 — decir "0 años de
   // experiencia" no es lo mismo que no haberlo capturado. Se deja fuera
   // a propósito; si la columna fuera NOT NULL, el SQL lo corrige.
