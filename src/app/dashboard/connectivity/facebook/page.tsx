@@ -68,6 +68,9 @@ export default function FacebookConnectPage() {
   // devuelve y el usuario elige cuál conectar.
   const [pageOptions, setPageOptions] = useState<PageOption[] | null>(null)
   const [pendingToken, setPendingToken] = useState<string | null>(null)
+  // Instagram solo se conecta si el usuario lo marca (cuenta como otro canal)
+  const [alsoInstagram, setAlsoInstagram] = useState(false)
+  const [channelUsage, setChannelUsage] = useState<{ connected: string[], max: number } | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -143,16 +146,20 @@ export default function FacebookConnectPage() {
   // Llama al backend. Si no se manda pageId y la cuenta administra varias
   // páginas, el backend devuelve la lista para que el usuario elija.
   const intercambiar = async (accessToken: string, pageId: string | null) => {
+    const page = pageId ? pageOptions?.find(p => p.id === pageId) : null
+    const channels = alsoInstagram && page?.has_instagram ? ['messenger', 'instagram'] : ['messenger']
     const res = await fetch('/api/meta/connect/exchange', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pageId ? { access_token: accessToken, page_id: pageId } : { access_token: accessToken })
+      body: JSON.stringify(pageId ? { access_token: accessToken, page_id: pageId, channels } : { access_token: accessToken })
     })
     const result = await res.json()
 
     if (result?.needsPageSelection && Array.isArray(result.pages)) {
       setPendingToken(accessToken)
       setPageOptions(result.pages)
+      setChannelUsage(result.channel_usage ?? null)
+      setAlsoInstagram(false)
       setConnecting(false)
       return
     }
@@ -228,9 +235,11 @@ export default function FacebookConnectPage() {
     if (!(await confirm('¿Desconectar Facebook Messenger?', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
-      await supabase.from('integrations').delete()
+      const { error: delErr } = await supabase.from('integrations').delete()
         .eq('company_id', companyId).eq('platform', 'messenger')
-      await supabase.from('companies').update({ fb_page_id: null }).eq('id', companyId)
+      if (delErr) throw delErr
+      const { error: updErr } = await supabase.from('companies').update({ fb_page_id: null }).eq('id', companyId)
+      if (updErr) throw updErr
       toast.success('Facebook desconectado')
       setConnected(false)
       setForm({ token: '', pageId: '' })
@@ -330,8 +339,8 @@ export default function FacebookConnectPage() {
                   <span className="block font-bold text-slate-900 truncate">{p.name}</span>
                   <span className="block text-xs text-slate-500">
                     {p.has_instagram
-                      ? `Instagram vinculado${p.instagram_username ? ': @' + p.instagram_username : ''} — se conecta también`
-                      : 'Sin Instagram vinculado — solo Messenger'}
+                      ? `Instagram vinculado${p.instagram_username ? ': @' + p.instagram_username : ''}`
+                      : 'Sin Instagram vinculado'}
                   </span>
                 </span>
                 {connecting
@@ -340,6 +349,31 @@ export default function FacebookConnectPage() {
               </button>
             ))}
           </div>
+          {pageOptions.some(p => p.has_instagram) && (() => {
+            const nuevos = channelUsage
+              ? ['messenger', 'instagram'].filter(c => !channelUsage.connected.includes(c)).length
+              : 0
+            const igCabe = !channelUsage || channelUsage.connected.length + nuevos <= channelUsage.max
+            return (
+              <label className={`mt-4 flex items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 ${igCabe ? 'cursor-pointer hover:bg-slate-50' : 'opacity-60 cursor-not-allowed'}`}>
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-blue-600"
+                  checked={alsoInstagram && igCabe}
+                  disabled={!igCabe || connecting}
+                  onChange={e => setAlsoInstagram(e.target.checked)}
+                />
+                <span className="text-sm">
+                  <span className="block font-bold text-slate-800">Conectar también Instagram</span>
+                  <span className="block text-xs text-slate-500">
+                    {igCabe
+                      ? 'Si la página que elijas tiene Instagram vinculado, se conecta como un canal más.'
+                      : `Tu plan permite ${channelUsage!.max} ${channelUsage!.max === 1 ? 'canal' : 'canales'}: no alcanza para Instagram. Cambia de plan para conectarlo.`}
+                  </span>
+                </span>
+              </label>
+            )
+          })()}
           {pageOptions.some(p => !p.has_instagram) && (
             <p className="mt-4 text-xs text-slate-500 leading-relaxed">
               ¿Esperabas ver Instagram? Tu cuenta debe ser de tipo Business y estar vinculada a la página desde la configuración de Facebook. Si la vinculas ahora, vuelve a conectar para que se detecte.

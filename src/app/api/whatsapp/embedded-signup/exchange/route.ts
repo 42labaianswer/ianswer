@@ -8,6 +8,8 @@
 // Pasos:
 //   1. Validar input (code, phone_number_id, waba_id)
 //   2. Obtener el companyId del usuario autenticado (cookie de Supabase SSR)
+//      y revisar, antes de tocar Meta, que el número no sea de otra empresa y
+//      que WhatsApp quepa en el límite de canales del plan
 //   3. Intercambiar `code` por Business Integration Token (long-lived)
 //   4. Obtener info del WABA: display_phone, verified_name, quality, tier
 //   5. Suscribir nuestra app al webhook
@@ -19,6 +21,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { getChannelUsage, channelLimitError, isChannelLimitDbError } from '../../../../../lib/channelLimits'
 
 const META_APP_ID                = process.env.NEXT_PUBLIC_META_APP_ID
 const META_APP_SECRET            = process.env.META_APP_SECRET
@@ -122,6 +125,12 @@ export async function POST(req: Request) {
         error:   'Este número ya está conectado a otra cuenta de iAnswer. Si quieres moverlo a esta cuenta, contáctanos.',
         code:    'phone_already_connected'
       }, { status: 409 })
+    }
+
+    // ── 3c. Límite de canales del plan ──
+    const limitError = channelLimitError(await getChannelUsage(supabaseAdmin, companyId), ['whatsapp'])
+    if (limitError) {
+      return NextResponse.json({ success: false, error: limitError, code: 'channel_limit' }, { status: 403 })
     }
 
     // ── 4. Intercambiar code → Business Integration Token (long-lived) ──
@@ -237,6 +246,9 @@ export async function POST(req: Request) {
     if (updateErr) {
       console.error('[DBUpdateError]', updateErr)
       // Respaldo de 3b (dos conexiones al mismo tiempo, o falló esa consulta)
+      if (isChannelLimitDbError(updateErr)) {
+        return NextResponse.json({ success: false, error: updateErr.message, code: 'channel_limit' }, { status: 403 })
+      }
       if (updateErr.code === '23505') {
         return NextResponse.json({
           success: false,

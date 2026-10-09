@@ -9,16 +9,20 @@
 //   1. Recibe el access_token de usuario (short-lived) del FB.login
 //   2. Lo cambia por uno long-lived
 //   3. Lista las páginas de Facebook que administra el usuario
-//   4. Toma la primera página (o la seleccionada): su page_access_token
-//   5. Detecta si esa página tiene una cuenta de Instagram Business vinculada
-//   6. Guarda en integrations: una fila 'messenger' (FB) y, si hay IG, una 'instagram'
-//   7. Suscribe la app a los webhooks de la página
+//   4. Sin page_id: devuelve las páginas (con su Instagram, si tiene) y el uso
+//      de canales, para que el usuario elija qué conectar
+//   5. Con page_id: conecta solo los canales pedidos en `channels`
+//      ('messenger' y/o 'instagram'; por defecto solo 'messenger'), si caben en
+//      el límite de canales del plan
+//   6. Suscribe la app a los webhooks de la página
+//   7. Guarda en integrations y en companies los canales conectados
 // ============================================================================
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { getChannelUsage, channelLimitError, isChannelLimitDbError, type Channel } from '../../../../../lib/channelLimits'
 
 const META_APP_ID               = process.env.NEXT_PUBLIC_META_APP_ID
 const META_APP_SECRET           = process.env.META_APP_SECRET
@@ -62,6 +66,14 @@ export async function POST(req: Request) {
     if (!access_token || typeof access_token !== 'string') {
       return NextResponse.json({ success: false, error: 'Falta el access_token' }, { status: 400 })
     }
+    const pedidos: Channel[] = Array.isArray(body.channels) && body.channels.length
+      ? body.channels.filter((c: unknown): c is Channel => c === 'messenger' || c === 'instagram')
+      : ['messenger']
+    if (!pedidos.length) {
+      return NextResponse.json({ success: false, error: 'Canales inválidos' }, { status: 400 })
+    }
+    const wantMessenger = pedidos.includes('messenger')
+    const wantInstagram = pedidos.includes('instagram')
 
     // ── 3. Auth: obtener user vía cookies SSR ──
     const cookieStore = await cookies()
@@ -94,6 +106,7 @@ export async function POST(req: Request) {
     const companyId: string = (profile as any).company_id
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const usage = await getChannelUsage(supabaseAdmin, companyId)
 
     // ── 4. Cambiar token de usuario short-lived → long-lived ──
     const llUrl = new URL(`https://graph.facebook.com/${META_GRAPH_VERSION}/oauth/access_token`)
@@ -130,7 +143,8 @@ export async function POST(req: Request) {
           name: p.name || 'Página sin nombre',
           has_instagram: !!p.instagram_business_account,
           instagram_username: p.instagram_business_account?.username || null
-        }))
+        })),
+        channel_usage: usage
       })
     }
 
@@ -148,6 +162,17 @@ export async function POST(req: Request) {
     const pageName: string        = page.name || ''
     const pageAccessToken: string = page.access_token
     const igAccount               = page.instagram_business_account // { id, username } o undefined
+
+    if (wantInstagram && !igAccount?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Esa página no tiene una cuenta de Instagram Business vinculada.' },
+        { status: 400 }
+      )
+    }
+    const limitError = channelLimitError(usage, pedidos)
+    if (limitError) {
+      return NextResponse.json({ success: false, error: limitError, code: 'channel_limit' }, { status: 403 })
+    }
 
     // ── 6. Suscribir la app a los webhooks de la página (Messenger + Instagram) ──
     // ⚠️ Si Meta rechaza esta suscripción, la página queda "conectada" pero los
@@ -192,29 +217,32 @@ export async function POST(req: Request) {
       webhookError = e?.message || 'Error de red al suscribir el webhook'
     }
 
-    // ── 7. Guardar integración de Facebook (platform 'messenger') ──
+    // ── 7. Guardar los canales pedidos ──
     const nowIso = new Date().toISOString()
-    const { error: fbErr } = await supabaseAdmin
-      .from('integrations')
-      .upsert({
-        company_id:   companyId,
-        platform:     'messenger',
-        access_token: pageAccessToken,
-        page_id:      pageId,
-        status:       'connected',
-        updated_at:   nowIso
-      }, { onConflict: 'company_id,platform' })
+    const limitResponse = (message: string) =>
+      NextResponse.json({ success: false, error: message, code: 'channel_limit' }, { status: 403 })
 
-    if (fbErr) {
-      return NextResponse.json(
-        { success: false, error: 'Error guardando Facebook: ' + fbErr.message },
-        { status: 500 }
-      )
+    if (wantMessenger) {
+      const { error: fbErr } = await supabaseAdmin
+        .from('integrations')
+        .upsert({
+          company_id:   companyId,
+          platform:     'messenger',
+          access_token: pageAccessToken,
+          page_id:      pageId,
+          status:       'connected',
+          updated_at:   nowIso
+        }, { onConflict: 'company_id,platform' })
+      if (fbErr) {
+        if (isChannelLimitDbError(fbErr)) return limitResponse(fbErr.message)
+        return NextResponse.json(
+          { success: false, error: 'Error guardando Facebook: ' + fbErr.message },
+          { status: 500 }
+        )
+      }
     }
 
-    // ── 8. Si la página tiene Instagram Business, guardarlo también ──
-    let instagramConnected = false
-    if (igAccount?.id) {
+    if (wantInstagram) {
       const { error: igErr } = await supabaseAdmin
         .from('integrations')
         .upsert({
@@ -226,25 +254,42 @@ export async function POST(req: Request) {
           status:       'connected',
           updated_at:   nowIso
         }, { onConflict: 'company_id,platform' })
-      if (!igErr) instagramConnected = true
+      if (igErr) {
+        if (isChannelLimitDbError(igErr)) return limitResponse(igErr.message)
+        return NextResponse.json(
+          { success: false, error: 'Error guardando Instagram: ' + igErr.message },
+          { status: 500 }
+        )
+      }
     }
 
-    // ── 9. Guardar los IDs de canal en companies para que n8n identifique la
-    //       empresa cuando llega un mensaje de Messenger o Instagram ──
-    await supabaseAdmin
+    // n8n identifica la empresa por estos ids cuando llega un mensaje. Solo se
+    // tocan los del canal que se conectó; el otro canal se queda como estaba.
+    const companyUpdate: Record<string, string | null> = {}
+    if (wantMessenger) {
+      companyUpdate.fb_page_id = pageId
+      companyUpdate.fb_page_name = pageName || null
+    }
+    if (wantInstagram) {
+      companyUpdate.ig_account_id = igAccount.id
+      companyUpdate.ig_username = igAccount.username || null
+    }
+    const { error: companyErr } = await supabaseAdmin
       .from('companies')
-      .update({
-        fb_page_id: pageId,
-        fb_page_name: pageName || null,
-        ig_account_id: instagramConnected ? igAccount.id : null,
-        ig_username: instagramConnected ? (igAccount.username || null) : null
-      })
+      .update(companyUpdate)
       .eq('id', companyId)
+    if (companyErr) {
+      if (isChannelLimitDbError(companyErr)) return limitResponse(companyErr.message)
+      return NextResponse.json(
+        { success: false, error: 'Error guardando el canal: ' + companyErr.message },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      facebook:  { page_id: pageId, page_name: pageName },
-      instagram: instagramConnected ? { account_id: igAccount.id, username: igAccount.username } : null,
+      facebook:  wantMessenger ? { page_id: pageId, page_name: pageName } : null,
+      instagram: wantInstagram ? { account_id: igAccount.id, username: igAccount.username } : null,
       // Estado real del webhook: si esto viene en false, el canal quedará
       // conectado pero NO recibirá mensajes hasta repararlo.
       webhook: {

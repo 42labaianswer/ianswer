@@ -142,7 +142,7 @@ export default function InstagramConnectPage() {
     const res = await fetch('/api/meta/connect/exchange', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pageId ? { access_token: accessToken, page_id: pageId } : { access_token: accessToken })
+      body: JSON.stringify(pageId ? { access_token: accessToken, page_id: pageId, channels: ['instagram'] } : { access_token: accessToken })
     })
     const result = await res.json()
 
@@ -225,9 +225,11 @@ export default function InstagramConnectPage() {
     if (!(await confirm('¿Desconectar Instagram Direct?', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
-      await supabase.from('integrations').delete()
+      const { error: delErr } = await supabase.from('integrations').delete()
         .eq('company_id', companyId).eq('platform', 'instagram')
-      await supabase.from('companies').update({ ig_account_id: null }).eq('id', companyId)
+      if (delErr) throw delErr
+      const { error: updErr } = await supabase.from('companies').update({ ig_account_id: null }).eq('id', companyId)
+      if (updErr) throw updErr
       toast.success('Instagram desconectado')
       setConnected(false)
       setForm({ token: '', accountId: '' })

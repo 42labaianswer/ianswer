@@ -43,6 +43,9 @@ export default function ConnectivityPage() {
   // TANSTACK QUERY: estado real de conectividad (integrations + WhatsApp en companies)
   const { data: state, isLoading } = useQuery<ConnectivityState>({
     queryKey: ['connectivity-state'],
+    // Las páginas de cada canal conectan y desconectan sin pasar por este
+    // caché: al volver aquí siempre se consulta el estado real.
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return { connectedPlatforms: [] }
