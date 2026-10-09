@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { activeSubscriptionError } from '../../../../lib/apiAuth'
 
 // ============================================================================
 // src/app/api/messages/send/route.ts
@@ -70,6 +71,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Sin empresa asociada' }, { status: 400 })
     }
     const companyId = profile.company_id
+
+    const subscriptionError = await activeSubscriptionError(supabase, companyId)
+    if (subscriptionError) {
+      return NextResponse.json({ success: false, error: subscriptionError }, { status: 402 })
+    }
 
     // ── Contacto y canal ──────────────────────────────────────────────────
     const { data: contacto } = await supabase

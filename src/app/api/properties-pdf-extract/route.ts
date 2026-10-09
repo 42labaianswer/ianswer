@@ -1,6 +1,7 @@
 ﻿ 
 
 import { NextResponse } from 'next/server'
+import { requireActiveCompany, isOwnStorageUrl } from '../../../lib/apiAuth'
 import { extractText, getDocumentProxy } from 'unpdf'
 
 /**
@@ -38,8 +39,13 @@ const VALID_OPERATIONS     = ['venta','renta','preventa','renta_temporal']
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireActiveCompany()
+    if (!auth.ok) return auth.response
+
     const { pdf_url } = await req.json()
     if (!pdf_url) return NextResponse.json({ error: 'pdf_url es requerido' }, { status: 400 })
+    // Solo PDFs subidos a nuestro Storage: la ruta no descarga URLs arbitrarias
+    if (!isOwnStorageUrl(pdf_url)) return NextResponse.json({ error: 'pdf_url inválido' }, { status: 400 })
 
     // 1. Descargar PDF
     const pdfRes = await fetch(pdf_url)

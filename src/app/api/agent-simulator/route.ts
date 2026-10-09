@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { activeSubscriptionError } from '../../../lib/apiAuth'
 import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
@@ -42,6 +43,11 @@ export async function POST(req: Request) {
 
     if (!profile?.company_id) {
       return NextResponse.json({ error: 'Sin company asociada' }, { status: 403 })
+    }
+
+    const subscriptionError = await activeSubscriptionError(supabase, profile.company_id)
+    if (subscriptionError) {
+      return NextResponse.json({ error: subscriptionError }, { status: 402 })
     }
 
     const { data: ent } = await supabase
