@@ -14,7 +14,7 @@
 //
 // SOLUCIÓN:
 //   Este script corre ANTES de que React monte (es un <script> síncrono en el
-//   <head>). Lee el mismo localStorage que usa Zustand ('workspace-cache-v3'),
+//   <head>). Lee el mismo localStorage que usa Zustand ('workspace-cache-v4'),
 //   extrae theme_color/accent_color del primaryTemplate cacheado, y los inyecta
 //   como CSS variables en :root ANTES del primer paint.
 //
@@ -37,7 +37,7 @@ export default function ThemeScript() {
     var DEFAULT_THEME = '#020617';
     var DEFAULT_ACCENT = '#4f46e5';
 
-    var raw = localStorage.getItem('workspace-cache-v3');
+    var raw = localStorage.getItem('workspace-cache-v4');
     var theme = DEFAULT_THEME;
     var accent = DEFAULT_ACCENT;
 

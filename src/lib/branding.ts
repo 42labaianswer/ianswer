@@ -48,8 +48,8 @@ export async function getPlatformName(): Promise<string> {
       .select('name')
       .eq('id', 1)
       .maybeSingle()
-    return data?.name || '{brandName}'
+    return data?.name || 'Plataforma'
   } catch {
-    return '{brandName}'
+    return 'Plataforma'
   }
 }

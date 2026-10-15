@@ -90,8 +90,12 @@ export default function Sidebar() {
     { name: 'Mi Plan',    href: '/dashboard/plans',     icon: CreditCard,  show: true }
   ]
 
-  const themeColor  = primaryTemplate?.theme_color  || '#020617'
-  const accentColor = primaryTemplate?.accent_color || '#4f46e5'
+  // Variables CSS en vez del store: el servidor (ServerThemeStyle) y el
+  // ThemeScript las fijan antes del primer paint y ThemeSync las mantiene al
+  // día, así el HTML del servidor y el render del cliente usan el mismo valor.
+  const themeColor  = 'var(--ia-theme)'
+  const accentColor = 'var(--ia-accent)'
+  const brandReady  = !!platform.name
 
   const renderItem = (item: MenuItem) => {
     const Icon = item.icon
@@ -157,8 +161,12 @@ export default function Sidebar() {
         </button>
 
         {/* HEADER */}
+        {/* Sin nombre la marca aún no cargó: se reserva el espacio vacío para no
+            mostrar un placeholder que luego cambia. */}
         <div className="p-8 flex items-center gap-3">
-          {platform?.icon_url ? (
+          {!brandReady ? (
+            <div className="h-10 w-10 shrink-0" />
+          ) : platform.icon_url ? (
             <img
               src={platform.icon_url}
               alt="Icon"
@@ -167,14 +175,16 @@ export default function Sidebar() {
           ) : (
             <div
               className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg border border-white/20 shrink-0"
-              style={{ backgroundColor: `${accentColor}30` }}
+              style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 19%, transparent)` }}
             >
               <Zap className="text-white fill-white" size={20} />
             </div>
           )}
 
           <div className="flex flex-col gap-1.5 justify-center">
-            {platform?.logo_url ? (
+            {!brandReady ? (
+              <div className="h-5" />
+            ) : platform.logo_url ? (
               <img
                 src={platform.logo_url}
                 alt="Logo"
@@ -182,16 +192,16 @@ export default function Sidebar() {
               />
             ) : (
               <span className="text-xl font-black text-white tracking-tight leading-none">
-                {platform?.name || 'iAnswer'}
+                {platform.name}
               </span>
             )}
             <span className="text-[10px] font-black uppercase tracking-widest leading-none text-white/70">
-              {primaryTemplate?.tenant_label || 'Plataforma'}
+              {brandReady ? (primaryTemplate?.tenant_label || 'Plataforma') : ' '}
             </span>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto scrollbar-hide">
           {primaryItems.filter(i => i.show).map(i => renderItem(i))}
 
           <div className="pt-6 mt-6 border-t border-white/10 space-y-1.5">

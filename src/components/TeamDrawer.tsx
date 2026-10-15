@@ -321,7 +321,7 @@ export default function TeamDrawer({
                     type="text"
                     value={data.full_name}
                     onChange={e => update({ full_name: e.target.value })}
-                    placeholder="Dr. Juan Pérez García"
+                    placeholder="Juan Pérez García"
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
                   />

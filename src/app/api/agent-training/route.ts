@@ -16,6 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { activeSubscriptionError } from '../../../lib/apiAuth'
 import { cookies } from 'next/headers'
 
 export const runtime = 'nodejs'
@@ -92,6 +93,9 @@ async function verifyAddon(req: NextRequest): Promise<
     .maybeSingle()
 
   if (!profile?.company_id) return { ok: false, status: 400, error: 'Sin company' }
+
+  const subscriptionError = await activeSubscriptionError(supabase, profile.company_id)
+  if (subscriptionError) return { ok: false, status: 402, error: subscriptionError }
 
   const { data: hasAddon } = await supabase.rpc('has_agent_training_active', {
     p_company_id: profile.company_id,

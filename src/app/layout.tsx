@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
     .eq('id', 1)
     .single();
 
-  const titleFromDb = data?.name || "{brandName}";
+  const titleFromDb = data?.name || "Plataforma";
   const descFromDb = data?.description || "Asistente IA conversacional para tu negocio.";
 
   const faviconUrl = data?.favicon_url || data?.icon_url || data?.logo_url || "";

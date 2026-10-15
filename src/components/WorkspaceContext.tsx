@@ -151,7 +151,7 @@ export const useWorkspace = create<WorkspaceState>()(
       labels: defaultLabels,
       modules: defaultModules,
       funnels: defaultFunnels,
-      platform: { name: '{brandName}', logo_url: '', icon_url: '' },
+      platform: { name: '', logo_url: '', icon_url: '' },
       primaryTemplate: defaultPrimaryTemplate,
       installedTemplates: [],
       isLoadingWorkspace: true,
@@ -174,7 +174,7 @@ export const useWorkspace = create<WorkspaceState>()(
       },
 
       refreshWorkspace: async () => {
-        const isCached = get().platform.name !== '{brandName}' && get().primaryTemplate.id !== 'generic'
+        const isCached = !!get().platform.name && get().primaryTemplate.id !== 'generic'
         if (!isCached) set({ isLoadingWorkspace: true })
 
         try {
@@ -187,7 +187,7 @@ export const useWorkspace = create<WorkspaceState>()(
           if (platformData) {
             set({
               platform: {
-                name: platformData.name || '{brandName}',
+                name: platformData.name || '',
                 logo_url: platformData.logo_url || '',
                 icon_url: platformData.icon_url || ''
               }
@@ -309,7 +309,7 @@ export const useWorkspace = create<WorkspaceState>()(
       }
     }),
     {
-      name: 'workspace-cache-v3',  // cambiar el nombre invalida los caches persistidos (p. ej. con tabs fantasma)
+      name: 'workspace-cache-v4',  // cambiar el nombre invalida los caches persistidos (p. ej. con tabs fantasma)
       partialize: (state) => ({
         labels: state.labels,
         modules: state.modules,

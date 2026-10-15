@@ -14,7 +14,7 @@
 // la cambiaron y se manda un código nuevo, en vez de rechazarlo.
 // ----------------------------------------------------------------------------
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { sendEmail } from '../../../../lib/resend';
@@ -153,24 +153,24 @@ export async function POST(req: NextRequest) {
     expiresInMinutes: CODE_EXPIRES_MINUTES,
   });
 
-  const sendResult = await sendEmail({
-    to: email,
-    subject,
-    html,
-    text,
-    tags: [
-      { name: 'category', value: 'auth' },
-      { name: 'type', value: 'signup_verification' },
-    ],
+  // El correo se envía después de responder: la ruta ya hace varias llamadas a
+  // Supabase y sumar Resend la acerca al límite de tiempo de Vercel. Si falla,
+  // el usuario tiene "Reenviar código" en la pantalla de verificación.
+  after(async () => {
+    const sendResult = await sendEmail({
+      to: email,
+      subject,
+      html,
+      text,
+      tags: [
+        { name: 'category', value: 'auth' },
+        { name: 'type', value: 'signup_verification' },
+      ],
+    });
+    if (sendResult.error) {
+      console.error('[register] Resend falló:', sendResult.error);
+    }
   });
-
-  if (sendResult.error) {
-    console.error('[register] Resend falló:', sendResult.error);
-    return NextResponse.json(
-      { error: 'La cuenta se creó pero no pudimos enviar el correo con el código. Usa "Reenviar código" en unos segundos.' },
-      { status: 502 }
-    );
-  }
 
   return NextResponse.json({ ok: true });
 }

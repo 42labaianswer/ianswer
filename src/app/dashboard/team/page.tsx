@@ -20,12 +20,14 @@ import toast from 'react-hot-toast'
 import { normalizeTeamPayload } from '../../../lib/teamPayload'
 import { useUndoableDelete, undoableRowClass } from '../../../hooks/useUndoableDelete'
 import PageHeader from '../../../components/PageHeader'
+import { useEntitlements } from '../../../hooks/useEntitlements'
 
 export default function TeamPage() {
   const { primaryTemplate, isLoadingWorkspace } = useWorkspace()
   const qc = useQueryClient()
   const templateId = primaryTemplate?.id || 'generic'
   const tplConfig = getTemplateConfig(templateId)
+  const { data: entitlements } = useEntitlements()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<TeamMember | null>(null)
@@ -131,6 +133,10 @@ export default function TeamPage() {
   }, [members, search, filterActive, filterTag, phaseOf])
 
   const liveCount = members.filter(m => !phaseOf(m.id!)).length
+  // El límite lo aplica la base (trigger team_limit); aquí solo se avisa antes
+  const activeCount = members.filter(m => !phaseOf(m.id!) && m.is_active !== false).length
+  const maxTeam = entitlements?.capacity?.max_team_members
+  const atLimit = typeof maxTeam === 'number' && activeCount >= maxTeam
 
   const openNew = () => { setEditing(null); setDrawerOpen(true) }
   const openEdit = (m: TeamMember) => { setEditing(m); setDrawerOpen(true) }
@@ -151,10 +157,17 @@ export default function TeamPage() {
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-slate-500 font-medium">
           {liveCount} {liveCount === 1 ? 'registrado' : 'registrados'}
+          {typeof maxTeam === 'number' && (
+            <span className={atLimit ? 'text-amber-600 font-bold' : ''}>
+              {' · '}{activeCount}/{maxTeam} activos en tu plan
+            </span>
+          )}
         </p>
         <button
           onClick={openNew}
-          className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"
+          disabled={atLimit}
+          title={atLimit ? 'Llegaste al límite de tu plan. Desactiva a alguien o cambia de plan para agregar otro.' : undefined}
+          className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
         >
           <Plus size={16} />
           Nuevo {tplConfig.noun_singular.toLowerCase()}

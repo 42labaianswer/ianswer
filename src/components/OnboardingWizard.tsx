@@ -38,7 +38,8 @@ import { hasDashboardAccess } from '../lib/subscription'
 // El wizard NO asigna plan: /api/onboarding/complete guarda el plan como
 // pendiente y el plan real lo escribe el webhook de Stripe al iniciar la
 // prueba. Si el usuario sale sin pagar y vuelve a entrar, regresa al P5
-// (modo "resume"). Al volver de Stripe se confirma la sesión con
+// (modo "resume") con sus respuestas cargadas, y puede volver al P4 para
+// cambiar los complementos. La plantilla ya quedó instalada y no se cambia ahí. Al volver de Stripe se confirma la sesión con
 // /api/stripe/confirm-checkout para no depender de que el webhook llegue antes.
 // ============================================================================
 
@@ -136,13 +137,15 @@ export default function OnboardingWizard() {
   const [isExiting, setIsExiting] = useState(false)
   // Plan elegido en el P5 (arranca en el sugerido; el usuario lo puede cambiar).
   const [chosenPlan, setChosenPlan] = useState<PlanSlug | null>(null)
-  // 'resume': terminó los pasos pero salió sin pagar → se muestra solo el P5.
+  // 'resume': terminó los pasos pero salió sin pagar → P4 y P5.
   const [mode, setMode] = useState<'full' | 'resume'>('full')
   // Regreso de Stripe con éxito: se confirma la sesión antes de entrar.
   const [activating, setActivating] = useState(false)
+  // Fecha de hoy fija al montar, para calcular el primer cobro tras la prueba.
+  const [openedAt] = useState(() => Date.now())
 
   const visibleSteps: WizardStep[] = mode === 'resume'
-    ? [5]
+    ? [4, 5]
     : ENABLE_TEAM_SIZE_STEP ? [1, 2, 3, 4, 5] : [1, 2, 4, 5]
   const stepIndex = Math.max(0, visibleSteps.indexOf(step))
   const goNext = () => setStep(visibleSteps[Math.min(stepIndex + 1, visibleSteps.length - 1)])
@@ -251,7 +254,10 @@ export default function OnboardingWizard() {
           })
         })
       } else if (mode === 'resume' && companyId) {
-        await supabase.from('companies').update({ pending_plan_slug: planToBuy }).eq('id', companyId)
+        await supabase
+          .from('companies')
+          .update({ pending_plan_slug: planToBuy, onboarding_addon_ids: selectedAddons })
+          .eq('id', companyId)
       }
     } catch (e) {
       console.warn('[Onboarding] No se pudo guardar antes de salir:', e)
@@ -286,7 +292,7 @@ export default function OnboardingWizard() {
         let company: any = null
         const { data: fullCompany, error: fullErr } = await supabase
           .from('companies')
-          .select('name, onboarding_completed, plan_slug, pending_plan_slug, subscription_status, trial_ends_at, stripe_subscription_id')
+          .select('name, onboarding_completed, plan_slug, pending_plan_slug, onboarding_addon_ids, subscription_status, trial_ends_at, stripe_subscription_id')
           .eq('id', profile.company_id)
           .maybeSingle()
 
@@ -304,14 +310,19 @@ export default function OnboardingWizard() {
 
         const { data: ctData } = await supabase
           .from('company_templates')
-          .select('id')
+          .select('template_id')
           .eq('company_id', profile.company_id)
           .eq('is_primary', true)
           .limit(1)
 
         const hasPrimaryTemplate = !!(ctData && ctData.length > 0)
         const isCompleted = !!company?.onboarding_completed
-        if (company?.name && !company.name.includes('@')) setCompanyName(company.name)
+        // "Mi Negocio" es el nombre que pone handle_new_user cuando el registro
+        // no trae uno: no se precarga para que el usuario escriba el suyo.
+        const storedName = (company?.name || '').trim()
+        if (storedName && !storedName.includes('@') && storedName.toLowerCase() !== 'mi negocio') {
+          setCompanyName(storedName)
+        }
 
         const params = new URLSearchParams(window.location.search)
         const checkout = params.get('checkout')
@@ -337,6 +348,8 @@ export default function OnboardingWizard() {
           setMode('resume')
           setStep(5)
           if (company?.pending_plan_slug) setChosenPlan(company.pending_plan_slug as PlanSlug)
+          if (ctData?.[0]?.template_id) setSelectedTemplate(ctData[0].template_id)
+          if (Array.isArray(company?.onboarding_addon_ids)) setSelectedAddons(company.onboarding_addon_ids)
           if (checkout === 'canceled') {
             toast('No se completó el registro en Stripe. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
             window.history.replaceState(null, '', window.location.pathname)
@@ -383,10 +396,10 @@ export default function OnboardingWizard() {
           throw new Error(fullMsg)
         }
       } else {
-        // Resume: solo actualizar nombre y plan pendiente.
+        // Resume: la plantilla ya está instalada; solo nombre, plan y complementos.
         await supabase
           .from('companies')
-          .update({ name: companyName.trim(), pending_plan_slug: planToBuy })
+          .update({ name: companyName.trim(), pending_plan_slug: planToBuy, onboarding_addon_ids: selectedAddons })
           .eq('id', companyId)
       }
 
@@ -449,6 +462,9 @@ export default function OnboardingWizard() {
     .reduce((sum, a) => sum + a.price_one_time_cents, 0)
 
   const selectedTemplateData = templates.find(t => t.id === selectedTemplate)
+  const chosenPlanRow = plans.find(p => p.slug === planToBuy)
+  const firstChargeDate = new Date(openedAt + trialDays * 86_400_000)
+    .toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
 
   return createPortal(
     <div
@@ -473,24 +489,20 @@ export default function OnboardingWizard() {
                 </>
               )}
             </div>
-            {mode === 'full' && (
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-                Paso {stepIndex + 1} de {visibleSteps.length}
-              </span>
-            )}
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+              Paso {stepIndex + 1} de {visibleSteps.length}
+            </span>
           </div>
-          {mode === 'full' && (
-            <div className="flex gap-2">
-              {visibleSteps.map((n, i) => (
-                <div
-                  key={n}
-                  className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
-                    i <= stepIndex ? 'bg-slate-900' : 'bg-slate-200'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex gap-2">
+            {visibleSteps.map((n, i) => (
+              <div
+                key={n}
+                className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
+                  i <= stepIndex ? 'bg-slate-900' : 'bg-slate-200'
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Contenido del paso */}
@@ -740,9 +752,6 @@ export default function OnboardingWizard() {
           {step === 5 && (
             <>
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center h-16 w-16 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 mb-4">
-                  <CheckCircle2 size={32} strokeWidth={2.5} />
-                </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
                   Casi listo
                 </h2>
@@ -763,7 +772,7 @@ export default function OnboardingWizard() {
                     type="text"
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
-                    placeholder="Mi Negocio S.A. de C.V."
+                    placeholder="Nombre de tu negocio"
                     className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl outline-none focus:border-slate-900 text-base font-bold transition-colors"
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a', caretColor: '#0f172a' }}
                     autoFocus
@@ -850,13 +859,44 @@ export default function OnboardingWizard() {
                   </div>
                 )}
 
+                {/* Cuánto se paga: hoy nada (prueba); al terminar, el plan. Los
+                    complementos de interés se muestran aparte porque todavía no
+                    se cobran en el checkout. */}
+                {chosenPlanRow && (
+                  <div className="max-w-xl mx-auto rounded-2xl border-2 border-slate-900 bg-slate-50 p-5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-bold text-slate-700">Plan {chosenPlanRow.name}</span>
+                      <span className="font-black text-slate-900">{centsToMxn(chosenPlanRow.price_monthly_cents)}/mes</span>
+                    </div>
+                    {(monthlyAddonCost > 0 || oneTimeAddonCost > 0) && (
+                      <div className="flex items-start justify-between gap-4 text-sm mt-2">
+                        <span className="font-medium text-slate-500">Complementos de interés <span className="text-xs">(se activan después, desde Extras)</span></span>
+                        <span className="font-bold text-slate-500 text-right whitespace-nowrap">
+                          {monthlyAddonCost > 0 && <>+ {centsToMxn(monthlyAddonCost)}/mes</>}
+                          {monthlyAddonCost > 0 && oneTimeAddonCost > 0 && <br />}
+                          {oneTimeAddonCost > 0 && <>+ {centsToMxn(oneTimeAddonCost)} único</>}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-slate-200 mt-4 pt-4 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-slate-700">Hoy pagas</span>
+                        <span className="text-xl font-black text-slate-900">{centsToMxn(0)}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Prueba gratuita de {trialDays} días. El {firstChargeDate} se cobran {centsToMxn(chosenPlanRow.price_monthly_cents)} de tu plan, a menos que canceles antes.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-center text-xs text-slate-500 font-medium">
                   {brandName} requiere un plan activo para funcionar.{' '}
                   <button
                     type="button"
                     onClick={handleExit}
                     disabled={isSaving || isExiting}
-                    className="inline-flex items-center gap-1 font-bold text-slate-700 underline hover:text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed disabled:no-underline"
+                    className="inline-flex items-center gap-1 font-bold text-[#5B2BE8] underline hover:text-[#4A22C4] disabled:opacity-60 disabled:cursor-not-allowed disabled:no-underline"
                   >
                     {isExiting && <Loader2 size={12} className="animate-spin" />}
                     {isExiting ? 'Saliendo...' : 'Salir por ahora'}
