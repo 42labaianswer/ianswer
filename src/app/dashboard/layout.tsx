@@ -5,6 +5,7 @@ import MainContainer from '../../components/MainContainer'
 import DashboardHeader from '../../components/DashboardHeader'
 import { MobileSidebarProvider } from '../../components/MobileSidebarContext'
 import OnboardingWizard from '../../components/OnboardingWizard'
+import FirstStepsWizard from '../../components/FirstStepsWizard'
 import TrialBanner from '../../components/TrialBanner'
 import SignupBootstrap from '../../components/SignupBootstrap'
 import SubscriptionGuard from '../../components/SubscriptionGuard'
@@ -70,6 +71,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <SignupBootstrap />
             <SubscriptionGuard />
             <OnboardingWizard />
+            <FirstStepsWizard />
             <Sidebar />
 
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
