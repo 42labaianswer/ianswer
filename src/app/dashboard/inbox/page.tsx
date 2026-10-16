@@ -857,6 +857,48 @@ export default function InboxPage() {
               Chats
             </button>
           </div>
+          {/* En pantallas angostas la columna de filtros está oculta: aquí van
+              los mismos filtros y el botón de nuevo chat, en compacto. */}
+          <div className="lg:hidden flex items-center gap-2 mb-3">
+            <select
+              value={attentionOnly ? 'attention' : activeFilter}
+              onChange={e => {
+                const v = e.target.value
+                if (v === 'attention') { setActiveFilter('all'); setAttentionOnly(true) }
+                else { setActiveFilter(v); setAttentionOnly(false) }
+              }}
+              className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 outline-none"
+              aria-label="Filtrar conversaciones"
+            >
+              <option value="all">Activos ({activeSidebarContacts.length})</option>
+              <option value="attention">Requieren atención ({attentionContacts.length})</option>
+              {['new_lead', 'hot_lead', 'payment', 'customer'].map(key => (
+                <option key={key} value={key}>{funnels[key].name} ({funnelCounts[key] || 0})</option>
+              ))}
+            </select>
+            {connectedChannels.length > 1 && (
+              <select
+                value={channelFilter}
+                onChange={e => setChannelFilter(e.target.value as typeof channelFilter)}
+                className="min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 outline-none"
+                aria-label="Filtrar por canal"
+              >
+                <option value="all">Todos los canales</option>
+                {connectedChannels.map(ch => (
+                  <option key={ch} value={ch}>{CHANNELS[ch].label} ({channelCounts[ch] || 0})</option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={() => setIsNewChatOpen(true)}
+              className="text-white p-2 rounded-lg shadow-sm shrink-0"
+              style={{ backgroundColor: vertical?.accent_color || '#4f46e5' }}
+              title="Iniciar Nuevo Chat"
+              aria-label="Iniciar nuevo chat"
+            >
+              <MessageSquarePlus size={18} />
+            </button>
+          </div>
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-slate-700 flex items-center gap-1.5">
               {channelFilter !== 'all' && <ChannelBadge channel={channelFilter} />}

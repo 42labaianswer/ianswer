@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { LogOut, ChevronDown, User, Settings, MessageSquare, Sparkles, Building2, Layers } from 'lucide-react'
+import { LogOut, ChevronDown, User, Settings, MessageSquare, Sparkles, Building2 } from 'lucide-react'
 
 export default function ProfileWidget() {
   const router = useRouter()
@@ -134,15 +134,6 @@ export default function ProfileWidget() {
           >
             <Settings size={16} />
             Configuración
-          </button>
-
-          {/* Vive aquí para que esté disponible desde cualquier página. */}
-          <button
-            onClick={() => { setIsOpen(false); router.push('/dashboard/templates') }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 font-semibold hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors"
-          >
-            <Layers size={16} />
-            Cambiar de industria
           </button>
         </div>
 

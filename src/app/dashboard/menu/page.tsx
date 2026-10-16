@@ -4,8 +4,7 @@
 
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import MenuContent from './MenuContent'
-import { Utensils, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
+import { Utensils } from 'lucide-react'
 
 export default function MenuPage() {
   const { modules, isLoadingWorkspace } = useWorkspace()
@@ -24,17 +23,10 @@ export default function MenuPage() {
           <h1 className="text-2xl font-black text-slate-900 mb-3">
             Tu industria no incluye menú
           </h1>
-          <p className="text-sm text-slate-500 font-medium mb-8 leading-relaxed">
+          <p className="text-sm text-slate-500 font-medium leading-relaxed">
             El menú digital es parte de la industria <strong className="text-slate-900">Restaurantes</strong>.
-            Cámbiate a esa industria desde Industrias para empezar a gestionar tu carta.
+            Si necesitas cambiar de industria, escríbenos a soporte.
           </p>
-          <Link
-            href="/dashboard/templates"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors"
-          >
-            Ver industrias
-            <ArrowRight size={16} />
-          </Link>
         </div>
       </div>
     )
