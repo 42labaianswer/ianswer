@@ -75,6 +75,11 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // Por ahora la industria solo se elige en el wizard de onboarding.
+  if (pathname === '/dashboard/templates' || pathname.startsWith('/dashboard/templates/')) {
+    return redirectKeepingCookies(new URL('/dashboard', request.url), response)
+  }
+
   const gate = await resolveDashboardGate(supabase, user.id)
 
   if (gate === 'wizard' && pathname !== '/dashboard') {

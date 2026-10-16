@@ -12,8 +12,7 @@
 
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import PropertiesContent from './PropertiesContent'
-import { Home, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
+import { Home } from 'lucide-react'
 
 export default function PropertiesPage() {
   const { modules, isLoadingWorkspace } = useWorkspace()
@@ -32,17 +31,10 @@ export default function PropertiesPage() {
           <h1 className="text-2xl font-black text-slate-900 mb-3">
             Tu industria no incluye propiedades
           </h1>
-          <p className="text-sm text-slate-500 font-medium mb-8 leading-relaxed">
+          <p className="text-sm text-slate-500 font-medium leading-relaxed">
             Las propiedades son parte de la industria <strong className="text-slate-900">Inmobiliaria</strong>.
-            Cámbiate a esa industria desde Industrias para empezar a gestionar tu catálogo.
+            Si necesitas cambiar de industria, escríbenos a soporte.
           </p>
-          <Link
-            href="/dashboard/templates"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors"
-          >
-            Ver industrias
-            <ArrowRight size={16} />
-          </Link>
         </div>
       </div>
     )
