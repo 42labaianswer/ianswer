@@ -12,6 +12,7 @@ import PricingCard from '../../../components/public/PricingCard'
 import FAQAccordion from '../../../components/public/FAQAccordion'
 import CTABanner from '../../../components/public/CTABanner'
 import Reveal from '../../../lib/scrollReveal'
+import { MessageCircle, Users, Rocket } from 'lucide-react'
 
 interface Plan {
   slug: string
@@ -196,13 +197,15 @@ export default function PreciosPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {[
-              { icon: '💬', title: 'Conversaciones', desc: 'Cada cliente único que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien.' },
-              { icon: '👥', title: 'Equipo',         desc: 'El tamaño de tu equipo limita cuántas personas pueden acceder al panel. La IA no cuenta como miembro.' },
-              { icon: '🚀', title: 'Funciones',      desc: 'Todos los planes traen CRM, calendario, reportes y multi-canal. No bloqueamos features para forzarte a subir.' }
+              { icon: MessageCircle, title: 'Conversaciones', desc: 'Cada cliente único que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien.' },
+              { icon: Users,         title: 'Equipo',         desc: 'El tamaño de tu equipo limita cuántas personas pueden acceder al panel. La IA no cuenta como miembro.' },
+              { icon: Rocket,        title: 'Funciones',      desc: 'Todos los planes traen CRM, calendario, reportes y multi-canal. No bloqueamos features para forzarte a subir.' }
             ].map((item, idx) => (
               <Reveal key={idx} delay={idx * 80}>
                 <div className="bg-[#FAFAF7] border border-slate-200 rounded-3xl p-7 h-full">
-                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <div className="h-11 w-11 mb-4 rounded-2xl bg-white border border-slate-200 flex items-center justify-center">
+                    <item.icon size={20} className="text-lime-600" />
+                  </div>
                   <h3 className="font-bold text-slate-950 text-lg tracking-tight mb-2">{item.title}</h3>
                   <p className="text-sm text-slate-600 font-normal leading-relaxed">{item.desc}</p>
                 </div>

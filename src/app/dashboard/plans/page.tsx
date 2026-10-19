@@ -9,12 +9,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import PlanCard from '../../../components/PlanCard'
 import PageHeader from '../../../components/PageHeader'
+import InfoHint from '../../../components/InfoHint'
 import toast from 'react-hot-toast'
-import { CreditCard, Loader2, Sparkles, ExternalLink, Clock, AlertTriangle } from 'lucide-react'
+import { CreditCard, Loader2, Sparkles, ExternalLink, Clock, AlertTriangle, Info } from 'lucide-react'
 import UsageMeter from '../../../components/UsageMeter'
 import BillingSummary from '../../../components/BillingSummary'
 import { useConfirm } from '../../../hooks/useConfirm'
 import IAnswerLoader from '../../../components/IAnswerLoader'
+import { hasDashboardAccess } from '../../../lib/subscription'
 
 type Plan = {
   slug: string
@@ -72,7 +74,7 @@ export default function PlansPage() {
         })
       }
     }
-    if (canceled === 'true') toast('Checkout cancelado. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
+    if (canceled === 'true') toast('Checkout cancelado. Puedes intentarlo de nuevo.', { icon: <Info size={16} className="text-sky-300 shrink-0" /> })
   }, [searchParams, queryClient])
 
   const { data, isLoading } = useQuery({
@@ -83,7 +85,7 @@ export default function PlansPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('company_id, role, is_admin')
+        .select('company_id, is_admin')
         .eq('id', user.id)
         .single()
 
@@ -104,7 +106,9 @@ export default function PlansPage() {
       ])
 
       return {
-        isAdmin: !!profile.is_admin || profile.role === 'admin',
+        // Solo is_admin: profiles.role es 'admin' por defecto para todo dueño
+        // de empresa (rol dentro de SU empresa, no de la plataforma).
+        isAdmin: !!profile.is_admin,
         plans: (planRes.data as Plan[]) || [],
         company: compRes.data as CompanyData | null
       }
@@ -219,29 +223,55 @@ export default function PlansPage() {
   const daysRemaining = trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0
-  const isTrialing = data?.company?.subscription_status === 'trialing'
-  const isExpired = ['expired', 'past_due', 'canceled'].includes(data?.company?.subscription_status || '')
+  const subscriptionStatus = data?.company?.subscription_status || ''
+  const isTrialing = subscriptionStatus === 'trialing'
+  // Misma condición que dashboardGate 'blocked': proxy.ts redirige aquí desde
+  // cualquier otra sección, así que esta pantalla tiene que explicar por qué.
+  const isBlocked = !!data?.company?.stripe_subscription_id &&
+    !hasDashboardAccess({ status: subscriptionStatus, trialEndsAt: data?.company?.trial_ends_at })
+  const isPaymentPending = subscriptionStatus === 'past_due' && !isBlocked
   const hasLiveSubscription = !!data?.company?.stripe_subscription_id &&
     ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
 
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       <PageHeader
-        title="Mi Plan"
-        description="Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas en todos los planes — lo que limita es el volumen y el tamaño del equipo."
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            Mi Plan
+            <InfoHint label="Cómo funcionan los planes">
+              Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas
+              en todos los planes — lo que limita es el volumen y el tamaño del equipo.
+            </InfoHint>
+          </span>
+        }
       />
 
       {/* Estado de trial / expiración */}
-      {(isTrialing || isExpired) && (
+      {isBlocked && (
+        <div role="alert" className="mb-8 rounded-2xl p-5 border bg-rose-50 border-rose-200 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-black text-rose-900 mb-1">
+              Tu suscripción no está activa
+            </p>
+            <p className="text-sm text-rose-800 font-medium leading-relaxed">
+              Elige un plan abajo para volver a usar iAnswer; tu información se conserva.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!isBlocked && (isTrialing || isPaymentPending) && (
         <div className={`mb-8 rounded-2xl p-5 border flex items-start gap-3 ${
-          isExpired ? 'bg-rose-50 border-rose-200' : 'bg-indigo-50 border-indigo-100'
+          isPaymentPending ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50 border-indigo-100'
         }`}>
-          {isExpired
-            ? <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+          {isPaymentPending
+            ? <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
             : <Sparkles size={18} className="text-indigo-600 shrink-0 mt-0.5" />}
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">
-              {isExpired ? 'Suscripción expirada' : 'Período de prueba'}
+              {isPaymentPending ? 'Pago pendiente' : 'Período de prueba'}
             </p>
             {isTrialing && (
               <p className="text-sm text-slate-700 font-medium flex items-center gap-1.5">
@@ -252,9 +282,9 @@ export default function PlansPage() {
                 {trialEnd && ` · vence ${trialEnd.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}`}
               </p>
             )}
-            {isExpired && (
-              <p className="text-sm text-rose-700 font-medium">
-                Activa un plan para volver a usar iAnswer.
+            {isPaymentPending && (
+              <p className="text-sm text-amber-800 font-medium">
+                No pudimos cobrar tu último pago. Actualiza tu método de pago para no perder el acceso.
               </p>
             )}
           </div>

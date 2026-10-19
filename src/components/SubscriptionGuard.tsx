@@ -7,7 +7,7 @@
 // ----------------------------------------------------------------------------
 // Componente que se monta en el layout del dashboard. Sin una suscripción de
 // Stripe viva (en prueba, activa, o past_due dentro de la gracia) no se entra:
-// muestra un overlay que manda a /dashboard/plans.
+// redirige a /dashboard/plans, que explica el motivo del bloqueo.
 //
 // LISTA BLANCA vía hasDashboardAccess(): todo estado no permitido se bloquea,
 // incluido 'inactive' (cuentas del wizard sin pagar y suscripciones canceladas).
@@ -27,8 +27,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
-import Link from 'next/link'
 import { hasDashboardAccess } from '../lib/subscription'
 import { BLOCKED_ALLOWED_PATHS } from '../lib/dashboardGate'
 
@@ -73,46 +71,21 @@ export default function SubscriptionGuard() {
     check()
   }, [pathname])
 
-  if (!checked || !status) return null
-
   // Cuentas sin onboarding o que nunca se suscribieron → las atiende el wizard.
-  if (!status.onboarding_completed || !status.stripe_subscription_id) return null
-
   // La regla vive en src/lib/subscription.ts (hasDashboardAccess).
-  const shouldBlock = !hasDashboardAccess({
-    status: status.subscription_status,
-    trialEndsAt: status.trial_ends_at
-  })
+  const shouldBlock = checked && !!status &&
+    !!status.onboarding_completed && !!status.stripe_subscription_id &&
+    !hasDashboardAccess({ status: status.subscription_status, trialEndsAt: status.trial_ends_at })
 
-  // No bloquear si está en una ruta permitida
   const isAllowedRoute = ALLOWED_PATHS.some(path => pathname.startsWith(path))
 
-  if (!shouldBlock || isAllowedRoute) return null
+  // Sin modal: proxy.ts ya redirige a /dashboard/plans en el servidor y un
+  // modal aquí solo alcanzaba a parpadear antes de esa redirección. Planes
+  // explica el bloqueo; esto cubre el caso en que el proxy dejó pasar ('ok'
+  // ante un error al calcular el acceso).
+  useEffect(() => {
+    if (shouldBlock && !isAllowedRoute) router.replace('/dashboard/plans')
+  }, [shouldBlock, isAllowedRoute, router])
 
-  // Mostrar overlay bloqueante
-  return (
-    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
-        <div className="h-14 w-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <AlertTriangle size={28} strokeWidth={2} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-950 tracking-tight mb-3">
-          Tu suscripción no está activa
-        </h2>
-        <p className="text-sm text-slate-600 font-medium leading-relaxed mb-8">
-          Tu suscripción se canceló o no pudimos cobrar tu plan.
-          Activa un plan para seguir usando iAnswer; tu información se conserva.
-        </p>
-        <Link
-          href="/dashboard/plans"
-          className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black text-sm transition-colors"
-        >
-          Activar plan ahora <ArrowRight size={14} />
-        </Link>
-        <p className="text-xs text-slate-400 font-medium mt-4">
-          ¿Problemas? <Link href="/dashboard/help" className="text-indigo-600 font-bold hover:underline">Contactar soporte</Link>
-        </p>
-      </div>
-    </div>
-  )
+  return null
 }

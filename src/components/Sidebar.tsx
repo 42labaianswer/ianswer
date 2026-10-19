@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../components/WorkspaceContext'
 import { useMobileSidebar } from './MobileSidebarContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
+import { useBlockedNavigation } from '../hooks/useBlockedNavigation'
 import { ROUTES } from '../lib/routes'
 
 import {
@@ -40,6 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { platform, modules, primaryTemplate } = useWorkspace()
   const isAdmin = useIsAdmin()
+  const guardClick = useBlockedNavigation()
 
   console.log('[Sidebar] isAdmin =', isAdmin)
 
@@ -109,6 +111,7 @@ export default function Sidebar() {
       <Link
         key={item.href}
         href={item.href}
+        onClick={guardClick(item.href)}
         className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all group ${
           isActive
             ? 'text-white shadow-lg font-bold'
@@ -237,6 +240,7 @@ export default function Sidebar() {
         <div className="px-4 pb-8">
           <Link
             href="/dashboard/settings"
+            onClick={guardClick('/dashboard/settings')}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all ${
               pathname === '/dashboard/settings'
                 ? 'text-white border border-white/10'

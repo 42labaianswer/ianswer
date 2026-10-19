@@ -120,8 +120,7 @@ BEGIN
   END IF;
 
   UPDATE public.companies
-     SET plan_slug  = p_new_plan_slug,
-         updated_at = now()
+     SET plan_slug = p_new_plan_slug
    WHERE id = p_company_id;
 END;
 $$;
