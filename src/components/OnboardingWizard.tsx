@@ -21,7 +21,7 @@ import {
   ArrowRight, ArrowLeft, Loader2, MessageSquare, Users,
   Building2, CheckCircle2, X, PackageOpen, Layers,
   FileText, Phone, Plug, ShieldCheck, Zap, Wrench, GraduationCap,
-  TrendingUp, Palette, LifeBuoy
+  TrendingUp, Palette, LifeBuoy, Info
 } from 'lucide-react'
 import IAnswerLoader from './IAnswerLoader'
 import { hasDashboardAccess } from '../lib/subscription'
@@ -351,7 +351,7 @@ export default function OnboardingWizard() {
           if (ctData?.[0]?.template_id) setSelectedTemplate(ctData[0].template_id)
           if (Array.isArray(company?.onboarding_addon_ids)) setSelectedAddons(company.onboarding_addon_ids)
           if (checkout === 'canceled') {
-            toast('No se completó el registro en Stripe. Puedes intentarlo de nuevo.', { icon: 'ℹ️' })
+            toast('No se completó el registro en Stripe. Puedes intentarlo de nuevo.', { icon: <Info size={16} className="text-sky-300 shrink-0" /> })
             window.history.replaceState(null, '', window.location.pathname)
           }
         }

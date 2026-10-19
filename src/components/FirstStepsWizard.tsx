@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
-  ArrowLeft, ArrowRight, Loader2, User, Phone, Mail, MapPin, AlertTriangle, CheckCircle2
+  ArrowLeft, ArrowRight, Loader2, User, Phone, Mail, MapPin, AlertTriangle, CheckCircle2, Info
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from './WorkspaceContext'
@@ -131,7 +131,7 @@ function FirstStepsDialog({ company, onDone }: { company: CompanyRow, onDone: ()
     }
     storeStep(companyId, null)
     if (exitedEarly) {
-      toast('Puedes completar lo que falte en Configuración y Conectividad.', { icon: 'ℹ️', duration: 6000 })
+      toast('Puedes completar lo que falte en Configuración y Conectividad.', { icon: <Info size={16} className="text-sky-300 shrink-0" />, duration: 6000 })
     }
     onDone()
     queryClient.invalidateQueries({ queryKey: ['first-steps-company'] })
