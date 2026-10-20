@@ -23,6 +23,9 @@ export type TemplateConfig = {
   noun_singular: string       // "Doctor", "Agente", "Mesero"
   noun_plural: string         // "Doctores", "Agentes", "Personal"
   professional_section_title: string
+  // Campo `title` en la pestaña Perfil. null cuando la pestaña profesional ya
+  // pide el puesto (`position`) y el título sería el mismo dato dos veces.
+  title_field: { label: string, placeholder: string } | null
   fields: FieldConfig[]
 }
 
@@ -32,6 +35,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
     noun_singular: 'Especialista',
     noun_plural: 'Especialistas',
     professional_section_title: 'Información profesional',
+    title_field: { label: 'Título', placeholder: 'Dr., Dra., Lic.' },
     fields: [
       {
         key: 'specialty', label: 'Especialidad', type: 'select', cols: 1,
@@ -63,6 +67,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
     noun_singular: 'Agente',
     noun_plural: 'Agentes',
     professional_section_title: 'Información del agente',
+    title_field: { label: 'Puesto / Título', placeholder: 'Cargo o puesto' },
     fields: [
       { key: 'realtor_license', label: 'Cédula AMPI / Bienes raíces', type: 'text', cols: 1, placeholder: 'Ej. AMPI-12345' },
       { key: 'years_experience', label: 'Años de experiencia', type: 'number', cols: 1, placeholder: '5' },
@@ -83,6 +88,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
     noun_singular: 'Miembro del equipo',
     noun_plural: 'Personal',
     professional_section_title: 'Puesto y horario',
+    title_field: null,
     fields: [
       {
         key: 'position', label: 'Puesto', type: 'select', cols: 1,
@@ -101,6 +107,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
     noun_singular: 'Miembro del equipo',
     noun_plural: 'Equipo',
     professional_section_title: 'Rol y especialidades',
+    title_field: null,
     fields: [
       {
         key: 'position', label: 'Rol', type: 'select', cols: 1,
@@ -120,6 +127,7 @@ const TEMPLATES: Record<string, TemplateConfig> = {
     noun_singular: 'Miembro del equipo',
     noun_plural: 'Equipo',
     professional_section_title: 'Información profesional',
+    title_field: null,
     fields: [
       { key: 'position', label: 'Puesto', type: 'text', cols: 1, placeholder: 'Ej. Ejecutivo de ventas' },
       { key: 'years_experience', label: 'Años de experiencia', type: 'number', cols: 1, placeholder: '5' },

@@ -14,13 +14,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getTemplateConfig } from '../../../lib/teamFieldsByTemplate'
 import TeamDrawer, { TeamMember } from '../../../components/TeamDrawer'
 import {
-  Users, Plus, Search, Mail, Phone, Sparkles
+  Users, Plus, Search, Mail, Phone, Sparkles, AlertTriangle
 } from 'lucide-react'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { normalizeTeamPayload } from '../../../lib/teamPayload'
 import { useUndoableDelete, undoableRowClass } from '../../../hooks/useUndoableDelete'
 import PageHeader from '../../../components/PageHeader'
 import { useEntitlements } from '../../../hooks/useEntitlements'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function TeamPage() {
   const { primaryTemplate, isLoadingWorkspace } = useWorkspace()
@@ -137,12 +139,15 @@ export default function TeamPage() {
   const activeCount = members.filter(m => !phaseOf(m.id!) && m.is_active !== false).length
   const maxTeam = entitlements?.capacity?.max_team_members
   const atLimit = typeof maxTeam === 'number' && activeCount >= maxTeam
+  // Pasa al bajar de plan: nadie se desactiva solo, pero el trigger bloquea
+  // altas y reactivaciones hasta quedar dentro del límite.
+  const excess = typeof maxTeam === 'number' ? activeCount - maxTeam : 0
 
   const openNew = () => { setEditing(null); setDrawerOpen(true) }
   const openEdit = (m: TeamMember) => { setEditing(m); setDrawerOpen(true) }
 
   if (isLoadingWorkspace || isLoading) {
-    return <div className="p-8 text-slate-400">Cargando...</div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={40} /></div>
   }
 
   return (
@@ -173,6 +178,21 @@ export default function TeamPage() {
           Nuevo {tplConfig.noun_singular.toLowerCase()}
         </button>
       </div>
+
+      {excess > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm text-amber-900 font-medium leading-relaxed">
+            <strong className="block mb-1">
+              Tienes {activeCount} activos en el equipo y tu plan permite {maxTeam}
+            </strong>
+            Siguen funcionando, pero no podrás agregar ni reactivar a nadie hasta que desactives
+            {' '}{excess === 1 ? 'a 1' : `a ${excess}`}. Abre {excess === 1 ? 'al que sobra' : 'a los que sobran'},
+            quita &quot;Miembro activo&quot; y guarda, o{' '}
+            <Link href="/dashboard/plans" className="underline font-bold hover:text-amber-950">cambia de plan</Link>.
+          </div>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="bg-white border border-slate-200 rounded-2xl p-3 mb-6 flex flex-wrap items-center gap-3">
@@ -246,7 +266,7 @@ export default function TeamPage() {
           {filtered.map(m => (
             <div key={m.id} className={undoableRowClass(phaseOf(m.id!))}>
               <div className="overflow-hidden min-h-0">
-                <TeamCard member={m} onClick={() => openEdit(m)} />
+                <TeamCard member={m} showTitle={!!tplConfig.title_field} onClick={() => openEdit(m)} />
               </div>
             </div>
           ))}
@@ -260,6 +280,7 @@ export default function TeamPage() {
           member={editing}
           companyId={companyId}
           templateId={templateId}
+          atLimit={atLimit}
           onClose={() => { setDrawerOpen(false); setEditing(null) }}
           onSave={async (m) => { await saveMutation.mutateAsync(m) }}
           onDelete={async (id) => { undoDelete.remove(id) }}
@@ -270,7 +291,9 @@ export default function TeamPage() {
 }
 
 // ── Card ────────────────────────────────────────────────────────────────────
-function TeamCard({ member, onClick }: { member: TeamMember, onClick: () => void }) {
+// showTitle: en industrias donde el puesto vive en `position` (badge), el
+// `title` ya no se edita y no debe mostrarse.
+function TeamCard({ member, showTitle, onClick }: { member: TeamMember, showTitle: boolean, onClick: () => void }) {
   const initials = (member.full_name || '?')
     .split(' ')
     .map(w => w[0])
@@ -313,7 +336,7 @@ function TeamCard({ member, onClick }: { member: TeamMember, onClick: () => void
           <h3 className="text-base font-black text-slate-900 truncate group-hover:text-slate-700 transition-colors">
             {member.full_name || 'Sin nombre'}
           </h3>
-          {member.title && (
+          {showTitle && member.title && (
             <p className="text-xs text-slate-500 font-medium truncate">{member.title}</p>
           )}
         </div>

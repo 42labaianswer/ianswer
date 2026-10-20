@@ -13,12 +13,13 @@
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import PropertiesContent from './PropertiesContent'
 import { Home } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function PropertiesPage() {
   const { modules, isLoadingWorkspace } = useWorkspace()
 
   if (isLoadingWorkspace) {
-    return <div className="p-8 text-slate-400">Cargando...</div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={40} /></div>
   }
 
   if (!modules.properties) {

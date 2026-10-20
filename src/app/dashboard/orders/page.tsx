@@ -5,12 +5,13 @@
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import OrdersContent from './OrdersContent'
 import { ClipboardList } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function OrdersPage() {
   const { modules, isLoadingWorkspace } = useWorkspace()
 
   if (isLoadingWorkspace) {
-    return <div className="p-8 text-slate-400">Cargando...</div>
+    return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={40} /></div>
   }
 
   // Las órdenes son parte del módulo "menu" (restaurantes)

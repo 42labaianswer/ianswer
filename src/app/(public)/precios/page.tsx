@@ -13,6 +13,7 @@ import FAQAccordion from '../../../components/public/FAQAccordion'
 import CTABanner from '../../../components/public/CTABanner'
 import Reveal from '../../../lib/scrollReveal'
 import { MessageCircle, Users, Rocket } from 'lucide-react'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 interface Plan {
   slug: string
@@ -138,7 +139,7 @@ export default function PreciosPage() {
       {/* PLANS GRID */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 mb-16 md:mb-24">
         {loading ? (
-          <div className="text-center py-20 text-slate-500 font-bold">Cargando planes...</div>
+          <div className="flex justify-center py-20"><IAnswerLoader size={40} label="Cargando planes..." /></div>
         ) : plans.length === 0 ? (
           <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl mx-auto max-w-2xl">
             <p className="text-base font-bold text-slate-700 mb-2">No hay planes configurados</p>

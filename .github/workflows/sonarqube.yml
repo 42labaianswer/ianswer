@@ -1,0 +1,28 @@
+# Análisis de SonarQube Cloud en cada push a main/dev y en cada PR.
+# Configuración del análisis: sonar-project.properties.
+name: SonarQube
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sonarqube:
+    name: SonarQube Cloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historial completo: SonarQube lo usa para asignar issues y detectar código nuevo.
+          fetch-depth: 0
+
+      - name: Análisis
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

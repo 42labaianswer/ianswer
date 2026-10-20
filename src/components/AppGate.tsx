@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { Sparkles, Lock } from 'lucide-react'
 import { useInstalledApps, useHasNewAppsModel } from '../hooks/useInstalledApps'
 import { type AppId } from '../types/apps'
+import IAnswerLoader from './IAnswerLoader'
 
 type AppGateProps = {
   appId: AppId
@@ -43,11 +44,8 @@ export default function AppGate({
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-3">
-          <div className="h-6 w-48 bg-slate-200 rounded" />
-          <div className="h-32 w-full bg-slate-100 rounded-xl" />
-        </div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <IAnswerLoader size={40} />
       </div>
     )
   }

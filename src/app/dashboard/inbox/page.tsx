@@ -891,12 +891,13 @@ export default function InboxPage() {
             )}
             <button
               onClick={() => setIsNewChatOpen(true)}
-              className="text-white p-2 rounded-lg shadow-sm shrink-0"
-              style={{ backgroundColor: vertical?.accent_color || '#4f46e5' }}
-              title="Iniciar Nuevo Chat"
-              aria-label="Iniciar nuevo chat"
+              className={`${connectedChannels.length > 1 ? 'p-2' : 'px-3 py-2'} bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm flex items-center gap-1.5 shrink-0 transition-colors`}
+              title="Nuevo chat"
+              aria-label="Nuevo chat"
             >
-              <MessageSquarePlus size={18} />
+              <MessageSquarePlus size={16} />
+              {/* Con el filtro de canal visible no cabe el texto en la columna de 320px */}
+              {connectedChannels.length <= 1 && <span>Nuevo chat</span>}
             </button>
           </div>
           <div className="flex items-center justify-between text-sm">
