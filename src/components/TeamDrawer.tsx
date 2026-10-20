@@ -9,7 +9,7 @@ import { getTemplateConfig, FieldConfig } from '../lib/teamFieldsByTemplate'
 import toast from 'react-hot-toast'
 import {
   X, User, Briefcase, Sparkles, Trash2, Save, Loader2,
-  Camera, Plus, Mail, Phone, Palette, Tag as TagIcon
+  Camera, Plus, Mail, Phone, Palette, Tag as TagIcon, Info, ArrowRight
 } from 'lucide-react'
 
 export type TeamMember = {
@@ -55,6 +55,8 @@ type Props = {
   onClose: () => void
   onSave: (member: TeamMember) => Promise<void>
   onDelete?: (id: string) => Promise<void>
+  /** La empresa ya tiene tantos activos como permite su plan */
+  atLimit?: boolean
 }
 
 const COLOR_PRESETS = [
@@ -62,10 +64,15 @@ const COLOR_PRESETS = [
   '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'
 ]
 
+const LANGUAGE_PRESETS = ['Español', 'Inglés', 'Francés', 'Portugués', 'Alemán', 'Italiano', 'Chino', 'Japonés']
+
+// Mínimo: algo@dominio.ext. No verifica que el buzón exista.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
 type Section = 'profile' | 'professional' | 'bot'
 
 export default function TeamDrawer({
-  open, member, companyId, templateId, onClose, onSave, onDelete
+  open, member, companyId, templateId, onClose, onSave, onDelete, atLimit = false
 }: Props) {
   const tplConfig = getTemplateConfig(templateId)
   const [section, setSection] = useState<Section>('profile')
@@ -73,6 +80,7 @@ export default function TeamDrawer({
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [emailTouched, setEmailTouched] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Detectar montaje en cliente para safe createPortal
@@ -86,6 +94,7 @@ export default function TeamDrawer({
         is_active: true, tags: [], languages: []
       })
       setSection('profile')
+      setEmailTouched(false)
     }
   }, [open, member, companyId])
 
@@ -102,11 +111,38 @@ export default function TeamDrawer({
 
   const update = (patch: Partial<TeamMember>) => setData(prev => ({ ...prev, ...patch }))
 
-  const handleSave = async () => {
+  const reactivationBlocked = atLimit && member?.is_active === false
+
+  const emailInvalid =!!data.email?.trim() && !EMAIL_RE.test(data.email.trim())
+
+  const SECTION_ORDER: Section[] = ['profile', 'professional', 'bot']
+  // Alta nueva: se recorren las pestañas con "Siguiente" y se guarda en la
+  // última. Al editar se puede guardar desde cualquiera.
+  const isLastSection = section === SECTION_ORDER[SECTION_ORDER.length - 1]
+  const showNext = !data.id && !isLastSection
+
+  const validateProfile = () => {
     if (!data.full_name?.trim()) {
+      setSection('profile')
       toast.error('El nombre es requerido')
-      return
+      return false
     }
+    if (emailInvalid) {
+      setSection('profile')
+      setEmailTouched(true)
+      toast.error('El email no es válido')
+      return false
+    }
+    return true
+  }
+
+  const handleNext = () => {
+    if (section === 'profile' && !validateProfile()) return
+    setSection(SECTION_ORDER[SECTION_ORDER.indexOf(section) + 1])
+  }
+
+  const handleSave = async () => {
+    if (!validateProfile()) return
     setSaving(true)
     try {
       await onSave(data)
@@ -134,19 +170,23 @@ export default function TeamDrawer({
   }
 
   const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen')
+      return
+    }
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Máximo 5 MB')
       return
     }
     setUploadingAvatar(true)
     try {
-      const ext = file.name.split('.').pop() || 'jpg'
-      const path = `${companyId}/team/${data.id || 'new'}-${Date.now()}.${ext}`
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `${companyId}/${data.id || 'new'}-${Date.now()}.${ext}`
       const { error: upErr } = await supabase.storage
-        .from('user_media')
+        .from('team-photos')
         .upload(path, file, { contentType: file.type, upsert: true })
       if (upErr) throw upErr
-      const { data: pub } = supabase.storage.from('user_media').getPublicUrl(path)
+      const { data: pub } = supabase.storage.from('team-photos').getPublicUrl(path)
       update({ avatar_url: pub.publicUrl })
       toast.success('Foto subida')
     } catch (e: any) {
@@ -302,7 +342,12 @@ export default function TeamDrawer({
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      // Limpiar para que elegir el mismo archivo otra vez dispare onChange
+                      e.target.value = ''
+                      if (file) handleAvatarUpload(file)
+                    }}
                   />
                 </div>
                 <div className="flex-1">
@@ -321,24 +366,25 @@ export default function TeamDrawer({
                     type="text"
                     value={data.full_name}
                     onChange={e => update({ full_name: e.target.value })}
-                    placeholder="Juan Pérez García"
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Puesto / Título
-                  </label>
-                  <input
-                    type="text"
-                    value={data.title ?? ''}
-                    onChange={e => update({ title: e.target.value })}
-                    placeholder={tplConfig.noun_singular === 'Especialista' ? 'Médico cardiólogo' : 'Cargo o puesto'}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
-                    style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
-                  />
-                </div>
+                {tplConfig.title_field && (
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      {tplConfig.title_field.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={data.title ?? ''}
+                      onChange={e => update({ title: e.target.value })}
+                      placeholder={tplConfig.title_field.placeholder}
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
+                      style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Color */}
@@ -369,10 +415,16 @@ export default function TeamDrawer({
                     type="email"
                     value={data.email ?? ''}
                     onChange={e => update({ email: e.target.value })}
-                    placeholder="juan@ejemplo.com"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
+                    onBlur={() => setEmailTouched(true)}
+                    aria-invalid={emailTouched && emailInvalid}
+                    className={`w-full px-4 py-2.5 bg-white border rounded-xl outline-none text-sm font-medium ${
+                      emailTouched && emailInvalid ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-slate-900'
+                    }`}
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
                   />
+                  {emailTouched && emailInvalid && (
+                    <p className="text-[11px] text-rose-600 font-medium mt-1">Escribe un email válido</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
@@ -380,13 +432,19 @@ export default function TeamDrawer({
                   </label>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={data.phone ?? ''}
-                    onChange={e => update({ phone: e.target.value })}
-                    placeholder="+52 999 123 4567"
+                    // Número de 10 dígitos (México), sin lada internacional ni separadores
+                    onChange={e => update({ phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium"
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
                   />
                 </div>
+                {/* El agente de n8n recibe la fila completa del equipo en su prompt */}
+                <p className="col-span-2 -mt-1 flex items-start gap-1.5 text-[11px] text-slate-500">
+                  <Info size={12} className="mt-0.5 shrink-0" />
+                  El asistente puede compartir este email y WhatsApp con tus clientes si se los piden.
+                </p>
               </div>
 
               {/* Bio corta */}
@@ -397,7 +455,6 @@ export default function TeamDrawer({
                 <textarea
                   value={data.short_bio ?? ''}
                   onChange={e => update({ short_bio: e.target.value })}
-                  placeholder="Una frase que describa a esta persona."
                   rows={2}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium resize-y"
                   style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
@@ -406,23 +463,33 @@ export default function TeamDrawer({
 
               {/* Idiomas */}
               <TagsField
-                cfg={{ key: 'languages', label: 'Idiomas', type: 'tags', placeholder: 'Español, Inglés...', helpText: 'El bot lo usa para clientes extranjeros.' }}
+                cfg={{ key: 'languages', label: 'Idiomas', type: 'tags', placeholder: 'Otro idioma...', helpText: 'El bot lo usa para clientes extranjeros.' }}
+                suggestions={LANGUAGE_PRESETS}
                 value={data.languages || []}
                 onChange={v => update({ languages: v })}
                 colSpan="col-span-2"
               />
 
-              {/* Estado activo */}
-              <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+              {/* Estado activo. Reactivar a alguien guardado como inactivo ocupa
+                  un lugar nuevo; en el límite se bloquea aquí para todos (la base
+                  deja pasar a los admins de plataforma). */}
+              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-xl ${reactivationBlocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                 <input
                   type="checkbox"
                   checked={data.is_active !== false}
+                  disabled={reactivationBlocked}
                   onChange={e => update({ is_active: e.target.checked })}
-                  className="h-4 w-4 rounded text-slate-900"
+                  className="h-4 w-4 rounded text-slate-900 disabled:opacity-50"
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-slate-900">Miembro activo</p>
-                  <p className="text-xs text-slate-500">Aparece en agendas, búsquedas y al bot</p>
+                  <p className={`text-sm font-bold ${reactivationBlocked ? 'text-slate-400' : 'text-slate-900'}`}>Miembro activo</p>
+                  {reactivationBlocked ? (
+                    <p className="text-xs text-amber-700 font-medium">
+                      Tu plan ya está en el límite de miembros activos. Desactiva a otro o cambia de plan para reactivarlo.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500">Aparece en agendas, búsquedas y al bot</p>
+                  )}
                 </div>
               </label>
             </div>
@@ -451,7 +518,6 @@ export default function TeamDrawer({
                 <textarea
                   value={data.bio_for_ai ?? ''}
                   onChange={e => update({ bio_for_ai: e.target.value })}
-                  placeholder="Ej: El Dr. Juan solo atiende menores de 16 años. Especializado en alergias respiratorias. Consulta dura 40 minutos. Acepta efectivo, transferencia y tarjeta. Sus horarios son lunes a viernes 9am-2pm..."
                   rows={8}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-slate-900 outline-none text-sm font-medium resize-y"
                   style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a' }}
@@ -464,7 +530,6 @@ export default function TeamDrawer({
               <TagsField
                 cfg={{
                   key: 'tags', label: 'Palabras clave', type: 'tags',
-                  placeholder: 'pediatría, alergias, embarazo...',
                   helpText: 'El bot las usa para detectar cuándo el cliente busca a alguien con esta especialidad.'
                 }}
                 value={data.tags || []}
@@ -498,15 +563,26 @@ export default function TeamDrawer({
             >
               Cancelar
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Guardar
-            </button>
+            {showNext ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"
+              >
+                Siguiente
+                <ArrowRight size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -517,7 +593,7 @@ export default function TeamDrawer({
 
 // ── Componentes auxiliares ──────────────────────────────────────────────────
 
-function TagsField({ cfg, value, onChange, colSpan }: { cfg: FieldConfig, value: string[], onChange: (v: string[]) => void, colSpan: string }) {
+function TagsField({ cfg, value, onChange, colSpan, suggestions }: { cfg: FieldConfig, value: string[], onChange: (v: string[]) => void, colSpan: string, suggestions?: string[] }) {
   const [input, setInput] = useState('')
 
   const addTag = () => {
@@ -532,12 +608,37 @@ function TagsField({ cfg, value, onChange, colSpan }: { cfg: FieldConfig, value:
   }
 
   const removeTag = (t: string) => onChange(value.filter(x => x !== t))
+  const toggleSuggestion = (t: string) => value.includes(t) ? removeTag(t) : onChange([...value, t])
+  // Los predefinidos ya se ven como botones; abajo solo los escritos a mano
+  const customTags = suggestions ? value.filter(t => !suggestions.includes(t)) : value
 
   return (
     <div className={colSpan}>
       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
         {cfg.label}
       </label>
+      {suggestions && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {suggestions.map(opt => {
+            const active = value.includes(opt)
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => toggleSuggestion(opt)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  active
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {opt}
+              </button>
+            )
+          })}
+        </div>
+      )}
       <div className="flex gap-2 mb-2">
         <input
           type="text"
@@ -561,9 +662,9 @@ function TagsField({ cfg, value, onChange, colSpan }: { cfg: FieldConfig, value:
           <Plus size={14} />
         </button>
       </div>
-      {value.length > 0 && (
+      {customTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {value.map(t => (
+          {customTags.map(t => (
             <span
               key={t}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold"
