@@ -66,8 +66,10 @@ const COLOR_PRESETS = [
 
 const LANGUAGE_PRESETS = ['Español', 'Inglés', 'Francés', 'Portugués', 'Alemán', 'Italiano', 'Chino', 'Japonés']
 
-// Mínimo: algo@dominio.ext. No verifica que el buzón exista.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+// Mínimo: algo@dominio.ext. No verifica que el buzón exista. Las partes del
+// dominio se separan por puntos explícitos (sin solaparse) para que la
+// expresión no haga backtracking exponencial con entradas largas.
+const EMAIL_RE = /^[^\s@]+@(?:[^\s@.]+\.)+[^\s@.]{2,}$/
 
 type Section = 'profile' | 'professional' | 'bot'
 
@@ -346,7 +348,8 @@ export default function TeamDrawer({
                       const file = e.target.files?.[0]
                       // Limpiar para que elegir el mismo archivo otra vez dispare onChange
                       e.target.value = ''
-                      if (file) handleAvatarUpload(file)
+                      // handleAvatarUpload ya muestra sus errores con toast.
+                      if (file) void handleAvatarUpload(file)
                     }}
                   />
                 </div>
