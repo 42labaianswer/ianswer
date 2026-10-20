@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { ROUTES } from '../../../lib/routes'
 import AgentTrainingStudio from '../../../components/AgentTrainingStudio'
 import { useHasAgentTrainingAddon } from '../../../hooks/useAgentTraining'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type TeamMember = {
   id: string
@@ -356,8 +357,8 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center animate-pulse">
-        <BrainCircuit size={48} className="text-slate-300" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <IAnswerLoader size={40} />
       </div>
     )
   }

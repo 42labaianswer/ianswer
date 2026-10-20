@@ -10,8 +10,9 @@ import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import PageHeader from '../../../components/PageHeader'
 import toast from 'react-hot-toast'
 import { ROUTES } from '../../../lib/routes'
+import IAnswerLoader from '../../../components/IAnswerLoader'
 import { 
-  Filter,BarChart3, Download, Users, CalendarCheck, 
+  Filter, Download, Users, CalendarCheck, 
   TrendingUp, MessageSquare, Target, Sparkles, Bot, UserCog, Trophy, Activity, AlertCircle, CalendarRange,
   Share2, ArrowUp, ArrowDown
 } from 'lucide-react'
@@ -351,9 +352,8 @@ export default function ReportsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-[60vh] items-center justify-center animate-pulse gap-4">
-        <BarChart3 size={48} className="text-blue-300" />
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Analizando {clientLabelPlural}...</p>
+      <div className="flex h-[60vh] items-center justify-center">
+        <IAnswerLoader size={40} label={`Analizando ${clientLabelPlural}...`} />
       </div>
     )
   }
