@@ -22,6 +22,18 @@ jobs:
           # Historial completo: SonarQube lo usa para asignar issues y detectar código nuevo.
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          # Misma versión de Node que en local.
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Genera coverage/lcov.info, que SonarQube lee (sonar-project.properties).
+      - name: Tests con cobertura
+        run: npm run test:coverage
+
       - name: Análisis
         uses: SonarSource/sonarqube-scan-action@v5
         env:
