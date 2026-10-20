@@ -24,7 +24,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Misma versión que en local: el package-lock.json lo genera npm 11
+          # y el npm 10 de Node 22 lo rechaza en `npm ci`.
+          node-version: 24
           cache: npm
 
       - run: npm ci
