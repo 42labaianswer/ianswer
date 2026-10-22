@@ -744,13 +744,13 @@ export default function InboxPage() {
         <div className="px-5 mb-4 flex items-center justify-between">
           <h2 className="font-bold text-lg">Buzón</h2>
           {/* BOTÓN NUEVO MENSAJE */}
-          <button 
+          <button
             onClick={() => setIsNewChatOpen(true)}
-            className="text-white p-1.5 rounded-lg shadow-sm hover:scale-105 transition-transform"
-            style={{ backgroundColor: vertical?.accent_color || '#4f46e5' }}
-            title="Iniciar Nuevo Chat"
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm flex items-center gap-1.5 transition-colors"
+            title="Nuevo chat"
           >
-            <MessageSquarePlus size={18} />
+            <MessageSquarePlus size={16} />
+            Nuevo chat
           </button>
         </div>
 
