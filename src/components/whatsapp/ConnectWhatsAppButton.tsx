@@ -22,8 +22,15 @@
 //   7. Backend suscribe webhook + guarda en companies
 //   8. Frontend recarga estado de conexión
 //
+// Con `coexistence` el popup ofrece conectar un número que ya usa la app de
+// WhatsApp Business: el número sigue funcionando en el celular del cliente y
+// además queda conectado a iAnswer. Meta avisa con el evento
+// FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING, que puede traer solo el waba_id; el
+// backend busca el número a partir del WABA.
+//
 // Refs oficiales:
 // https://developers.facebook.com/docs/whatsapp/embedded-signup/implementation
+// https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users
 // ============================================================================
 
 import { useEffect, useState } from 'react'
@@ -53,12 +60,17 @@ interface Props {
   onError?: (error: string) => void
   /** Estilo: 'primary' (verde lime) o 'secondary' (gris) */
   variant?: 'primary' | 'secondary'
+  /** Conectar un número que ya usa la app de WhatsApp Business, sin quitarlo del celular */
+  coexistence?: boolean
+  /** Texto del botón */
+  label?: string
   /** Si el SDK aún no está cargado, mostrar este texto */
   className?: string
 }
 
 export default function ConnectWhatsAppButton({
-  onSuccess, onError, variant = 'primary', className = ''
+  onSuccess, onError, variant = 'primary', coexistence = false,
+  label = 'Conectar con Facebook', className = ''
 }: Props) {
   const [working, setWorking]     = useState(false)
   const [errorMsg, setErrorMsg]   = useState<string | null>(null)
@@ -91,6 +103,10 @@ export default function ConnectWhatsAppButton({
           // cuenta (el número se agrega después); igual guardamos lo que llegue.
           if ((data?.event === 'FINISH' || data?.event === 'FINISH_ONLY_WABA') && data?.data) {
             sessionStorage.setItem('wa_embedded_signup_data', JSON.stringify(data.data))
+          }
+          // El cliente conectó su app de WhatsApp Business (coexistencia).
+          if (data?.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' && data?.data) {
+            sessionStorage.setItem('wa_embedded_signup_data', JSON.stringify({ ...data.data, coexistence: true }))
           }
           if (data?.event === 'CANCEL') {
             sessionStorage.removeItem('wa_embedded_signup_data')
@@ -136,8 +152,10 @@ export default function ConnectWhatsAppButton({
       const signupData = signupRaw ? JSON.parse(signupRaw) : {}
       const phoneNumberId = signupData?.phone_number_id
       const wabaId        = signupData?.waba_id
+      const esCoexistencia = signupData?.coexistence === true
 
-      if (!phoneNumberId || !wabaId) {
+      // En coexistencia basta con el waba_id: el backend busca el número.
+      if (!wabaId || (!phoneNumberId && !esCoexistencia)) {
         setWorking(false)
         setErrorMsg('No recibimos los datos del WhatsApp Business (número o cuenta). Vuelve a intentarlo y completa todos los pasos del popup.')
         return
@@ -150,7 +168,8 @@ export default function ConnectWhatsAppButton({
         body:    JSON.stringify({
           code,
           phone_number_id: phoneNumberId,
-          waba_id:         wabaId
+          waba_id:         wabaId,
+          coexistence:     esCoexistencia
         })
       })
 
@@ -175,7 +194,16 @@ export default function ConnectWhatsAppButton({
         )
       }
 
-      onSuccess?.({ phone_number_id: phoneNumberId, waba_id: wabaId })
+      // Meta solo permite pedir la sincronización una vez y dentro de las
+      // primeras 24 h; si falló, hay que desconectar y volver a conectar.
+      if (result?.data?.coexistence && result.data.sincronizacion_error) {
+        setErrorMsg(
+          'Conectado, pero no se pudieron importar tus contactos y chats anteriores. Escríbenos para revisarlo.'
+          + ` (${result.data.sincronizacion_error})`
+        )
+      }
+
+      onSuccess?.({ phone_number_id: result?.data?.phone_number_id || phoneNumberId, waba_id: wabaId })
     } catch (err: any) {
       setWorking(false)
       setErrorMsg('Error inesperado: ' + (err?.message || 'desconocido'))
@@ -231,7 +259,7 @@ export default function ConnectWhatsAppButton({
         // "Conectando...".
         extras: {
           setup: {},
-          featureType: '',
+          featureType: coexistence ? 'whatsapp_business_app_onboarding' : '',
           sessionInfoVersion: '3'
         }
       }
@@ -258,7 +286,7 @@ export default function ConnectWhatsAppButton({
         ) : (
           <>
             <FacebookLogo size={20} />
-            Conectar con Facebook
+            {label}
             <ExternalLink size={14} />
           </>
         )}
