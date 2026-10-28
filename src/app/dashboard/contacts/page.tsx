@@ -152,6 +152,13 @@ export default function ContactsPage() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
+  // Mensajes (/inbox) tiene su propia lista de contactos en caché
+  // (['contactsData', companyId]) y solo la actualiza en tiempo real mientras
+  // está abierta; sin esto, un contacto creado aquí no aparece allá hasta recargar.
+  const invalidateContacts = () => {
+    void queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+    void queryClient.invalidateQueries({ queryKey: ['contactsData'] })
+  }
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
   const { data: features } = usePlanFeatures()
 
@@ -185,6 +192,9 @@ export default function ContactsPage() {
   const [bookingAgendaId, setBookingAgendaId] = useState<string | null>(null)
   const [agendaPickerOpen, setAgendaPickerOpen] = useState(false)
   const [bookingContact, setBookingContact] = useState<EnrichedContact | null>(null)
+
+  // Los errores de los campos obligatorios se muestran hasta que se intenta guardar
+  const [triedSave, setTriedSave] = useState(false)
 
   const [formData, setFormData] = useState({
     phone: '', name: '', company_id: '', lifecycle_stage: 'new_lead' as LifecycleStage,
@@ -311,7 +321,7 @@ export default function ContactsPage() {
     },
     onSuccess: () => {
       toast.success(editingContact ? 'Ficha actualizada' : 'Contacto añadido')
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
       closeModal()
     },
     onError: () => toast.error('Hubo un error. Verifica que el número no exista.')
@@ -324,7 +334,7 @@ export default function ContactsPage() {
     },
     onSuccess: () => {
       toast.success('Contacto eliminado')
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
     }
   })
 
@@ -333,7 +343,7 @@ export default function ContactsPage() {
       const { error } = await supabase.from('contacts').update({ ai_active }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+    onSuccess: () => invalidateContacts()
   })
 
   const updateStageMutation = useMutation({
@@ -343,7 +353,7 @@ export default function ContactsPage() {
     },
     onSuccess: () => {
       toast.success('Etapa actualizada')
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
     }
   })
 
@@ -355,7 +365,7 @@ export default function ContactsPage() {
     },
     onSuccess: (_, vars) => {
       toast.success(`${vars.ids.length} contactos actualizados`)
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
       setSelectedIds(new Set())
     }
   })
@@ -367,7 +377,7 @@ export default function ContactsPage() {
     },
     onSuccess: (_, vars) => {
       toast.success(`${vars.ids.length} contactos asignados`)
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
       setSelectedIds(new Set())
     }
   })
@@ -379,7 +389,7 @@ export default function ContactsPage() {
     },
     onSuccess: (_, vars) => {
       toast.success(`Bot ${vars.ai_active ? 'activado' : 'pausado'} en ${vars.ids.length} contactos`)
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
       setSelectedIds(new Set())
     }
   })
@@ -424,7 +434,7 @@ export default function ContactsPage() {
       toast.success(count === 0
         ? 'Todos los contactos del archivo ya existían'
         : `Se importaron ${count} contactos`)
-      queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      invalidateContacts()
       closeImportModal()
     },
     onError: (e: any) => toast.error(e.message || 'Error al importar')
@@ -497,6 +507,7 @@ export default function ContactsPage() {
 
   const openModal = (contact?: EnrichedContact) => {
     setActiveTab('info')
+    setTriedSave(false)
     if (contact) {
       setEditingContact(contact)
       setFormData({
@@ -566,10 +577,20 @@ export default function ContactsPage() {
     reader.readAsText(file)
   }
 
+  // Al editar el teléfono no se cambia (y Messenger/Instagram pueden no tenerlo)
+  const nameError = !formData.name.trim() ? 'Escribe el nombre' : null
+  const phoneError = editingContact ? null
+    : !formData.phone ? 'Escribe el WhatsApp'
+    : formData.phone.length !== 10 ? 'Debe tener 10 dígitos'
+    : null
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
-    // Al editar el teléfono no se cambia (y Messenger/Instagram pueden no tenerlo)
-    if (!formData.name || (!editingContact && !formData.phone)) return toast.error('Nombre y teléfono son obligatorios')
+    setTriedSave(true)
+    if (nameError || phoneError) {
+      setActiveTab('info')
+      return toast.error('Revisa los campos marcados')
+    }
     saveContactMutation.mutate()
   }
 
@@ -1022,12 +1043,36 @@ export default function ContactsPage() {
                       <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><UserCircle size={16} className="text-slate-400" /> Datos personales</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo</label>
-                          <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-500" />
+                          <label htmlFor="contact-name" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo *</label>
+                          <input
+                            id="contact-name"
+                            type="text"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            aria-invalid={triedSave && !!nameError}
+                            className={`w-full mt-2 px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium outline-none focus:bg-white ${
+                              triedSave && nameError ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-blue-500'
+                            }`}
+                          />
+                          {triedSave && nameError && <p className="text-[11px] text-rose-600 font-medium mt-1">{nameError}</p>}
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp</label>
-                          <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} disabled={!!editingContact} className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500" />
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">WhatsApp{!editingContact && ' *'}</label>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            value={formData.phone}
+                            // Alta: 10 dígitos de México; formatWhatsAppPhone le pone el 521 al guardar
+                            onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                            disabled={!!editingContact}
+                            aria-invalid={triedSave && !!phoneError}
+                            className={`w-full mt-2 px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium outline-none focus:bg-white disabled:bg-slate-100 disabled:text-slate-500 ${
+                              triedSave && phoneError ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-blue-500'
+                            }`}
+                          />
+                          {triedSave && phoneError
+                            ? <p className="text-[11px] text-rose-600 font-medium mt-1">{phoneError}</p>
+                            : !editingContact && <p className="text-[11px] text-slate-400 font-medium mt-1">10 dígitos, sin lada internacional</p>}
                         </div>
                         <div>
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Género</label>
@@ -1259,7 +1304,7 @@ export default function ContactsPage() {
               setBookingAgendaId(null)
               setBookingContact(null)
               toast.success('Cita agendada')
-              queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+              invalidateContacts()
             }}
           />
         )

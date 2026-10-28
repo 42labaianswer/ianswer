@@ -15,8 +15,9 @@ import {
   Sparkles, Flame, CreditCard, Heart, CheckCircle2,
   Clock, ChevronDown, Bot, UserCog, BellRing, X,
   Mic, Image as ImageIcon, Play, Maximize2,
-  Paperclip, Square, Trash2, UserPlus, ChevronLeft
+  Paperclip, Square, Trash2, UserPlus, ChevronLeft, AlertTriangle
 } from 'lucide-react'
+import Link from 'next/link'
 import {
   CHANNELS, normalizeChannel, channelIdentityLabel, toChannelPlatform, ChannelBadge, ChannelGlyph,
   type ChannelKey,
@@ -218,7 +219,7 @@ export default function InboxPage() {
   }
 
   // 4c. Canales conectados de la empresa (para el switch de canales del buzón)
-  const { data: connectedChannels = [] as ChannelKey[] } = useQuery<ChannelKey[]>({
+  const { data: connectedChannels = [] as ChannelKey[], isSuccess: channelsLoaded } = useQuery<ChannelKey[]>({
     queryKey: ['inbox-connected-channels', userCompanyId],
     enabled: !!userCompanyId,
     queryFn: async () => {
@@ -630,6 +631,23 @@ export default function InboxPage() {
   
   const handleSendMessage = () => {
     if (sendMessageMutation.isPending || !selectedContact) return;
+    // Sin el canal conectado n8n no puede enviar: se avisa antes de mandar nada
+    // (ni el mensaje optimista ni el apagado de la IA).
+    const canal = channelOf(selectedContact)
+    if (channelsLoaded && !connectedChannels.includes(canal)) {
+      toast(
+        <p className="text-sm font-semibold text-white">
+          Para enviar mensajes debes vincular un número válido de{' '}
+          <Link href="/dashboard/connectivity" className="font-bold underline hover:no-underline">
+            {CHANNELS[canal].label}
+          </Link>{' '}
+          a iAnswer
+        </p>,
+        // Un solo toast aunque se intente enviar varias veces seguidas
+        { id: `channel-not-connected-${canal}`, icon: <AlertTriangle size={16} className="text-amber-400 shrink-0" /> }
+      )
+      return
+    }
     // Prioridad: pendingImage > pendingAudio > texto
     if (pendingImage) {
       const ext = pendingImage.file.name.split('.').pop() || 'jpg'
@@ -744,13 +762,13 @@ export default function InboxPage() {
         <div className="px-5 mb-4 flex items-center justify-between">
           <h2 className="font-bold text-lg">Buzón</h2>
           {/* BOTÓN NUEVO MENSAJE */}
-          <button 
+          <button
             onClick={() => setIsNewChatOpen(true)}
-            className="text-white p-1.5 rounded-lg shadow-sm hover:scale-105 transition-transform"
-            style={{ backgroundColor: vertical?.accent_color || '#4f46e5' }}
-            title="Iniciar Nuevo Chat"
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-sm flex items-center gap-1.5 transition-colors"
+            title="Nuevo chat"
           >
-            <MessageSquarePlus size={18} />
+            <MessageSquarePlus size={16} />
+            Nuevo chat
           </button>
         </div>
 

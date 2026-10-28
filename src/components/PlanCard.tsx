@@ -1,7 +1,7 @@
 ﻿ 
 
 'use client'
-import { Check, Loader2, Sparkles, Crown, Zap } from 'lucide-react'
+import { Check, Loader2, Sparkles, Crown, Zap, Info } from 'lucide-react'
 
 type PlanCardProps = {
   plan: {
@@ -29,6 +29,38 @@ const TIER_BADGES: Record<string, { label: string, icon: any, gradient: string }
   start:  { label: 'Para empezar', icon: Sparkles, gradient: 'from-sky-500 to-blue-600' },
   growth: { label: 'Más vendido',  icon: Zap,      gradient: 'from-violet-600 to-fuchsia-600' },
   scale:  { label: 'Empresarial',  icon: Crown,    gradient: 'from-amber-500 to-orange-600' }
+}
+
+const CONVERSATIONS_HINT =
+  'Cada chat con un cliente que atiende tu asistente cuenta como una conversación. El límite se reinicia cada mes.'
+const MEMBERS_HINT =
+  'Los miembros son las personas de tu Equipo que atienden a tus clientes (por ejemplo, estilistas o doctores). Desactivar a un miembro libera su lugar.'
+
+// Las features vienen como texto libre de la base; las líneas que hablan de
+// miembros reciben la misma explicación que la tarjeta de capacidad.
+function featureHint(line: string): string | null {
+  if (/\bmiembros?\b/i.test(line)) return MEMBERS_HINT
+  return null
+}
+
+function InfoHint({ text }: { text: string }) {
+  return (
+    <span className="relative inline-flex align-middle group/hint">
+      <button
+        type="button"
+        aria-label={text}
+        className="text-slate-400 hover:text-slate-600 focus:text-slate-600 focus:outline-none"
+      >
+        <Info size={12} />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-medium normal-case tracking-normal leading-snug text-white text-left shadow-lg opacity-0 transition-opacity group-hover/hint:opacity-100 group-focus-within/hint:opacity-100 z-20"
+      >
+        {text}
+      </span>
+    </span>
+  )
 }
 
 function formatPrice(cents: number): string {
@@ -127,11 +159,17 @@ export default function PlanCard({
           <div className="text-base font-black text-slate-900">
             {plan.max_sessions_per_month.toLocaleString('es-MX')}
           </div>
-          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Convs/mes</div>
+          <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+            Convs/mes
+            <InfoHint text={CONVERSATIONS_HINT} />
+          </div>
         </div>
         <div className="text-center p-2 bg-slate-50 rounded-xl">
           <div className="text-base font-black text-slate-900">{plan.max_team_members}</div>
-          <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Usuarios</div>
+          <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+            Miembros
+            <InfoHint text={MEMBERS_HINT} />
+          </div>
         </div>
         <div className="text-center p-2 bg-slate-50 rounded-xl">
           <div className="text-base font-black text-slate-900">{plan.max_channels}</div>
@@ -141,14 +179,20 @@ export default function PlanCard({
 
       {/* Features */}
       <div className="flex-1 space-y-2.5 mb-6">
-        {featureLines.map((line, idx) => (
-          <div key={idx} className="flex items-start gap-2.5">
-            <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
-              <Check size={12} className="text-emerald-700 stroke-[3]" />
+        {featureLines.map((line, idx) => {
+          const hint = featureHint(line)
+          return (
+            <div key={idx} className="flex items-start gap-2.5">
+              <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Check size={12} className="text-emerald-700 stroke-[3]" />
+              </div>
+              <span className="text-sm text-slate-700 font-medium leading-snug">
+                {line}
+                {hint && <> <InfoHint text={hint} /></>}
+              </span>
             </div>
-            <span className="text-sm text-slate-700 font-medium leading-snug">{line}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* CTA */}

@@ -15,11 +15,16 @@
 //   5. Suscribir nuestra app al webhook
 //   6. Guardar todo en companies (vía service role para saltar RLS write)
 //   7. Devolver success al frontend
+//
+// Coexistencia (`coexistence: true`): el número ya está activo en la app de
+// WhatsApp Business del cliente. Meta puede mandar solo el waba_id, así que el
+// número se busca en el WABA; no se llama a /register (ya está registrado) y,
+// después de guardar, se piden las sincronizaciones de contactos e historial.
 // ============================================================================
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { getChannelUsage, channelLimitError, isChannelLimitDbError } from '../../../../../lib/channelLimits'
 
@@ -61,11 +66,15 @@ export async function POST(req: Request) {
     if (!body) {
       return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
     }
-    const { code, phone_number_id, waba_id } = body
+    const { code, phone_number_id, waba_id, coexistence } = body
+    const esCoexistencia = coexistence === true
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ success: false, error: 'Falta el campo "code"' }, { status: 400 })
     }
-    if (!phone_number_id || typeof phone_number_id !== 'string') {
+    if (phone_number_id != null && typeof phone_number_id !== 'string') {
+      return NextResponse.json({ success: false, error: 'phone_number_id inválido' }, { status: 400 })
+    }
+    if (!phone_number_id && !esCoexistencia) {
       return NextResponse.json({ success: false, error: 'Falta phone_number_id' }, { status: 400 })
     }
     if (!waba_id || typeof waba_id !== 'string') {
@@ -108,23 +117,11 @@ export async function POST(req: Request) {
     // ── 3b. ¿El número ya está conectado a OTRA empresa? ──
     // companies.business_phone_id es UNIQUE: si otra empresa ya lo tiene, el
     // update del paso 7 falla. Se revisa antes de tocar Meta (suscripción y
-    // registro del número) para no dejar nada a medias.
-    const { data: phoneOwner, error: phoneOwnerErr } = await supabaseAdmin
-      .from('companies')
-      .select('id')
-      .eq('business_phone_id', phone_number_id)
-      .neq('id', companyId)
-      .maybeSingle()
-
-    if (phoneOwnerErr) {
-      console.error('[PhoneOwnerCheckError]', phoneOwnerErr)
-    } else if (phoneOwner) {
-      console.warn('[PhoneAlreadyConnected]', { phone_number_id, companyId, ownerId: phoneOwner.id })
-      return NextResponse.json({
-        success: false,
-        error:   'Este número ya está conectado a otra cuenta de iAnswer. Si quieres moverlo a esta cuenta, contáctanos.',
-        code:    'phone_already_connected'
-      }, { status: 409 })
+    // registro del número) para no dejar nada a medias. En coexistencia sin
+    // phone_number_id se revisa en el paso 4b, cuando ya se conoce el número.
+    if (phone_number_id) {
+      const ocupado = await numeroDeOtraEmpresa(supabaseAdmin, phone_number_id, companyId)
+      if (ocupado) return ocupado
     }
 
     // ── 3c. Límite de canales del plan ──
@@ -153,8 +150,31 @@ export async function POST(req: Request) {
 
     const businessIntegrationToken: string = exchangeData.access_token
 
+    // ── 4b. Coexistencia: buscar el número en el WABA ──
+    let phoneNumberId: string = phone_number_id
+    if (!phoneNumberId) {
+      const numerosRes = await fetch(
+        `https://graph.facebook.com/${META_GRAPH_VERSION}/${waba_id}/phone_numbers?fields=id`,
+        { headers: { Authorization: `Bearer ${businessIntegrationToken}` } }
+      )
+      const numerosData = await numerosRes.json()
+      phoneNumberId = numerosData?.data?.[0]?.id
+
+      if (!numerosRes.ok || !phoneNumberId) {
+        console.error('[WabaPhoneNumbersError]', numerosData)
+        return NextResponse.json({
+          success: false,
+          error:   'No encontramos el número de WhatsApp en tu cuenta de Meta',
+          details: numerosData?.error?.message
+        }, { status: 502 })
+      }
+
+      const ocupado = await numeroDeOtraEmpresa(supabaseAdmin, phoneNumberId, companyId)
+      if (ocupado) return ocupado
+    }
+
     // ── 5. Consultar info del número en Meta ──
-    const phoneInfoUrl = `https://graph.facebook.com/${META_GRAPH_VERSION}/${phone_number_id}?fields=display_phone_number,verified_name,quality_rating,messaging_limit_tier,name_status`
+    const phoneInfoUrl = `https://graph.facebook.com/${META_GRAPH_VERSION}/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,messaging_limit_tier,name_status`
     const phoneInfoRes = await fetch(phoneInfoUrl, {
       headers: { Authorization: `Bearer ${businessIntegrationToken}` }
     })
@@ -195,39 +215,43 @@ export async function POST(req: Request) {
     // queda asociado al WABA pero en estado "No registrado" y NO puede enviar
     // ni recibir hasta que se llama a /register con un PIN de verificación en
     // dos pasos. Si ya estaba registrado, Meta responde error y lo ignoramos.
+    // En coexistencia no se llama: Meta pide omitirlo porque el número ya está
+    // registrado (lo usa la app de WhatsApp Business).
     const registerPin = process.env.META_WA_REGISTER_PIN || '000000'
-    let numeroRegistrado = false
+    let numeroRegistrado = esCoexistencia
     let registroError: string | null = null
 
-    try {
-      const regRes = await fetch(
-        `https://graph.facebook.com/${META_GRAPH_VERSION}/${phone_number_id}/register`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${businessIntegrationToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ messaging_product: 'whatsapp', pin: registerPin })
+    if (!esCoexistencia) {
+      try {
+        const regRes = await fetch(
+          `https://graph.facebook.com/${META_GRAPH_VERSION}/${phoneNumberId}/register`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${businessIntegrationToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ messaging_product: 'whatsapp', pin: registerPin })
+          }
+        )
+        const regData = await regRes.json()
+        if (regRes.ok && regData?.success !== false) {
+          numeroRegistrado = true
+        } else {
+          const msg: string = regData?.error?.message || ''
+          // Si ya estaba registrado, lo damos por bueno.
+          if (/already registered/i.test(msg)) numeroRegistrado = true
+          else registroError = msg || 'Meta rechazó el registro del número'
         }
-      )
-      const regData = await regRes.json()
-      if (regRes.ok && regData?.success !== false) {
-        numeroRegistrado = true
-      } else {
-        const msg: string = regData?.error?.message || ''
-        // Si ya estaba registrado, lo damos por bueno.
-        if (/already registered/i.test(msg)) numeroRegistrado = true
-        else registroError = msg || 'Meta rechazó el registro del número'
+      } catch (e: any) {
+        registroError = e?.message || 'Error de red al registrar el número'
       }
-    } catch (e: any) {
-      registroError = e?.message || 'Error de red al registrar el número'
     }
 
     // ── 7. Guardar todo en companies (via service role) ──
     const nowIso = new Date().toISOString()
     const payload: any = {
-      business_phone_id:        phone_number_id,
+      business_phone_id:        phoneNumberId,
       waba_id:                  waba_id,
       waba_display_phone:       displayPhone,
       waba_verified_name:       verifiedName,
@@ -236,7 +260,9 @@ export async function POST(req: Request) {
       waba_connected_at:        nowIso,
       waba_last_verified_at:    nowIso,
       meta_business_verified:   false,
-      system_user_access_token: businessIntegrationToken
+      system_user_access_token: businessIntegrationToken,
+      waba_coexistence:           esCoexistencia,
+      waba_coexistence_synced_at: null
     }
     const { error: updateErr } = await supabaseAdmin
       .from('companies')
@@ -263,10 +289,52 @@ export async function POST(req: Request) {
       }, { status: 500 })
     }
 
+    // ── 7b. Coexistencia: pedir contactos e historial a Meta ──
+    // Va después de guardar porque n8n identifica la empresa por
+    // business_phone_id al recibir los webhooks `smb_app_state_sync` y
+    // `history`. Meta solo acepta cada sincronización una vez y dentro de las
+    // 24 h siguientes; si falla, hay que desconectar y volver a conectar.
+    let sincronizacionError: string | null = null
+    if (esCoexistencia) {
+      for (const syncType of ['smb_app_state_sync', 'history']) {
+        try {
+          const syncRes = await fetch(
+            `https://graph.facebook.com/${META_GRAPH_VERSION}/${phoneNumberId}/smb_app_data`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization:  `Bearer ${businessIntegrationToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ messaging_product: 'whatsapp', sync_type: syncType })
+            }
+          )
+          const syncData = await syncRes.json()
+          if (!syncRes.ok || syncData?.error) {
+            console.error('[SmbAppDataError]', syncType, syncData)
+            sincronizacionError = syncData?.error?.message || `Meta rechazó la sincronización (${syncType})`
+            break
+          }
+        } catch (e) {
+          console.error('[SmbAppDataError]', syncType, e)
+          sincronizacionError = (e instanceof Error && e.message) || `Error de red al sincronizar (${syncType})`
+          break
+        }
+      }
+
+      if (!sincronizacionError) {
+        const { error: syncSaveErr } = await supabaseAdmin
+          .from('companies')
+          .update({ waba_coexistence_synced_at: new Date().toISOString() })
+          .eq('id', companyId)
+        if (syncSaveErr) console.warn('[SyncSaveWarn]', syncSaveErr)
+      }
+    }
+
     // ── 8. Registrar quality event histórico inicial ──
     try {
       await (supabaseAdmin.rpc as any)('register_quality_event', {
-        p_business_phone_id:  phone_number_id,
+        p_business_phone_id:  phoneNumberId,
         p_event_type:         'phone_number_status',
         p_new_quality_rating: qualityRating,
         p_new_messaging_tier: messagingTier,
@@ -283,7 +351,7 @@ export async function POST(req: Request) {
       success: true,
       message: 'WhatsApp Business conectado exitosamente',
       data: {
-        phone_number_id,
+        phone_number_id:    phoneNumberId,
         waba_id,
         display_phone:      displayPhone,
         verified_name:      verifiedName,
@@ -293,7 +361,9 @@ export async function POST(req: Request) {
         // Si esto viene en false, el número aparecerá como "No registrado" en
         // Meta y no podrá enviar ni recibir hasta completar el registro.
         numero_registrado:  numeroRegistrado,
-        registro_error:     registroError
+        registro_error:     registroError,
+        coexistence:        esCoexistencia,
+        sincronizacion_error: sincronizacionError
       }
     })
 
@@ -305,6 +375,31 @@ export async function POST(req: Request) {
       details: err?.message || 'desconocido'
     }, { status: 500 })
   }
+}
+
+// Devuelve la respuesta 409 si el número ya está conectado a otra empresa.
+async function numeroDeOtraEmpresa(
+  supabaseAdmin: SupabaseClient, phoneNumberId: string, companyId: string
+): Promise<NextResponse | null> {
+  const { data: phoneOwner, error: phoneOwnerErr } = await supabaseAdmin
+    .from('companies')
+    .select('id')
+    .eq('business_phone_id', phoneNumberId)
+    .neq('id', companyId)
+    .maybeSingle()
+
+  if (phoneOwnerErr) {
+    console.error('[PhoneOwnerCheckError]', phoneOwnerErr)
+    return null
+  }
+  if (!phoneOwner) return null
+
+  console.warn('[PhoneAlreadyConnected]', { phone_number_id: phoneNumberId, companyId, ownerId: phoneOwner.id })
+  return NextResponse.json({
+    success: false,
+    error:   'Este número ya está conectado a otra cuenta de iAnswer. Si quieres moverlo a esta cuenta, contáctanos.',
+    code:    'phone_already_connected'
+  }, { status: 409 })
 }
 
 function mapMessagingLimitTier(metaTier?: string): string {

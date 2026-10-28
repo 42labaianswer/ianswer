@@ -88,7 +88,9 @@ export async function POST(_req: Request) {
       waba_connected_at:        null,
       waba_last_verified_at:    null,
       meta_business_verified:   false,
-      system_user_access_token: null
+      system_user_access_token: null,
+      waba_coexistence:           false,
+      waba_coexistence_synced_at: null
     }
     const { error: updateErr } = await supabaseAdmin
       .from('companies')

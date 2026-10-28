@@ -30,11 +30,16 @@ import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const ACCENT = '#25D366'
 
+// La conexión con coexistencia se muestra solo donde está activada, mientras
+// n8n no procese los echos y el historial.
+const COEXISTENCIA_ACTIVA = process.env.NEXT_PUBLIC_WA_COEXISTENCE === 'true'
+
 interface WhatsAppConfig {
   business_phone_id: string | null
   waba_id: string | null
   display_phone: string | null
   verified_name: string | null
+  coexistence: boolean
   connected: boolean
 }
 
@@ -65,13 +70,14 @@ export default function WhatsAppConnectPage() {
 
       const { data } = await supabase
         .from('companies')
-        .select('business_phone_id, waba_id, waba_display_phone, waba_verified_name')
+        .select('business_phone_id, waba_id, waba_display_phone, waba_verified_name, waba_coexistence')
         .eq('id', profile.company_id).single()
 
       if (data?.business_phone_id) {
         setConfig({
           business_phone_id: data.business_phone_id, waba_id: data.waba_id,
           display_phone: data.waba_display_phone, verified_name: data.waba_verified_name,
+          coexistence: !!data.waba_coexistence,
           connected: true
         })
         setForm(f => ({
@@ -92,7 +98,7 @@ export default function WhatsAppConnectPage() {
     if (!companyId) return
     const { data } = await supabase
       .from('companies')
-      .select('business_phone_id, waba_id, waba_display_phone, waba_verified_name')
+      .select('business_phone_id, waba_id, waba_display_phone, waba_verified_name, waba_coexistence')
       .eq('id', companyId).single()
     if (data?.business_phone_id) {
       setConfig({
@@ -100,6 +106,7 @@ export default function WhatsAppConnectPage() {
         waba_id: data.waba_id,
         display_phone: data.waba_display_phone,
         verified_name: data.waba_verified_name,
+        coexistence: !!data.waba_coexistence,
         connected: true
       })
       setForm(f => ({
@@ -133,6 +140,7 @@ export default function WhatsAppConnectPage() {
       setConfig({
         business_phone_id: form.business_phone_id, waba_id: form.waba_id,
         display_phone: form.display_phone || null, verified_name: form.verified_name || null,
+        coexistence: config?.coexistence ?? false,
         connected: true
       })
     } catch (e: any) {
@@ -149,7 +157,8 @@ export default function WhatsAppConnectPage() {
     try {
       const { error } = await supabase.from('companies').update({
         business_phone_id: null, waba_id: null, system_user_access_token: null,
-        waba_display_phone: null, waba_verified_name: null, waba_connected_at: null
+        waba_display_phone: null, waba_verified_name: null, waba_connected_at: null,
+        waba_coexistence: false, waba_coexistence_synced_at: null
       }).eq('id', companyId)
       if (error) throw error
       toast.success('WhatsApp desconectado')
@@ -218,6 +227,18 @@ export default function WhatsAppConnectPage() {
             <p className="text-[11px] text-slate-400 mt-3">
               Se abre un popup oficial de Meta. No guardamos tu contraseña de Facebook.
             </p>
+            {COEXISTENCIA_ACTIVA && (
+              <div className="mt-6 pt-6 border-t border-slate-100 w-full flex flex-col items-center">
+                <p className="text-sm text-slate-500 mb-4 px-2">¿Ya atiendes a tus clientes con la app de WhatsApp Business? Conéctala sin dejar de usarla en tu celular.</p>
+                <ConnectWhatsAppButton
+                  variant="secondary"
+                  coexistence
+                  label="Conservar mi app de WhatsApp Business"
+                  onSuccess={handleEmbeddedSuccess}
+                  onError={(msg) => toast.error(msg)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Manual */}
@@ -242,6 +263,11 @@ export default function WhatsAppConnectPage() {
           <div className="flex-1">
             <p className="font-black text-emerald-900">WhatsApp conectado</p>
             <p className="text-sm text-emerald-800">{config.verified_name || 'Número'} {config.display_phone ? `· ${config.display_phone}` : ''}</p>
+            {config.coexistence && (
+              <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                Conectado con la app de WhatsApp Business: puedes seguir contestando desde tu celular. Ábrela con regularidad; Meta marca el número como inactivo si pasan unos 14 días sin usarla.
+              </p>
+            )}
           </div>
           <button onClick={handleDisconnect} disabled={saving} className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-1.5 disabled:opacity-50">
             <Trash2 size={14} /> Desconectar
