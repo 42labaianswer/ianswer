@@ -156,8 +156,8 @@ export default function ContactsPage() {
   // (['contactsData', companyId]) y solo la actualiza en tiempo real mientras
   // está abierta; sin esto, un contacto creado aquí no aparece allá hasta recargar.
   const invalidateContacts = () => {
-    queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
-    queryClient.invalidateQueries({ queryKey: ['contactsData'] })
+    void queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+    void queryClient.invalidateQueries({ queryKey: ['contactsData'] })
   }
   const { labels, primaryTemplate: vertical, isLoadingWorkspace } = useWorkspace()
   const { data: features } = usePlanFeatures()
@@ -1043,8 +1043,9 @@ export default function ContactsPage() {
                       <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><UserCircle size={16} className="text-slate-400" /> Datos personales</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo *</label>
+                          <label htmlFor="contact-name" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre completo *</label>
                           <input
+                            id="contact-name"
                             type="text"
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
