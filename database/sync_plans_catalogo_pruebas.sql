@@ -25,13 +25,13 @@ INSERT INTO public.plans (
 ) VALUES
   ('start', 'start', 'Start',
    'Para emprendedores que arrancan con un asistente automatizado.',
-   E'WhatsApp + 1 canal
+   E'1 canal
 CRM completo (kanban, tareas, filtros avanzados)
 Reportes avanzados con KPIs y exportación
 Notas de voz y análisis de imagen con IA
-Multi-sucursal con reportes por ubicación
 Hasta 300 conversaciones/mes
-3 usuarios · 3 agendas',
+3 miembros · 3 agendas
+50 mensajes de campaña de publicidad',
    '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    150000, 1494000,
    300, 3, 3, 1, 1, 3, 1,
@@ -40,10 +40,10 @@ Hasta 300 conversaciones/mes
   ('growth', 'growth', 'Growth',
    'Para equipos en crecimiento con varios canales y más usuarios.',
    E'Todo lo de Start, escalado
-3 canales (WhatsApp + Instagram + Messenger)
-3 sucursales con reportes independientes
+3 canales
 Hasta 750 conversaciones/mes
-10 usuarios · 15 agendas · 3 bots',
+10 miembros · 15 agendas
+100 mensajes de campaña de publicidad',
    '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    300000, 3000000,
    750, 10, 10, 3, 3, 15, 3,
@@ -51,14 +51,15 @@ Hasta 750 conversaciones/mes
 
   ('scale', 'scale', 'Scale',
    'Para operaciones con múltiples sucursales y altos volúmenes.',
-   E'Todo lo de Growth, sin tope práctico
-10 canales en paralelo
-10 sucursales con dashboards ejecutivos
+   E'Todo lo de Growth, escalado
+Multi-sucursal con reportes por ubicación
+10 sucursales
 Hasta 2,000 conversaciones/mes
-50 usuarios · 100 agendas · 10 bots',
+50 miembros · 50 agendas
+250 mensajes de campaña de publicidad',
    '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    750000, 7470000,
-   2000, 50, 50, 3, 10, 100, 10,
+   2000, 50, 50, 3, 10, 50, 10,
    true, false, 30, 7)
 ON CONFLICT (slug) DO UPDATE SET
   tier                   = EXCLUDED.tier,
