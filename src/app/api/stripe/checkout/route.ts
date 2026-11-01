@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { stripe, ivaTaxRates } from '../../../../lib/stripe'
+import { stripe } from '../../../../lib/stripe'
+import { ivaTaxRates } from '../../../../lib/iva'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
