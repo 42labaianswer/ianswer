@@ -811,7 +811,7 @@ export default function OnboardingWizard() {
                               {isSelected && <CheckCircle2 size={18} className="text-slate-900 shrink-0" />}
                             </div>
                             <p className="text-xl font-black text-slate-900">
-                              {centsToMxn(plan.price_monthly_cents)}<span className="text-xs font-bold text-slate-500"> /mes</span>
+                              {centsToMxn(plan.price_monthly_cents)}<span className="text-xs font-bold text-slate-500"> /mes + IVA</span>
                             </p>
                             <ul className="mt-3 space-y-1 text-xs text-slate-600 font-medium">
                               <li>{plan.max_sessions_per_month.toLocaleString('es-MX')} conversaciones/mes</li>
@@ -866,7 +866,7 @@ export default function OnboardingWizard() {
                   <div className="max-w-xl mx-auto rounded-2xl border-2 border-slate-900 bg-slate-50 p-5">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-bold text-slate-700">Plan {chosenPlanRow.name}</span>
-                      <span className="font-black text-slate-900">{centsToMxn(chosenPlanRow.price_monthly_cents)}/mes</span>
+                      <span className="font-black text-slate-900">{centsToMxn(chosenPlanRow.price_monthly_cents)}/mes + IVA</span>
                     </div>
                     {(monthlyAddonCost > 0 || oneTimeAddonCost > 0) && (
                       <div className="flex items-start justify-between gap-4 text-sm mt-2">
@@ -884,7 +884,7 @@ export default function OnboardingWizard() {
                         <span className="text-xl font-black text-slate-900">{centsToMxn(0)}</span>
                       </div>
                       <p className="text-xs text-slate-500 font-medium">
-                        Prueba gratuita de {trialDays} días. El {firstChargeDate} se cobran {centsToMxn(chosenPlanRow.price_monthly_cents)} de tu plan, a menos que canceles antes.
+                        Prueba gratuita de {trialDays} días. El {firstChargeDate} se cobran {centsToMxn(chosenPlanRow.price_monthly_cents)} + IVA de tu plan, a menos que canceles antes.
                       </p>
                     </div>
                   </div>

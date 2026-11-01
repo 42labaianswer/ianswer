@@ -144,7 +144,7 @@ export default function PlanCard({
           <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
             {formatPrice(displayedPrice)}
           </span>
-          <span className="text-sm font-bold text-slate-500">/ mes</span>
+          <span className="text-sm font-bold text-slate-500">/ mes + IVA</span>
         </div>
         {billingMode === 'yearly' && yearlyDiscount > 0 && (
           <p className="text-[11px] font-bold text-emerald-700 mt-2">

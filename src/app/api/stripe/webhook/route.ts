@@ -7,6 +7,7 @@ import {
   applyPlanSubscription, customerContact, invoiceSubscriptionId, toIso
 } from '../../../../lib/stripePlan'
 import { getAppBaseUrl } from '../../../../lib/appUrl'
+import { desgloseIva } from '../../../../lib/iva'
 import { sendEmail } from '../../../../lib/resend'
 import {
   buildPaymentFailedEmail, buildSubscriptionCanceledEmail, buildTrialEndingEmail
@@ -263,9 +264,7 @@ export async function POST(req: Request) {
             const brandName = branding.name || 'Plataforma'
             const currency = (invoice.currency || 'mxn').toUpperCase()
 
-            // El precio cobrado incluye IVA (lo normal en MX).
-            const subtotalCents = Math.round(totalCents / 1.16)
-            const ivaCents      = totalCents - subtotalCents
+            const { subtotalCents, ivaCents } = desgloseIva(totalCents, invoice.total_excluding_tax)
 
             const line = invoice.lines?.data?.[0]
             const description = line?.description

@@ -122,7 +122,7 @@ export default function AddonCard({
             {formatPrice(price)}
           </span>
           <span className="text-xs font-medium text-slate-500">
-            {addon.is_recurring ? '/ mes' : 'pago único'}
+            {addon.is_recurring ? '/ mes + IVA' : 'pago único + IVA'}
           </span>
         </div>
         {addon.requires_plan_min && (

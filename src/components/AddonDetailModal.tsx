@@ -200,7 +200,7 @@ export default function AddonDetailModal({
                 {formatPrice(price, addon.currency)}
               </span>
               <span className="text-sm font-medium text-slate-500">
-                {addon.is_recurring ? '/ mes' : 'pago único'}
+                {addon.is_recurring ? '/ mes + IVA' : 'pago único + IVA'}
               </span>
             </div>
           ) : (
