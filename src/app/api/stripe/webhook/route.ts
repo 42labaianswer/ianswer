@@ -263,8 +263,13 @@ export async function POST(req: Request) {
             const brandName = branding.name || 'Plataforma'
             const currency = (invoice.currency || 'mxn').toUpperCase()
 
-            // El precio cobrado incluye IVA (lo normal en MX).
-            const subtotalCents = Math.round(totalCents / 1.16)
+            // Con la tasa de IVA de Stripe (lib/stripe.ts) la factura ya trae el
+            // subtotal sin impuesto. Las suscripciones creadas antes de la tasa no
+            // lo separan: en ese caso se toma el total como IVA incluido.
+            const sinIvaCents   = invoice.total_excluding_tax
+            const subtotalCents = sinIvaCents != null && sinIvaCents < totalCents
+              ? sinIvaCents
+              : Math.round(totalCents / 1.16)
             const ivaCents      = totalCents - subtotalCents
 
             const line = invoice.lines?.data?.[0]

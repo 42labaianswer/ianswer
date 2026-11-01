@@ -1,7 +1,7 @@
 ﻿ 
 
 import { NextResponse } from 'next/server'
-import { stripe } from '../../../../lib/stripe'
+import { stripe, ivaTaxRates } from '../../../../lib/stripe'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
@@ -89,12 +89,18 @@ export async function POST(req: Request) {
       if (saveErr) console.error('[Stripe Checkout Addon] No se pudo guardar stripe_customer_id:', saveErr)
     }
 
-    // 4. Crear checkout session según tipo
+    // 4. Crear checkout session según tipo. El IVA va en la línea para los de
+    // pago único y en la suscripción para los recurrentes (así se renueva con IVA).
+    const taxRates = ivaTaxRates()
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: isOneTime ? 'payment' : 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: addon.stripe_price_id, quantity: 1 }],
+      line_items: [{
+        price: addon.stripe_price_id,
+        quantity: 1,
+        ...(isOneTime ? { tax_rates: taxRates } : {})
+      }],
       metadata: {
         companyId,
         addonId,
@@ -109,7 +115,8 @@ export async function POST(req: Request) {
                 companyId,
                 addonId,
                 checkoutType: 'addon'
-              }
+              },
+              default_tax_rates: taxRates
             }
           }),
       success_url: `${origin}/dashboard/addons?success=true&addon=${addonId}`,

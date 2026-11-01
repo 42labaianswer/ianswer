@@ -149,7 +149,7 @@ export default function BillingSummary({
           <p className="text-base font-black text-slate-900">Total</p>
           <p className="text-base font-black text-slate-900">
             {formatMoney(grandTotal, planCurrency)}
-            <span className="text-xs font-medium text-slate-400">/{billingCycle === 'yearly' ? 'año' : 'mes'}</span>
+            <span className="text-xs font-medium text-slate-400">/{billingCycle === 'yearly' ? 'año' : 'mes'} + IVA</span>
           </p>
         </div>
       </div>

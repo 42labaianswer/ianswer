@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { stripe } from '../../../../lib/stripe'
+import { stripe, ivaTaxRates } from '../../../../lib/stripe'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
@@ -138,6 +138,9 @@ export async function POST(req: Request) {
             planSlug,
             checkoutType: 'plan'
           },
+          // A nivel suscripción: también aplica a las renovaciones y a los
+          // cambios de plan desde el portal.
+          default_tax_rates: ivaTaxRates(),
           ...(trialDays > 0 ? { trial_period_days: trialDays } : {})
         },
         success_url: successUrl,
