@@ -344,6 +344,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
         body: JSON.stringify({
           messages: newMsgs.map(m => ({ role: m.role, content: m.content })),
           system_prompt: generatePrompt(selectedMember),
+          team_member_id: selectedMember.id,
         }),
       })
       const data = await res.json()
