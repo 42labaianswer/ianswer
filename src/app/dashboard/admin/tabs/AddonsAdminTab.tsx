@@ -46,7 +46,8 @@ const KNOWN_FEATURE_FLAGS = [
 
 const KNOWN_CAPACITY_KEYS = [
   'max_sessions_per_month', 'max_team_members', 'max_internal_users',
-  'max_channels', 'max_locations', 'max_agendas', 'max_bots'
+  'max_channels', 'max_locations', 'max_agendas', 'max_bots',
+  'max_campaign_messages_per_month'
 ]
 
 type Addon = {

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { activeSubscriptionError } from '../../../../lib/apiAuth'
+import { GRAPH, postGraphMessage } from '../../../../lib/metaGraph'
 
 // ============================================================================
 // src/app/api/messages/send/route.ts
@@ -15,8 +16,6 @@ import { activeSubscriptionError } from '../../../../lib/apiAuth'
 //
 // Entrada: { patient_id, content, message_type?, media_url?, media_caption? }
 // ============================================================================
-
-const GRAPH = 'https://graph.facebook.com/' + (process.env.META_GRAPH_VERSION || 'v22.0')
 
 type Canal = 'whatsapp' | 'messenger' | 'instagram'
 
@@ -148,15 +147,10 @@ export async function POST(request: Request) {
     }
 
     // ── Envío ─────────────────────────────────────────────────────────────
-    const res = await fetch(`${endpoint}?access_token=${encodeURIComponent(token)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cuerpo)
-    })
-    const respuesta = await res.json()
+    const envio = await postGraphMessage(endpoint, token, cuerpo)
 
-    if (!res.ok || respuesta?.error) {
-      const detalle = respuesta?.error?.message || 'Meta rechazó el envío'
+    if (!envio.ok) {
+      const detalle = envio.error
       const esVentana = /24|outside|window|re-engagement/i.test(detalle)
       return NextResponse.json(
         {

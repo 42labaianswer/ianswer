@@ -79,6 +79,7 @@ export default function Sidebar() {
     { name: 'Agente AI',          href: '/dashboard/ai-agent',     icon: BrainCircuit,    show: true },
     { name: 'Equipo',             href: ROUTES.team,               icon: UserCog,         show: true },
     { name: 'Gestor de Clientes', href: '/dashboard/crm',          icon: UserSquare,      show: true, badgeKey: 'overdue_tasks' },
+    { name: 'Campañas',           href: '/dashboard/campaigns',    icon: Megaphone,       show: true },
     { name: 'Calendario',         href: '/dashboard/calendar',     icon: Calendar,        show: !!modules.calendar },
     { name: 'Propiedades',        href: '/dashboard/properties',   icon: Home,            show: !!modules.properties },
     { name: 'Menú Digital',       href: '/dashboard/menu',         icon: Utensils,        show: !!modules.menu },
