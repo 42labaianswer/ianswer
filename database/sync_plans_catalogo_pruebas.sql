@@ -32,7 +32,7 @@ Notas de voz y análisis de imagen con IA
 Hasta 300 conversaciones/mes
 3 miembros · 3 agendas
 50 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":false,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    150000, 1494000,
    300, 3, 3, 1, 1, 3, 1,
    true, false, 10, 7),
@@ -41,25 +41,24 @@ Hasta 300 conversaciones/mes
    'Para equipos en crecimiento con varios canales y más usuarios.',
    E'Todo lo de Start, escalado
 3 canales
+Entrenamiento PRO del agente
 Hasta 750 conversaciones/mes
 10 miembros · 15 agendas
 100 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":true,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    300000, 3000000,
-   750, 10, 10, 3, 3, 15, 3,
+   750, 10, 10, 3, 1, 15, 3,
    true, false, 20, 7),
 
   ('scale', 'scale', 'Scale',
    'Para operaciones con múltiples sucursales y altos volúmenes.',
    E'Todo lo de Growth, escalado
-Multi-sucursal con reportes por ubicación
-10 sucursales
 Hasta 2,000 conversaciones/mes
 50 miembros · 50 agendas
 250 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":true,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    750000, 7470000,
-   2000, 50, 50, 3, 10, 50, 10,
+   2000, 50, 50, 3, 1, 50, 10,
    true, false, 30, 7)
 ON CONFLICT (slug) DO UPDATE SET
   tier                   = EXCLUDED.tier,

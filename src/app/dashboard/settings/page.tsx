@@ -5,27 +5,23 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
-import { useWorkspace } from '../../../components/WorkspaceContext'
 import PageHeader from '../../../components/PageHeader'
 import { useQuery } from '@tanstack/react-query'
 import { 
-  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, MapPinned, CodeXml
+  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, CodeXml
 } from 'lucide-react'
 
 // IMPORTAMOS LOS COMPONENTES CREADOS
 import ProfileTab from '../../../components/ProfileTab'
 import WorkingHoursTab from '../../../components/WorkingHoursTab'
 import AgendasTab from '../../../components/AgendaTab'
-import LocationTab from '../../../components/LocationTab'
 import WidgetTab from '../../../components/WidgetTab'
 import SubscriptionSyncOnSuccess from '../../../components/SubscriptionSyncOnSuccess'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { labels } = useWorkspace()
-  
-  const [activeTab, setActiveTab] = useState<'profile' | 'hours' | 'calendars' | 'locations' | 'widget'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'hours' | 'calendars' | 'widget'>('profile')
 
   // 1. TANSTACK QUERY: Obtener toda la data inicial de la empresa
   const { data, isLoading } = useQuery({
@@ -152,13 +148,6 @@ export default function SettingsPage() {
               <CalendarDays size={18} /> Google Calendar
             </button>
             <button 
-              onClick={() => setActiveTab('locations')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
-                ${activeTab === 'locations' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <MapPinned size={18} /> {labels?.location_plural || 'Sedes'}
-            </button>
-            <button 
               onClick={() => setActiveTab('widget')}
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
                 ${activeTab === 'widget' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
@@ -173,7 +162,6 @@ export default function SettingsPage() {
           {activeTab === 'profile' && companyId && <ProfileTab companyId={companyId} />}
           {activeTab === 'hours' && companyId && <WorkingHoursTab companyId={companyId} />}
           {activeTab === 'calendars' && companyId && planSlug && <AgendasTab companyId={companyId} planSlug={planSlug} />}
-          {activeTab === 'locations' && companyId && planSlug && <LocationTab companyId={companyId} planSlug={planSlug}/>}
           {activeTab === 'widget' && companyId && <WidgetTab companyId={companyId} />}
         </div>
 

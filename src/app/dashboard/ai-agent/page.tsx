@@ -18,7 +18,7 @@ import PageHeader from '../../../components/PageHeader'
 import Link from 'next/link'
 import { ROUTES } from '../../../lib/routes'
 import AgentTrainingStudio from '../../../components/AgentTrainingStudio'
-import { useHasAgentTrainingAddon } from '../../../hooks/useAgentTraining'
+import { useHasAgentTraining } from '../../../hooks/useAgentTraining'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 type TeamMember = {
@@ -67,7 +67,7 @@ export default function AIAgentBuilderPage() {
   const isAdvancedPlan = !!planFeatures?.ai_advanced_personality
   const isEnterprisePlan = !!planFeatures?.ai_multi_agent_mode
   const hasSimulator = useFeature('ai_agent_simulator')
-  const { data: hasTrainingAddon } = useHasAgentTrainingAddon()
+  const { data: hasTraining } = useHasAgentTraining()
 
   const [agentMode, setAgentMode] = useState<'general' | 'per_staff'>('per_staff')
   const [configTab, setConfigTab] = useState<ConfigTab>('personality')
@@ -643,7 +643,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
 
             {/* ─── Tab Entrenamiento ─── */}
             {configTab === 'training' && (
-              hasTrainingAddon && companyId ? (
+              hasTraining && companyId ? (
                 <AgentTrainingStudio
                   companyId={companyId}
                   accentColor={accent}
@@ -655,9 +655,9 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
                   <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-4"><GraduationCap size={26} /></div>
                   <h3 className="font-black text-slate-900 mb-1">Entrenamiento PRO</h3>
-                  <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">Entrena a tu agente como a un empleado nuevo: un asistente te entrevista sobre cómo trabaja tu empresa y genera un documento que el agente consulta en cada conversación.</p>
-                  <a href="/dashboard/addons?highlight=agent_training_pro" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold" style={{ backgroundColor: accent }}>
-                    <Lock size={15} /> Activar addon
+                  <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">Entrena a tu agente como a un empleado nuevo: un asistente te entrevista sobre cómo trabaja tu empresa y genera un documento que el agente consulta en cada conversación. Incluido en los planes Growth y Scale.</p>
+                  <a href="/dashboard/plans" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold" style={{ backgroundColor: accent }}>
+                    <Lock size={15} /> Ver planes
                   </a>
                 </div>
               )
@@ -726,7 +726,7 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                         {selectedMember.ai_proactivity === 'proactive' ? 'Proactivo' : 'Informativo'}
                       </span>
                     )}
-                    {hasTrainingAddon && (
+                    {hasTraining && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-bold">
                         <GraduationCap size={11} /> Entrenamiento PRO
                       </span>

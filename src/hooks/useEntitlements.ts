@@ -83,6 +83,7 @@ export type EntitlementCapacity = {
   max_locations: number
   max_agendas: number
   max_bots: number
+  max_campaign_messages_per_month: number
 }
 
 export type EntitlementPlan = {
@@ -149,7 +150,8 @@ const DEFAULT_ENTITLEMENTS: Entitlements = {
     max_channels: 1,
     max_locations: 1,
     max_agendas: 1,
-    max_bots: 1
+    max_bots: 1,
+    max_campaign_messages_per_month: 0
   },
   templates: [],
   addons: [],

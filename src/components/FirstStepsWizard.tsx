@@ -8,11 +8,9 @@ import {
   ArrowLeft, ArrowRight, Loader2, User, Phone, Mail, MapPin, AlertTriangle, CheckCircle2, Info
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useWorkspace } from './WorkspaceContext'
 import { hasDashboardAccess } from '../lib/subscription'
 import ConnectWhatsAppButton from './whatsapp/ConnectWhatsAppButton'
 import AgendasTab from './AgendaTab'
-import LocationTab from './LocationTab'
 
 // ============================================================================
 // FirstStepsWizard — primeros pasos después de iniciar la prueba
@@ -22,15 +20,15 @@ import LocationTab from './LocationTab'
 //   1. Contacto y dirección (companies)
 //   2. WhatsApp (Embedded Signup, el mismo botón de Conectividad)
 //   3. Google Calendar (AgendasTab)
-//   4. Sedes (LocationTab)
 // Cada paso se puede omitir. Al terminar o al cerrarlo se llena
 // companies.first_steps_completed_at (database/add_first_steps.sql) y no
 // vuelve a salir. El paso actual se recuerda en el navegador para retomarlo si
 // se recarga la página.
 // ============================================================================
 
-type Step = 1 | 2 | 3 | 4
-const STEPS: Step[] = [1, 2, 3, 4]
+type Step = 1 | 2 | 3
+const STEPS: Step[] = [1, 2, 3]
+const LAST_STEP: Step = 3
 
 type CompanyRow = {
   id: string
@@ -101,7 +99,6 @@ export default function FirstStepsWizard() {
 
 function FirstStepsDialog({ company, onDone }: { company: CompanyRow, onDone: () => void }) {
   const queryClient = useQueryClient()
-  const { labels } = useWorkspace()
   const [step, setStep] = useState<Step>(() => readStoredStep(company.id))
   const [contact, setContact] = useState({
     doctor_name: company.doctor_name || '',
@@ -162,12 +159,12 @@ function FirstStepsDialog({ company, onDone }: { company: CompanyRow, onDone: ()
 
   const handleContinue = async () => {
     if (step === 1 && !(await saveContact())) return
-    if (step === 4) return finish()
+    if (step === LAST_STEP) return finish()
     goTo((step + 1) as Step)
   }
 
   const handleSkip = () => {
-    if (step === 4) return finish()
+    if (step === LAST_STEP) return finish()
     goTo((step + 1) as Step)
   }
 
@@ -282,14 +279,6 @@ function FirstStepsDialog({ company, onDone }: { company: CompanyRow, onDone: ()
               <AgendasTab companyId={companyId} planSlug={planSlug} />
             </>
           )}
-
-          {step === 4 && (
-            <>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">{labels?.location_plural || 'Sedes'}</h2>
-              <p className="text-sm text-slate-500 font-medium mb-6">Opcional: si atiendes en más de un lugar, agrégalos aquí.</p>
-              <LocationTab companyId={companyId} planSlug={planSlug} />
-            </>
-          )}
         </div>
 
         <div className="px-8 py-5 border-t border-slate-100 flex items-center justify-between bg-slate-50">
@@ -317,8 +306,8 @@ function FirstStepsDialog({ company, onDone }: { company: CompanyRow, onDone: ()
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? <Loader2 size={16} className="animate-spin" /> : null}
-              {step === 4 ? 'Terminar' : 'Continuar'}
-              {!isSaving && step !== 4 && <ArrowRight size={16} />}
+              {step === LAST_STEP ? 'Terminar' : 'Continuar'}
+              {!isSaving && step !== LAST_STEP && <ArrowRight size={16} />}
             </button>
           </div>
         </div>

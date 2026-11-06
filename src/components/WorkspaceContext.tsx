@@ -259,15 +259,6 @@ export const useWorkspace = create<WorkspaceState>()(
               })
             })
 
-            // Si hay addon multi_location_enabled, asegurar locations
-            const addons = (ent.addons || []) as any[]
-            const hasMultiLocation = addons.some(a =>
-              a.status === 'active' && a.feature_flags?.multi_location_enabled
-            )
-            if (hasMultiLocation) {
-              ;(fusedModules as any).multi_location = true
-            }
-
             // #3: Mantener visibles los módulos que YA tienen datos, aunque la
             // plantilla activa no los incluya. Así, si tienes propiedades y
             // cambias a médico, el tab de Propiedades no desaparece. Para

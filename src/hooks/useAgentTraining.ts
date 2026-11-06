@@ -31,10 +31,10 @@ export const SECTION_LABELS: Record<keyof Omit<TrainingSections, 'updated_at'>, 
   escalation_rules: 'Cuándo escalar a humano',
 }
 
-// ─── ¿Tiene el addon? ──────────────────────────────────────────────────────
-export function useHasAgentTrainingAddon() {
+// ─── ¿Su plan incluye Entrenamiento PRO? (flag agent_training_pro: Growth y Scale)
+export function useHasAgentTraining() {
   return useQuery({
-    queryKey: ['has-agent-training-addon'],
+    queryKey: ['has-agent-training'],
     queryFn: async (): Promise<boolean> => {
       const { data: userRes } = await supabase.auth.getUser()
       if (!userRes.user) return false

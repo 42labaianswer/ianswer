@@ -33,6 +33,7 @@ type Plan = {
   max_locations: number
   max_agendas: number
   max_bots: number
+  max_campaign_messages_per_month: number
   features: string | null
   feature_flags: Record<string, boolean>
   is_active: boolean
@@ -98,6 +99,7 @@ export default function PlansAdminTab() {
           max_locations: plan.max_locations,
           max_agendas: plan.max_agendas,
           max_bots: plan.max_bots,
+          max_campaign_messages_per_month: plan.max_campaign_messages_per_month,
           features: plan.features,
           feature_flags: plan.feature_flags,
           is_active: plan.is_active,
@@ -181,6 +183,7 @@ export default function PlansAdminTab() {
                 <div className="flex justify-between"><span>Usuarios:</span><strong className="text-slate-900">{plan.max_team_members}</strong></div>
                 <div className="flex justify-between"><span>Canales:</span><strong className="text-slate-900">{plan.max_channels}</strong></div>
                 <div className="flex justify-between"><span>Sucursales:</span><strong className="text-slate-900">{plan.max_locations}</strong></div>
+                <div className="flex justify-between"><span>Mensajes de campaña:</span><strong className="text-slate-900">{plan.max_campaign_messages_per_month ?? 0}</strong></div>
               </div>
 
               {!stripeOk && (
@@ -296,6 +299,7 @@ function EditPlanSheet({
               <NumField label="Sucursales" value={draft.max_locations} onChange={v => setDraft({ ...draft, max_locations: v })} />
               <NumField label="Agendas" value={draft.max_agendas} onChange={v => setDraft({ ...draft, max_agendas: v })} />
               <NumField label="Bots" value={draft.max_bots} onChange={v => setDraft({ ...draft, max_bots: v })} />
+              <NumField label="Mensajes de campaña/mes" value={draft.max_campaign_messages_per_month ?? 0} onChange={v => setDraft({ ...draft, max_campaign_messages_per_month: v })} />
             </div>
           </Section>
 
