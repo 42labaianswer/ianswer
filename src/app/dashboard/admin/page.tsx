@@ -7,7 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import {
   ShieldAlert, Layers, PackageOpen, CreditCard,
   Palette, FileText, Webhook, Image as ImageIcon,
-  Globe, HelpCircle, BarChart3
+  Globe, HelpCircle, BarChart3, Users
 } from 'lucide-react'
 
 import TemplatesAdminTab from './tabs/TemplatesAdminTab'
@@ -21,6 +21,7 @@ import WebhooksAdminTab from './tabs/WebhooksAdminTab'
 import SiteContentAdminTab from './tabs/SiteContentAdminTab'
 import HelpCenterAdminTab from '../../../components/HelpCenterAdminTab'
 import AuditAdminTab from './tabs/AuditAdminTab'
+import AccountsAdminTab from './tabs/AccountsAdminTab'
 import InvoicingAdminTab from './tabs/InvoicingAdminTab'
 import AdminUsageTab from '../../../components/AdminUsageTab'
 import IAnswerLoader from '../../../components/IAnswerLoader'
@@ -33,14 +34,16 @@ import IAnswerLoader from '../../../components/IAnswerLoader'
 //
 // Tabs (ver TABS abajo):
 //   - Plans      → edita los 3 planes Start/Growth/Scale
+//   - Accounts   → cambiar la industria de una cuenta por correo
 //   - Templates  → CRUD de plantillas verticales
 //   - Addons     → CRUD de addons
 // ============================================================================
 
-type TabId = 'plans' | 'templates' | 'addons' | 'branding' | 'landing' | 'site' | 'helpdesk' | 'legal' | 'webhooks' | 'audit' | 'invoicing' | 'usage'
+type TabId = 'plans' | 'accounts' | 'templates' | 'addons' | 'branding' | 'landing' | 'site' | 'helpdesk' | 'legal' | 'webhooks' | 'audit' | 'invoicing' | 'usage'
 
 const TABS: Array<{ id: TabId, label: string, icon: any, available: boolean }> = [
   { id: 'plans',     label: 'Planes',     icon: CreditCard, available: true },
+  { id: 'accounts',  label: 'Cuentas',    icon: Users,      available: true },
   { id: 'templates', label: 'Plantillas', icon: Layers,     available: true },
   { id: 'addons',    label: 'Addons',     icon: PackageOpen, available: true },
   { id: 'branding',  label: 'Marca',      icon: Palette,    available: true },
@@ -133,6 +136,7 @@ export default function AdminPage() {
       {/* Contenido */}
       <main>
         {activeTab === 'plans'     && <PlansAdminTab />}
+        {activeTab === 'accounts'  && <AccountsAdminTab />}
         {activeTab === 'templates' && <TemplatesAdminTab />}
         {activeTab === 'addons'    && <AddonsAdminTab />}
         {activeTab === 'branding'  && <BrandingAdminTab />}
