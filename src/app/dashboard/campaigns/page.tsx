@@ -126,8 +126,8 @@ export default function CampaignsPage() {
       setParams({})
       setSelectedKey('')
       setConfirming(false)
-      qc.invalidateQueries({ queryKey: ['campaigns-overview'] })
-      qc.invalidateQueries({ queryKey: ['campaign-audience'] })
+      void qc.invalidateQueries({ queryKey: ['campaigns-overview'] })
+      void qc.invalidateQueries({ queryKey: ['campaign-audience'] })
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -182,7 +182,7 @@ export default function CampaignsPage() {
   const tags = overviewQuery.data?.tags ?? []
   const templatesLoading = templatesQuery.isFetching
   const templatesError = templatesQuery.error?.message ?? null
-  const loadTemplates = () => { templatesQuery.refetch() }
+  const loadTemplates = () => { void templatesQuery.refetch() }
 
   const pct = usage && usage.limit > 0 ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0
 
@@ -233,8 +233,9 @@ export default function CampaignsPage() {
         {/* ─── Formulario ─── */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-6">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de la campaña</label>
+            <label htmlFor="campaign-name" className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de la campaña</label>
             <input
+              id="campaign-name"
               value={name}
               onChange={e => setName(e.target.value)}
               maxLength={120}
@@ -245,7 +246,7 @@ export default function CampaignsPage() {
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700">Plantilla de marketing</label>
+              <label htmlFor="campaign-template" className="block text-xs font-bold text-slate-700">Plantilla de marketing</label>
               {whatsappConnected && (
                 <button
                   type="button"
@@ -267,6 +268,7 @@ export default function CampaignsPage() {
               </p>
             ) : (
               <select
+                id="campaign-template"
                 value={selectedKey}
                 onChange={e => selectTemplate(e.target.value)}
                 disabled={!whatsappConnected}
