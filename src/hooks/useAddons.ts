@@ -48,11 +48,15 @@ export function useAddonsCatalog() {
           .select('*')
           .eq('is_active', true)
           .order('display_order')
-        return (fallback || []).map((a: any) => ({
-          ...a,
-          is_template_specific: Array.isArray(a.available_for_templates) && a.available_for_templates.length > 0,
-          available_for_templates: Array.isArray(a.available_for_templates) ? a.available_for_templates : []
-        }))
+        // Mismo criterio que el RPC: las industrias son available_for_templates
+        // más requires_template.
+        return (fallback || []).map((a: any) => {
+          const templates: string[] = Array.from(new Set([
+            ...(Array.isArray(a.available_for_templates) ? a.available_for_templates : []),
+            ...(a.requires_template ? [a.requires_template] : []),
+          ]))
+          return { ...a, is_template_specific: templates.length > 0, available_for_templates: templates }
+        })
       }
 
       return data || []
