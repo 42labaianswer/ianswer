@@ -14,13 +14,14 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 import {
   MessageCircle, Camera, Loader2, Save, Globe, MapPin, Mail, Info,
-  AlertCircle, Check,
+  AlertCircle, Check, RefreshCw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   useWhatsAppProfile,
   useSaveWhatsAppProfile,
   useUploadWhatsAppPhoto,
+  WhatsAppProfileError,
   type WhatsAppProfile,
 } from '../hooks/useWhatsAppProfile'
 import { VERTICAL_OPTIONS, DEFAULT_VERTICAL, normalizeVertical } from '../lib/whatsappVerticals'
@@ -32,7 +33,7 @@ import IAnswerLoader from './IAnswerLoader'
 const ABOUT_MAX = 139
 
 export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { accentColor?: string }) {
-  const { data: profile, isLoading, error } = useWhatsAppProfile()
+  const { data: profile, isLoading, error, refetch, isFetching } = useWhatsAppProfile()
   const saveMut = useSaveWhatsAppProfile()
   const photoMut = useUploadWhatsAppPhoto()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -78,6 +79,34 @@ export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { acc
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al guardar')
     }
+  }
+
+  // El número está conectado pero Meta no devolvió el perfil (token vencido,
+  // credenciales equivocadas, Meta caído): mostrar el motivo, no "no conectado".
+  const notConnected = error instanceof WhatsAppProfileError && error.code === 'not_connected'
+  if (error && !notConnected) {
+    return (
+      <div className="bg-white border border-amber-200 rounded-2xl p-8 text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 mb-4">
+          <AlertCircle size={26} />
+        </div>
+        <h3 className="font-black text-slate-900 mb-1">No pudimos leer tu perfil de WhatsApp</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mb-1">
+          Meta respondió: <span className="font-semibold text-slate-700">{error.message}</span>
+        </p>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">
+          Revisa las credenciales de tu número o usa el Diagnóstico de Conectividad.
+        </p>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50"
+          style={{ backgroundColor: accentColor }}
+        >
+          <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} /> Reintentar
+        </button>
+      </div>
+    )
   }
 
   // WhatsApp no conectado

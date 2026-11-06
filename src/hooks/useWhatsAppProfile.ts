@@ -17,13 +17,20 @@ export interface WhatsAppProfile {
   vertical?: string
 }
 
+/** Error de lectura del perfil; `code` distingue "sin conectar" de un fallo de Meta. */
+export class WhatsAppProfileError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message)
+  }
+}
+
 export function useWhatsAppProfile() {
   return useQuery({
     queryKey: ['whatsapp-profile'],
     queryFn: async (): Promise<WhatsAppProfile> => {
       const res = await fetch('/api/whatsapp-profile')
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Error al leer el perfil')
+      if (!res.ok) throw new WhatsAppProfileError(data?.error || 'Error al leer el perfil', data?.code)
       return data.profile || {}
     },
     staleTime: 60 * 1000,
