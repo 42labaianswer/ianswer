@@ -27,7 +27,7 @@ const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
 
 async function getCompanyMeta(): Promise<
   | { ok: true; token: string; phoneId: string; companyId: string }
-  | { ok: false; status: number; error: string }
+  | { ok: false; status: number; error: string; code?: 'not_connected' }
 > {
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -67,7 +67,7 @@ async function getCompanyMeta(): Promise<
   const token = company?.system_user_access_token || company?.meta_token
 
   if (!token || !company?.business_phone_id) {
-    return { ok: false, status: 400, error: 'WhatsApp no está conectado todavía' }
+    return { ok: false, status: 400, error: 'WhatsApp no está conectado todavía', code: 'not_connected' }
   }
 
   return {
@@ -82,7 +82,7 @@ async function getCompanyMeta(): Promise<
 export async function GET() {
   try {
     const meta = await getCompanyMeta()
-    if (!meta.ok) return NextResponse.json({ error: meta.error }, { status: meta.status })
+    if (!meta.ok) return NextResponse.json({ error: meta.error, code: meta.code }, { status: meta.status })
 
     const fields = 'about,address,description,email,profile_picture_url,websites,vertical'
     const url = `https://graph.facebook.com/${GRAPH_VERSION}/${meta.phoneId}/whatsapp_business_profile?fields=${fields}`
@@ -114,7 +114,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const meta = await getCompanyMeta()
-    if (!meta.ok) return NextResponse.json({ error: meta.error }, { status: meta.status })
+    if (!meta.ok) return NextResponse.json({ error: meta.error, code: meta.code }, { status: meta.status })
 
     const body = await req.json()
 

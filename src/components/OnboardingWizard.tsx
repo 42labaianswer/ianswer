@@ -159,6 +159,7 @@ export default function OnboardingWizard() {
         .from('templates')
         .select('*')
         .eq('is_active', true)
+        .eq('is_selectable', true)
         .order('display_order')
       if (error) throw error
       return data || []

@@ -49,6 +49,7 @@ export interface Template {
   custom_fields: Array<{ key: string, label: string, type: string, options?: string[] }>
   default_prompts: Record<string, any>
   is_active: boolean
+  is_selectable: boolean
   is_generic: boolean
   is_legacy: boolean
   display_order: number

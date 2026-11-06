@@ -108,7 +108,7 @@ describe('listMarketingTemplates', () => {
   })
 
   it('filtra por nombre exacto', async () => {
-    const fetchFn = vi.fn(async () => ({ ok: true, json: async () => ({ data: [tpl('promo'), tpl('promo_2')] }) }))
+    const fetchFn = vi.fn<(url: string) => Promise<unknown>>(async () => ({ ok: true, json: async () => ({ data: [tpl('promo'), tpl('promo_2')] }) }))
     vi.stubGlobal('fetch', fetchFn)
     const list = await listMarketingTemplates(creds, 'promo')
     expect(list.map(t => t.name)).toEqual(['promo'])

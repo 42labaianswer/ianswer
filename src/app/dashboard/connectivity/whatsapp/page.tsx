@@ -23,12 +23,17 @@ import ConnectWhatsAppButton from '../../../../components/whatsapp/ConnectWhatsA
 import toast from 'react-hot-toast'
 import {
   CheckCircle2, Loader2, ArrowLeft, Activity, Eye, EyeOff, Globe,
-  ShieldCheck, ExternalLink, KeyRound, Hash, Phone, Trash2, ChevronDown, Zap
+  ShieldCheck, ExternalLink, KeyRound, Hash, Phone, Trash2, ChevronDown, Zap, Pencil
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
 import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const ACCENT = '#25D366'
+const PROFILE_ANCHOR = 'perfil-whatsapp'
+
+const scrollToProfile = () => {
+  document.getElementById(PROFILE_ANCHOR)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 // La conexión con coexistencia se muestra solo donde está activada, mientras
 // n8n no procese los echos y el historial.
@@ -53,6 +58,7 @@ export default function WhatsAppConnectPage() {
   const [revealToken, setRevealToken] = useState(false)
   const [showDiag, setShowDiag]       = useState(false)
   const [step, setStep]               = useState<1 | 2>(1)
+  const [showCredentials, setShowCredentials] = useState(false)
 
   const [form, setForm] = useState({
     business_phone_id: '', waba_id: '', system_user_access_token: '',
@@ -94,7 +100,7 @@ export default function WhatsAppConnectPage() {
   // Embedded Signup terminó bien: el backend ya guardó todo en companies
   // (token, waba, número) y suscribió el webhook. Recargamos el estado.
   const handleEmbeddedSuccess = async () => {
-    toast.success('WhatsApp conectado')
+    toast.success('WhatsApp conectado. Ya puedes completar el perfil de tu negocio.')
     if (!companyId) return
     const { data } = await supabase
       .from('companies')
@@ -116,6 +122,7 @@ export default function WhatsAppConnectPage() {
         display_phone: data.waba_display_phone || '',
         verified_name: data.waba_verified_name || ''
       }))
+      setTimeout(scrollToProfile, 300)
     }
   }
 
@@ -143,6 +150,7 @@ export default function WhatsAppConnectPage() {
         coexistence: config?.coexistence ?? false,
         connected: true
       })
+      setShowCredentials(false)
     } catch (e: any) {
       toast.error('Error al guardar: ' + (e?.message || 'desconocido'))
     } finally {
@@ -204,8 +212,10 @@ export default function WhatsAppConnectPage() {
       )}
 
       <PageHeader
-        title="Conectar WhatsApp Business"
-        description="Ingresa las credenciales de la API de WhatsApp de tu cuenta de Meta Business."
+        title={config?.connected ? 'WhatsApp Business' : 'Conectar WhatsApp Business'}
+        description={config?.connected
+          ? 'Edita el perfil que ven tus clientes en WhatsApp y administra la conexión de tu número.'
+          : 'Conecta el número de WhatsApp de tu negocio con tu cuenta de Meta Business.'}
       />
 
       {/* PASO 1: elegir método (2 columnas) — mismo patrón que Facebook/Instagram */}
@@ -256,11 +266,11 @@ export default function WhatsAppConnectPage() {
       )}
 
       {config?.connected && (
-        <div className="mb-6 p-5 rounded-2xl border-2 border-emerald-200 bg-emerald-50 flex items-center gap-4">
+        <div className="mb-6 p-5 rounded-2xl border-2 border-emerald-200 bg-emerald-50 flex flex-wrap items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
             <CheckCircle2 className="text-emerald-600" size={24} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-[12rem]">
             <p className="font-black text-emerald-900">WhatsApp conectado</p>
             <p className="text-sm text-emerald-800">{config.verified_name || 'Número'} {config.display_phone ? `· ${config.display_phone}` : ''}</p>
             {config.coexistence && (
@@ -269,16 +279,38 @@ export default function WhatsAppConnectPage() {
               </p>
             )}
           </div>
-          <button onClick={handleDisconnect} disabled={saving} className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-1.5 disabled:opacity-50">
-            <Trash2 size={14} /> Desconectar
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button onClick={scrollToProfile} className="px-4 py-2 text-sm font-bold text-white rounded-xl inline-flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90" style={{ backgroundColor: ACCENT }}>
+              <Pencil size={14} /> Editar perfil
+            </button>
+            <button onClick={handleDisconnect} disabled={saving} className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl inline-flex items-center justify-center gap-1.5 disabled:opacity-50">
+              <Trash2 size={14} /> Desconectar
+            </button>
+          </div>
         </div>
       )}
 
+      {config?.connected && (
+        <div id={PROFILE_ANCHOR} className="mb-6 scroll-mt-6">
+          <WhatsAppProfileEditor accentColor={ACCENT} />
+        </div>
+      )}
+
+      {config?.connected && (
+        <button
+          onClick={() => setShowCredentials(v => !v)}
+          aria-expanded={showCredentials}
+          className="mb-4 text-sm font-bold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1.5"
+        >
+          <KeyRound size={15} /> Actualizar credenciales de la API (avanzado)
+          <ChevronDown size={15} className={`transition-transform ${showCredentials ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+
       {/* PASO 2: manual (2 columnas: instrucciones | formulario). Se muestra si el
-          usuario elige "Configuración manual", o si ya está conectado (para
-          poder actualizar credenciales) — mismo patrón que Facebook/Instagram. */}
-      {(step === 2 || config?.connected) && (
+          usuario elige "Configuración manual"; ya conectado, queda plegado tras
+          "Actualizar credenciales" para que el perfil sea lo primero. */}
+      {(config?.connected ? showCredentials : step === 2) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-right-4">
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm h-fit">
           <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -330,20 +362,6 @@ export default function WhatsAppConnectPage() {
       </div>
       )}
 
-      {/*
-        Editor de perfil de WhatsApp Business — solo cuando WhatsApp ya está
-        conectado (que es cuando tiene sentido editarlo).
-      */}
-      {config?.connected && (
-        <div className="mt-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Editar perfil</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-          <WhatsAppProfileEditor accentColor={ACCENT} />
-        </div>
-      )}
       {ConfirmDialog}
     </div>
   )
