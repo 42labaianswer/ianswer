@@ -86,6 +86,7 @@ export async function POST(req: Request) {
       .select('id')
       .eq('id', template_id)
       .eq('is_active', true)
+      .eq('is_selectable', true)
       .maybeSingle()
 
     if (tplExistsErr) {
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
       )
     }
     if (!tpl) {
-      return NextResponse.json({ error: `template_id "${template_id}" no existe o está inactivo` }, { status: 400 })
+      return NextResponse.json({ error: `template_id "${template_id}" no existe o no está disponible` }, { status: 400 })
     }
 
     // ---- 4) Guardar lo del onboarding (SIN plan) ----

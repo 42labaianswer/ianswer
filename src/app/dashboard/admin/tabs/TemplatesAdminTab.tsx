@@ -81,6 +81,7 @@ type Template = {
   custom_fields: Array<{ key: string, label: string, type: string, options?: string[] }>
   default_prompts: Record<string, string>
   is_active: boolean
+  is_selectable: boolean
   is_generic: boolean
   display_order: number
 }
@@ -100,6 +101,7 @@ const EMPTY_TEMPLATE: Template = {
   custom_fields: [],
   default_prompts: { system_role: '', greeting: '' },
   is_active: true,
+  is_selectable: true,
   is_generic: false,
   display_order: 100
 }
@@ -238,6 +240,7 @@ export default function TemplatesAdminTab() {
               </p>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
                 {!tpl.is_active && <span className="text-[9px] font-black uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">Inactiva</span>}
+                {tpl.is_active && !tpl.is_selectable && <span className="text-[9px] font-black uppercase bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded">Oculta en el registro</span>}
                 {tpl.is_generic && <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">Genérica</span>}
                 <span className="text-[9px] font-bold text-slate-400">
                   {Object.values(tpl.active_modules).filter(Boolean).length} módulos
@@ -391,6 +394,9 @@ function EditTemplateSheet({
                 </Field>
                 <Field label="Genérica (catch-all)">
                   <Toggle value={draft.is_generic} onChange={v => setDraft({ ...draft, is_generic: v })} />
+                </Field>
+                <Field label="Se puede elegir al registrarse">
+                  <Toggle value={draft.is_selectable} onChange={v => setDraft({ ...draft, is_selectable: v })} />
                 </Field>
               </div>
             </>
