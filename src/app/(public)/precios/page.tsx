@@ -26,6 +26,7 @@ interface Plan {
   max_team_members: number
   max_channels: number
   max_locations: number
+  features: string | null
   feature_flags: Record<string, any> | null
   is_active: boolean
   display_order: number
@@ -68,27 +69,9 @@ export default function PreciosPage() {
   const recommendedTier = settings['pricing_recommended_slug'] || 'growth'
   const currency = settings['pricing_currency'] || 'MXN'
 
-  const buildFeatures = (plan: Plan): string[] => {
-    const features: string[] = []
-    if (plan.max_sessions_per_month) features.push(`${plan.max_sessions_per_month.toLocaleString('es-MX')} conversaciones/mes`)
-    if (plan.max_team_members > 1) features.push(`Hasta ${plan.max_team_members} miembros del equipo`)
-    else if (plan.max_team_members === 1) features.push('1 usuario')
-    if (plan.max_channels) features.push(plan.max_channels === 1 ? '1 canal de WhatsApp' : `${plan.max_channels} canales`)
-    if (plan.max_locations > 1) features.push(`${plan.max_locations} ubicaciones`)
-    features.push('WhatsApp Business API')
-    features.push('CRM con etapas y tareas')
-    features.push('Calendario integrado')
-    features.push('Reportes en tiempo real')
-    if (plan.tier === 'growth' || plan.tier === 'scale') {
-      features.push('Multi-canal (Instagram, web)')
-      features.push('IA premium')
-    }
-    if (plan.tier === 'scale') {
-      features.push('Soporte dedicado')
-      features.push('Account manager')
-    }
-    return features
-  }
+  // Mismo texto que PlanCard en /dashboard/plans: plans.features, una línea por feature
+  const buildFeatures = (plan: Plan): string[] =>
+    (plan.features || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
 
   return (
     <div className="bg-[#FAFAF7] text-slate-950">
@@ -199,8 +182,8 @@ export default function PreciosPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {[
               { icon: MessageCircle, title: 'Conversaciones', desc: 'Cada cliente único que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien.' },
-              { icon: Users,         title: 'Equipo',         desc: 'El tamaño de tu equipo limita cuántas personas pueden acceder al panel. La IA no cuenta como miembro.' },
-              { icon: Rocket,        title: 'Funciones',      desc: 'Todos los planes traen CRM, calendario, reportes y multi-canal. No bloqueamos features para forzarte a subir.' }
+              { icon: Users,         title: 'Miembros',       desc: 'Los miembros son las personas de tu Equipo que atienden a tus clientes (por ejemplo, estilistas o doctores). La IA no cuenta como miembro.' },
+              { icon: Rocket,        title: 'Funciones',      desc: 'Todos los planes traen CRM, calendario y reportes. No bloqueamos features para forzarte a subir.' }
             ].map((item, idx) => (
               <Reveal key={idx} delay={idx * 80}>
                 <div className="bg-[#FAFAF7] border border-slate-200 rounded-3xl p-7 h-full">

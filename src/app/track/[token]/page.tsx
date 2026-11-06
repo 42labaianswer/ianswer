@@ -5,8 +5,7 @@
  * La página real de tracking vive en /tracking/[token]. Esta ruta redirige
  * permanentemente cualquier /track/<token> a /tracking/<token>, para que los
  * links con esa forma ya compartidos con clientes (WhatsApp, etc.) sigan
- * funcionando. Los links se generan directo a /tracking/ (OrderDrawer /
- * OrderTrackingTab).
+ * funcionando. Los links se generan directo a /tracking/ (OrderDrawer).
  * ============================================================================
  */
 

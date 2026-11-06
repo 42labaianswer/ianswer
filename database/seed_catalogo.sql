@@ -86,7 +86,7 @@ Notas de voz y análisis de imagen con IA
 Hasta 300 conversaciones/mes
 3 miembros · 3 agendas
 50 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":false,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    150000, 1494000,
    300, 3, 3, 1, 1, 3, 1,
    true, false, 10, 7),
@@ -95,25 +95,24 @@ Hasta 300 conversaciones/mes
    'Para equipos en crecimiento con varios canales y más usuarios.',
    E'Todo lo de Start, escalado
 3 canales
+Entrenamiento PRO del agente
 Hasta 750 conversaciones/mes
 10 miembros · 15 agendas
 100 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":true,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    300000, 3000000,
-   750, 10, 10, 3, 3, 15, 3,
+   750, 10, 10, 3, 1, 15, 3,
    true, false, 20, 7),
 
   ('scale', 'scale', 'Scale',
    'Para operaciones con múltiples sucursales y altos volúmenes.',
    E'Todo lo de Growth, escalado
-Multi-sucursal con reportes por ubicación
-10 sucursales
 Hasta 2,000 conversaciones/mes
 50 miembros · 50 agendas
 250 mensajes de campaña de publicidad',
-   '{"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":true,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":true,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
+   '{"agent_training_pro":true,"crm_kpis":true,"crm_tasks":true,"crm_kanban":true,"crm_waitlist":true,"reports_kpis":true,"support_24_7":false,"ai_pdf_wizard":true,"crm_reminders":true,"custom_domain":false,"sla_dedicated":false,"ai_voice_notes":true,"branded_emails":false,"crm_export_csv":true,"reports_export":true,"account_manager":false,"crm_tags_visual":true,"whitelabel_full":false,"ai_premium_model":false,"crm_bulk_actions":true,"ai_image_analysis":true,"crm_tags_ai_aware":true,"reports_executive":true,"ai_agent_simulator":true,"ai_multi_agent_mode":true,"ai_off_topic_wizard":true,"reports_by_location":false,"crm_advanced_filters":true,"crm_no_show_tracking":true,"crm_unified_timeline":true,"crm_referral_tracking":true,"crm_retention_metrics":true,"team_v2_rich_profiles":true,"location_aware_routing":false,"multi_location_enabled":true,"ai_advanced_personality":true}'::jsonb,
    750000, 7470000,
-   2000, 50, 50, 3, 10, 50, 10,
+   2000, 50, 50, 3, 1, 50, 10,
    true, false, 30, 7)
 ON CONFLICT (slug) DO UPDATE SET
   tier                   = EXCLUDED.tier,
@@ -319,33 +318,6 @@ INSERT INTO public.addons (
    '{}'::jsonb,
    null, 'restaurant', true, true, 3, '{}'),
 
-  ('multi_location', 'Múltiples sucursales', 'Sucursales',
-   'Maneja varias sedes desde una sola cuenta.',
-   'feature', 'Building',
-   39900, 0, 'mxn', null,
-   true, false,
-   '{"reports_by_location":true,"location_aware_routing":true,"multi_location_enabled":true}'::jsonb,
-   '{"extra_locations":5}'::jsonb,
-   null, null, true, true, 4, '{}'),
-
-  ('restaurant_orders', 'Órdenes y Tracking en tiempo real', 'Órdenes',
-   'Recibe pedidos por WhatsApp con el agente IA. Tablero kanban por estado (recibida → en preparación → lista → entregada), tracking público que el cliente abre desde su celular, notificaciones automáticas en cada cambio de estado, e integración con repartidores. Reportes de ventas por día/platillo.',
-   'feature', 'TrendingUp',
-   39900, 0, 'mxn', null,
-   true, false,
-   '{"orders_kanban":true,"orders_ai_intake":true,"orders_notifications":true,"orders_sales_reports":true,"orders_public_tracking":true,"orders_delivery_routing":true}'::jsonb,
-   '{}'::jsonb,
-   null, 'restaurant', true, true, 4, '{}'),
-
-  ('pdf_wizard_menu', 'Subir menú con IA', 'Menú PDF',
-   'Sube tu menú en PDF y la IA lo carga por ti en minutos.',
-   'ai', 'FileText',
-   29900, 0, 'MXN', null,
-   true, false,
-   '{"ai_pdf_wizard_menu":true}'::jsonb,
-   '{}'::jsonb,
-   'start', null, true, true, 50, '{restaurant}'),
-
   ('pdf_wizard_properties', 'Subir propiedades con IA', 'Propiedades PDF',
    'Sube tu catálogo en PDF y la IA lo carga por ti en minutos.',
    'ai', 'Building',
@@ -371,25 +343,7 @@ INSERT INTO public.addons (
    true, false,
    '{"public_catalog":true}'::jsonb,
    '{}'::jsonb,
-   'start', null, true, true, 120, '{}'),
-
-  ('3eeeea1b-fcf8-462e-96df-3e2224e31c05', 'Entrenamiento PRO del Agente', 'Entrenamiento PRO',
-   'Entrena a tu agente IA como si fuera un empleado nuevo. Un asistente te entrevista sobre cómo trabaja tu empresa, tu flujo de ventas, qué información dar y qué no, y casos comunes. Genera un documento de procesos que tu agente consulta en cada conversación, haciéndolo sonar como alguien que de verdad trabaja ahí.',
-   'ai', 'GraduationCap',
-   39900, 0, 'MXN', null,
-   true, false,
-   '{"agent_training_pro":true}'::jsonb,
-   '{}'::jsonb,
-   'growth', null, true, true, 140, '{}'),
-
-  ('77b908d1-722b-4256-b193-a2ee594b1698', 'Tracking de Pedidos', 'Tracking',
-   'Página pública de rastreo estilo Domino''s para cada pedido. El cliente ve el estado en tiempo real con timeline animado y tu branding. Además, tu bot puede responder el estado del pedido cuando el cliente pregunta por WhatsApp.',
-   'feature', 'MapPin',
-   19900, 0, 'MXN', null,
-   true, false,
-   '{"order_tracking":true}'::jsonb,
-   '{}'::jsonb,
-   'start', null, true, true, 160, '{restaurant}')
+   'start', null, true, true, 120, '{}')
 
 ON CONFLICT (id) DO NOTHING;
 

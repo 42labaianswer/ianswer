@@ -32,7 +32,7 @@ const TIER_BADGES: Record<string, { label: string, icon: any, gradient: string }
 }
 
 const CONVERSATIONS_HINT =
-  'Cada chat con un cliente que atiende tu asistente cuenta como una conversación. El límite se reinicia cada mes.'
+  'Cada cliente único que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien.'
 const MEMBERS_HINT =
   'Los miembros son las personas de tu Equipo que atienden a tus clientes (por ejemplo, estilistas o doctores). Desactivar a un miembro libera su lugar.'
 

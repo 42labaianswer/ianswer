@@ -11,7 +11,7 @@
 //   - 'compile': toma toda la conversación y genera el documento estructurado
 //     por secciones (JSON). Usa DeepSeek con instrucción de responder solo JSON.
 //
-// Requiere el addon agent_training_pro activo (verifica gating).
+// Requiere el flag agent_training_pro, que traen los planes Growth y Scale.
 // ----------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -97,12 +97,12 @@ async function verifyAddon(req: NextRequest): Promise<
   const subscriptionError = await activeSubscriptionError(supabase, profile.company_id)
   if (subscriptionError) return { ok: false, status: 402, error: subscriptionError }
 
-  const { data: hasAddon } = await supabase.rpc('has_agent_training_active', {
+  const { data: hasTraining } = await supabase.rpc('has_agent_training_active', {
     p_company_id: profile.company_id,
   })
 
-  if (hasAddon !== true) {
-    return { ok: false, status: 402, error: 'Addon Entrenamiento PRO no activo' }
+  if (hasTraining !== true) {
+    return { ok: false, status: 402, error: 'Entrenamiento PRO está incluido en los planes Growth y Scale' }
   }
 
   return { ok: true, companyId: profile.company_id }

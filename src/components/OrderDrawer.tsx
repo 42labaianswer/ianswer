@@ -100,8 +100,7 @@ export default function OrderDrawer({ isOpen, onClose, order, companyId, accentC
   })
 
   // La página pública vive en /tracking/[token] (NO /track: ese da 404).
-  // Se usa NEXT_PUBLIC_BASE_URL igual que
-  // OrderTrackingTab para que el dominio sea consistente en prod.
+  // Se usa NEXT_PUBLIC_BASE_URL para que el dominio sea consistente en prod.
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 const trackingUrl = order?.public_token && baseUrl ? `${baseUrl}/tracking/${order.public_token}` : ''
   const copyTrackingUrl = () => {

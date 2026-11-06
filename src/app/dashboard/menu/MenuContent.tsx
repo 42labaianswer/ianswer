@@ -36,7 +36,7 @@ function MenuContent() {
   const { primaryTemplate: vertical } = useWorkspace()
   const accentColor = vertical?.accent_color || '#ea580c'
 
-  const canPdfImport     = useFeature('ai_pdf_wizard_menu')
+  const canPdfImport     = useFeature('ai_pdf_wizard')
   const canPublicCatalog = useAppCapability('menu', 'public_catalog')
   const maxItems         = useAppLimit('menu', 'max_menu_items')
 
