@@ -10,11 +10,12 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { activeSubscriptionError } from '../../../lib/apiAuth'
+import { pickTrainingDoc, trainingPromptSection } from '../../../lib/agentTraining'
 import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
   try {
-    const { messages, system_prompt } = await req.json()
+    const { messages, system_prompt, team_member_id } = await req.json()
 
     // ── Gate: verificar feature ai_agent_simulator ──
     const cookieStore = await cookies()
@@ -65,6 +66,19 @@ export async function POST(req: Request) {
       )
     }
 
+    // ── Entrenamiento PRO (Growth y Scale): mismo documento que lee n8n ──
+    let training = ''
+    if ((ent as any)?.features?.agent_training_pro) {
+      const [{ data: company }, { data: member }] = await Promise.all([
+        supabase.from('companies').select('agent_mode, agent_training').eq('id', profile.company_id).maybeSingle(),
+        typeof team_member_id === 'string' && team_member_id
+          ? supabase.from('team').select('custom_data').eq('id', team_member_id).eq('company_id', profile.company_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
+      const memberDoc = (member?.custom_data as { training?: unknown } | null)?.training
+      training = trainingPromptSection(pickTrainingDoc(company?.agent_mode, company?.agent_training, memberDoc))
+    }
+
     // ── DeepSeek call ──
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -74,7 +88,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
-        messages: [{ role: 'system', content: system_prompt }, ...messages],
+        messages: [{ role: 'system', content: String(system_prompt ?? '') + training }, ...messages],
         temperature: 0.7
       })
     })
