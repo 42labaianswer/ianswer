@@ -124,7 +124,7 @@ export default async function IndustriasPage() {
         <Reveal>
           <CTABanner
             title="¿No ves tu industria?"
-            subtitle="La industria genérica te da los bloques para armar el flujo de cualquier negocio. Y si necesitas algo a medida, hablamos."
+            subtitle="Cuéntanos de tu negocio y vemos cómo adaptar iAnswer a lo que necesitas."
             primaryCta={{ text: 'Probar gratis', href: '/login?signup=1' }}
             secondaryCta={{ text: 'Hablar con ventas', href: '/contacto' }}
           />
