@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
 import IAnswerLoader from '../../../../components/IAnswerLoader'
+import { disconnectWhatsApp, DISCONNECT_CONFIRM } from '../../../../lib/whatsappDisconnectClient'
 
 const ACCENT = '#25D366'
 const PROFILE_ANCHOR = 'perfil-whatsapp'
@@ -160,21 +161,20 @@ export default function WhatsAppConnectPage() {
 
   const handleDisconnect = async () => {
     if (!companyId) return
-    if (!(await confirm('¿Desconectar WhatsApp? Dejarás de recibir y responder mensajes por este canal.', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
+    if (!(await confirm(DISCONNECT_CONFIRM, { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
     setSaving(true)
     try {
-      const { error } = await supabase.from('companies').update({
-        business_phone_id: null, waba_id: null, system_user_access_token: null,
-        waba_display_phone: null, waba_verified_name: null, waba_connected_at: null,
-        waba_coexistence: false, waba_coexistence_synced_at: null
-      }).eq('id', companyId)
-      if (error) throw error
-      toast.success('WhatsApp desconectado')
+      const result = await disconnectWhatsApp(confirm)
+      if (result.status === 'cancelled') return
+      if (result.status === 'error') {
+        toast.error('Error al desconectar: ' + result.error)
+        return
+      }
+      toast.success(result.message)
+      if (result.warning) toast.error(result.warning, { duration: 10000 })
       setConfig(null)
       setForm({ business_phone_id: '', waba_id: '', system_user_access_token: '', display_phone: '', verified_name: '' })
       setStep(1)
-    } catch (e: any) {
-      toast.error('Error: ' + (e?.message || 'desconocido'))
     } finally {
       setSaving(false)
     }
