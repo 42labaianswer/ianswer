@@ -22,6 +22,7 @@ import {
   ShieldCheck, Phone, MessageCircle
 } from 'lucide-react'
 import IAnswerLoader from '../../../components/IAnswerLoader'
+import { disconnectWhatsApp, DISCONNECT_CONFIRM } from '../../../lib/whatsappDisconnectClient'
 
 type ConnectionStatus =
   | 'not_connected'
@@ -191,20 +192,17 @@ export default function WhatsAppConnectPage() {
 
   async function handleDisconnect() {
     if (!companyId) return
-    if (!(await confirm('Desconectar WhatsApp? El bot dejará de responder hasta reconectar.', { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
+    if (!(await confirm(DISCONNECT_CONFIRM, { title: 'Desconectar canal', danger: true, confirmText: 'Desconectar' }))) return
 
-    try {
-      const res = await fetch('/api/whatsapp/disconnect', { method: 'POST' })
-      const result = await res.json()
-      if (!res.ok || !result.success) {
-        toast.error('Error al desconectar: ' + (result?.error || 'desconocido'))
-        return
-      }
-      await loadConfig()
-      toast.success('WhatsApp desconectado')
-    } catch (err: any) {
-      toast.error('Error inesperado: ' + (err?.message || 'desconocido'))
+    const result = await disconnectWhatsApp(confirm)
+    if (result.status === 'cancelled') return
+    if (result.status === 'error') {
+      toast.error('Error al desconectar: ' + result.error)
+      return
     }
+    await loadConfig()
+    toast.success(result.message)
+    if (result.warning) toast.error(result.warning, { duration: 10000 })
   }
 
   if (loading) {
