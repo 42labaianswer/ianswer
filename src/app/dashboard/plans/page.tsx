@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
-import PlanCard from '../../../components/PlanCard'
+import PlanSelector from '../../../components/PlanSelector'
+import PlanCompareTable from '../../../components/PlanCompareTable'
 import PageHeader from '../../../components/PageHeader'
 import InfoHint from '../../../components/InfoHint'
 import toast from 'react-hot-toast'
@@ -17,6 +18,7 @@ import BillingSummary from '../../../components/BillingSummary'
 import { useConfirm } from '../../../hooks/useConfirm'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 import { hasDashboardAccess } from '../../../lib/subscription'
+import { defaultSelectedSlug } from '../../../lib/planCompare'
 
 type Plan = {
   slug: string
@@ -29,6 +31,9 @@ type Plan = {
   max_team_members: number
   max_channels: number
   max_locations: number
+  max_agendas: number | null
+  max_campaign_messages_per_month: number | null
+  feature_flags: Record<string, boolean> | null
   features: string | null
   is_active: boolean
   display_order: number
@@ -54,6 +59,7 @@ export default function PlansPage() {
   const { primaryTemplate } = useWorkspace()
   const searchParams = useSearchParams()
   const [billingMode, setBillingMode] = useState<'monthly' | 'yearly'>('monthly')
+  const [pickedPlan, setPickedPlan] = useState<string | null>(null)
 
   // Toast de éxito/cancelado tras volver de Stripe Checkout o del portal.
   useEffect(() => {
@@ -210,6 +216,10 @@ export default function PlansPage() {
   const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
   const planIsLive = ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
   const isActive = data?.company?.account_status === 'active'
+  const liveSlug = planIsLive ? currentPlanSlug : null
+  const selectedSlug = plans.some(p => p.slug === pickedPlan)
+    ? pickedPlan!
+    : defaultSelectedSlug(plans, liveSlug, 'growth')
 
   // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado):
   // el badge debe coincidir con lo cargado en Stripe/DB. 17 es solo el fallback.
@@ -240,8 +250,7 @@ export default function PlansPage() {
           <span className="inline-flex items-center gap-1.5">
             Mi Plan
             <InfoHint label="Cómo funcionan los planes">
-              Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas
-              en todos los planes — lo que limita es el volumen y el tamaño del equipo.
+              Sin permanencia. Cambia o cancela cuando quieras. Compara abajo qué incluye cada plan.
             </InfoHint>
           </span>
         }
@@ -291,14 +300,41 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Sub-header con CTA principal centrado */}
-      <div className="text-center mb-12">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">
-          Elige el plan correcto para tu equipo
-        </h2>
+      {/* Tu consumo y facturación del plan actual */}
+      {data?.company?.id && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          <UsageMeter
+            companyId={data.company.id}
+            accentColor={primaryTemplate?.accent_color || '#6366f1'}
+          />
+          <BillingSummary
+            companyId={data.company.id}
+            planName={plans.find(p => p.slug === currentPlanSlug)?.name || currentPlanSlug}
+            planPriceCents={
+              billingMode === 'yearly'
+                ? (plans.find(p => p.slug === currentPlanSlug)?.price_yearly_cents || 0)
+                : (plans.find(p => p.slug === currentPlanSlug)?.price_monthly_cents || 0)
+            }
+            nextPaymentDate={data?.company?.current_period_ends_at || null}
+            billingCycle={billingMode}
+            accentColor={primaryTemplate?.accent_color || '#6366f1'}
+            stripeCustomerId={data.company.stripe_customer_id}
+          />
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            {planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
+          </h2>
+          <p className="text-sm text-slate-500 font-medium mt-1">
+            Elige un plan para ver qué incluye.
+          </p>
+        </div>
 
         {/* Toggle mensual/anual */}
-        <div className="mt-4 inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
+        <div className="self-start sm:self-auto inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
           <button
             type="button"
             onClick={() => setBillingMode('monthly')}
@@ -325,7 +361,7 @@ export default function PlansPage() {
 
       {/* Banner admin */}
       {data?.isAdmin && (
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
           <Sparkles size={18} className="text-amber-700 shrink-0" />
           <p className="text-xs font-bold text-amber-900">
             Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
@@ -333,27 +369,20 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Grid de planes. Container queries (no breakpoints de ventana): el ancho
-          útil depende del sidebar (w-72 desde md), así que con md:grid-cols-3 las
-          tarjetas quedaban aplastadas a media pantalla. 1 → 2 → 3 columnas según
-          el ancho real; en 2 columnas la última tarjeta impar se centra sola. */}
-      <div className="@container">
-      <div id="plans-grid" className="grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6 lg:gap-8">
-        {plans.map(plan => {
-          // Solo es "tu plan actual" si la suscripción sigue viva; con una
-          // cancelada/vencida los 3 planes se pueden elegir para reactivar.
-          const isCurrent = planIsLive && plan.slug === currentPlanSlug
-          const isRecommended = plan.slug === 'growth'
-          return (
-            <PlanCard
-              key={plan.slug}
-              plan={plan}
-              className="@2xl:last:odd:col-span-2 @2xl:last:odd:justify-self-center @2xl:last:odd:w-full @2xl:last:odd:max-w-md @4xl:last:odd:col-span-1 @4xl:last:odd:max-w-none"
-              isCurrent={isCurrent}
-              isRecommended={isRecommended}
+      <div id="plans-grid" className="space-y-6">
+        {selectedSlug && (
+          <>
+            <PlanSelector
+              plans={plans}
+              selectedSlug={selectedSlug}
+              onSelectedChange={setPickedPlan}
+              currentSlug={liveSlug}
+              recommendedSlug="growth"
               billingMode={billingMode}
               isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
-              onSelect={async () => {
+              onChoose={async (chosen) => {
+                const plan = plans.find(p => p.slug === chosen.slug)
+                if (!plan) return
                 if (data?.isAdmin) {
                   const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
                   if (!ok) return
@@ -367,33 +396,16 @@ export default function PlansPage() {
                 }
               }}
             />
-          )
-        })}
+            <PlanCompareTable
+              plans={plans}
+              selectedSlug={selectedSlug}
+              onSelectedChange={setPickedPlan}
+              currentSlug={liveSlug}
+              billingMode={billingMode}
+            />
+          </>
+        )}
       </div>
-      </div>
-
-      {/* Uso de conversaciones + Resumen de facturación */}
-      {data?.company?.id && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-12">
-          <UsageMeter
-            companyId={data.company.id}
-            accentColor={primaryTemplate?.accent_color || '#6366f1'}
-          />
-          <BillingSummary
-            companyId={data.company.id}
-            planName={plans.find(p => p.slug === currentPlanSlug)?.name || currentPlanSlug}
-            planPriceCents={
-              billingMode === 'yearly'
-                ? (plans.find(p => p.slug === currentPlanSlug)?.price_yearly_cents || 0)
-                : (plans.find(p => p.slug === currentPlanSlug)?.price_monthly_cents || 0)
-            }
-            nextPaymentDate={data?.company?.current_period_ends_at || null}
-            billingCycle={billingMode}
-            accentColor={primaryTemplate?.accent_color || '#6366f1'}
-            stripeCustomerId={data.company.stripe_customer_id}
-          />
-        </div>
-      )}
 
       {/* Footer: gestionar suscripción */}
       {isActive && data?.company?.stripe_customer_id && (
