@@ -7,18 +7,17 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
-import PlanSelector from '../../../components/PlanSelector'
+import PlanCards from '../../../components/PlanCards'
 import PlanCompareTable from '../../../components/PlanCompareTable'
 import PageHeader from '../../../components/PageHeader'
 import InfoHint from '../../../components/InfoHint'
 import toast from 'react-hot-toast'
-import { CreditCard, Loader2, Sparkles, ExternalLink, Clock, AlertTriangle, Info } from 'lucide-react'
+import { Sparkles, Clock, AlertTriangle, Info } from 'lucide-react'
 import UsageMeter from '../../../components/UsageMeter'
 import BillingSummary from '../../../components/BillingSummary'
 import { useConfirm } from '../../../hooks/useConfirm'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 import { hasDashboardAccess } from '../../../lib/subscription'
-import { defaultSelectedSlug } from '../../../lib/planCompare'
 
 type Plan = {
   slug: string
@@ -59,7 +58,6 @@ export default function PlansPage() {
   const { primaryTemplate } = useWorkspace()
   const searchParams = useSearchParams()
   const [billingMode, setBillingMode] = useState<'monthly' | 'yearly'>('monthly')
-  const [pickedPlan, setPickedPlan] = useState<string | null>(null)
 
   // Toast de éxito/cancelado tras volver de Stripe Checkout o del portal.
   useEffect(() => {
@@ -215,11 +213,7 @@ export default function PlansPage() {
   // plan_slug todavía no se confirmó.
   const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
   const planIsLive = ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
-  const isActive = data?.company?.account_status === 'active'
   const liveSlug = planIsLive ? currentPlanSlug : null
-  const selectedSlug = plans.some(p => p.slug === pickedPlan)
-    ? pickedPlan!
-    : defaultSelectedSlug(plans, liveSlug, 'growth')
 
   // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado):
   // el badge debe coincidir con lo cargado en Stripe/DB. 17 es solo el fallback.
@@ -349,81 +343,53 @@ export default function PlansPage() {
         </div>
       )}
 
-      <div id="plans-grid" className="space-y-6">
-        {selectedSlug && (
-          <>
-            <PlanSelector
-              title={planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
-              subtitle="Elige un plan a la izquierda para ver qué incluye."
-              actions={billingToggle}
-              notice={data?.isAdmin ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
-                  <Sparkles size={16} className="text-amber-700 shrink-0" />
-                  <p className="text-xs font-bold text-amber-900">
-                    Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
-                  </p>
-                </div>
-              ) : undefined}
-              plans={plans}
-              selectedSlug={selectedSlug}
-              onSelectedChange={setPickedPlan}
-              currentSlug={liveSlug}
-              recommendedSlug="growth"
-              billingMode={billingMode}
-              isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
-              onChoose={async (chosen) => {
-                const plan = plans.find(p => p.slug === chosen.slug)
-                if (!plan) return
-                if (data?.isAdmin) {
-                  const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
-                  if (!ok) return
-                  adminForceMutation.mutate(plan.slug)
-                } else if (hasLiveSubscription) {
-                  // Ya hay suscripción: el cambio de plan va por el portal de
-                  // Stripe (un checkout nuevo crearía una segunda suscripción).
-                  portalMutation.mutate()
-                } else {
-                  subscribeMutation.mutate(plan)
-                }
-              }}
-            />
-            <PlanCompareTable
-              plans={plans}
-              selectedSlug={selectedSlug}
-              onSelectedChange={setPickedPlan}
-              currentSlug={liveSlug}
-              billingMode={billingMode}
-            />
-          </>
-        )}
-      </div>
+      <div id="plans-grid" className="space-y-8">
+        <div className="text-center pt-4">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            {planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
+          </h2>
+          <p className="text-sm sm:text-base text-slate-500 font-medium mt-2 max-w-xl mx-auto">
+            Paga mensual o anual. Sin permanencia: cambia o cancela cuando quieras.
+          </p>
+          <div className="mt-5 flex justify-center">{billingToggle}</div>
+        </div>
 
-      {/* Footer: gestionar suscripción */}
-      {isActive && data?.company?.stripe_customer_id && (
-        <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-black text-slate-900">Gestionar tu suscripción</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">
-              Cambia tu método de pago, descarga facturas o cancela tu suscripción.
+        {data?.isAdmin && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+            <Sparkles size={16} className="text-amber-700 shrink-0" />
+            <p className="text-xs font-bold text-amber-900">
+              Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => portalMutation.mutate()}
-            disabled={portalMutation.isPending}
-            className="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl flex items-center gap-2 text-sm transition-colors"
-          >
-            {portalMutation.isPending ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <>
-                Abrir portal
-                <ExternalLink size={14} />
-              </>
-            )}
-          </button>
-        </div>
-      )}
+        )}
+
+        <PlanCards
+          plans={plans}
+          currentSlug={liveSlug}
+          recommendedSlug="growth"
+          billingMode={billingMode}
+          isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
+          compareAnchor="comparar-planes"
+          onChoose={async (chosen) => {
+            const plan = plans.find(p => p.slug === chosen.slug)
+            if (!plan) return
+            if (data?.isAdmin) {
+              const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
+              if (!ok) return
+              adminForceMutation.mutate(plan.slug)
+            } else if (hasLiveSubscription) {
+              // Ya hay suscripción: el cambio de plan va por el portal de
+              // Stripe (un checkout nuevo crearía una segunda suscripción).
+              portalMutation.mutate()
+            } else {
+              subscribeMutation.mutate(plan)
+            }
+          }}
+        />
+
+        <PlanCompareTable id="comparar-planes" plans={plans} currentSlug={liveSlug} />
+      </div>
+
       {ConfirmDialog}
     </div>
   )

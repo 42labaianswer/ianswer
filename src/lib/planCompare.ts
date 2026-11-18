@@ -41,13 +41,6 @@ export function featureLines(plan: ComparablePlan): string[] {
   return (plan.features || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
 }
 
-/** Plan que se muestra abierto al entrar: el actual, si no el recomendado, si no el primero. */
-export function defaultSelectedSlug(plans: ComparablePlan[], currentSlug: string | null, recommendedSlug: string): string | null {
-  if (currentSlug && plans.some(p => p.slug === currentSlug)) return currentSlug
-  if (plans.some(p => p.slug === recommendedSlug)) return recommendedSlug
-  return plans[0]?.slug ?? null
-}
-
 export type CompareCell =
   | { kind: 'text'; value: string }
   | { kind: 'yes' }
@@ -55,23 +48,34 @@ export type CompareCell =
 
 export type CompareRow = { key: string; label: string; cells: CompareCell[] }
 
+export type CompareGroup = { key: string; label: string; rows: CompareRow[] }
+
 const n = (v: number) => v.toLocaleString('es-MX')
 const num = (v: number | null | undefined): CompareCell =>
   v && v > 0 ? { kind: 'text', value: n(v) } : { kind: 'no' }
 const flag = (v: boolean | undefined): CompareCell => (v ? { kind: 'yes' } : { kind: 'no' })
 
-type RowDef = { key: string; label: string; cell: (p: ComparablePlan) => CompareCell; always?: boolean }
+type RowDef = { key: string; group: GroupKey; label: string; cell: (p: ComparablePlan) => CompareCell; always?: boolean }
+
+type GroupKey = 'capacity' | 'messages' | 'ai' | 'crm'
+
+const GROUPS: { key: GroupKey; label: string }[] = [
+  { key: 'capacity', label: 'Capacidad' },
+  { key: 'messages', label: 'Mensajes' },
+  { key: 'ai', label: 'Inteligencia artificial' },
+  { key: 'crm', label: 'CRM y reportes' },
+]
 
 const ROWS: RowDef[] = [
-  { key: 'sessions', label: 'Conversaciones al mes', cell: p => num(p.max_sessions_per_month), always: true },
-  { key: 'members', label: 'Miembros del equipo', cell: p => num(p.max_team_members), always: true },
-  { key: 'channels', label: 'Canales', cell: p => num(p.max_channels), always: true },
-  { key: 'agendas', label: 'Agendas', cell: p => num(p.max_agendas) },
-  { key: 'campaigns', label: 'Mensajes de campaña al mes', cell: p => num(p.max_campaign_messages_per_month) },
-  { key: 'training', label: 'Entrenamiento PRO del agente', cell: p => flag(p.feature_flags?.agent_training_pro) },
-  { key: 'voice', label: 'Notas de voz e imágenes con IA', cell: p => flag(p.feature_flags?.ai_voice_notes) },
-  { key: 'crm', label: 'CRM completo', cell: p => flag(p.feature_flags?.crm_kanban) },
-  { key: 'reports', label: 'Reportes con KPIs', cell: p => flag(p.feature_flags?.reports_kpis) },
+  { key: 'sessions', group: 'capacity', label: 'Conversaciones al mes', cell: p => num(p.max_sessions_per_month), always: true },
+  { key: 'members', group: 'capacity', label: 'Miembros del equipo', cell: p => num(p.max_team_members), always: true },
+  { key: 'channels', group: 'capacity', label: 'Canales', cell: p => num(p.max_channels), always: true },
+  { key: 'agendas', group: 'capacity', label: 'Agendas', cell: p => num(p.max_agendas) },
+  { key: 'campaigns', group: 'messages', label: 'Mensajes de campaña al mes', cell: p => num(p.max_campaign_messages_per_month) },
+  { key: 'training', group: 'ai', label: 'Entrenamiento PRO del agente', cell: p => flag(p.feature_flags?.agent_training_pro) },
+  { key: 'voice', group: 'ai', label: 'Notas de voz e imágenes con IA', cell: p => flag(p.feature_flags?.ai_voice_notes) },
+  { key: 'crm', group: 'crm', label: 'CRM completo', cell: p => flag(p.feature_flags?.crm_kanban) },
+  { key: 'reports', group: 'crm', label: 'Reportes con KPIs', cell: p => flag(p.feature_flags?.reports_kpis) },
 ]
 
 const sameCell = (a: CompareCell, b: CompareCell) =>
@@ -86,4 +90,21 @@ export function compareRows(plans: ComparablePlan[]): CompareRow[] {
     .map(r => ({ key: r.key, label: r.label, always: r.always, cells: plans.map(r.cell) }))
     .filter(r => r.always || r.cells.some(c => !sameCell(c, r.cells[0])))
     .map(({ key, label, cells }) => ({ key, label, cells }))
+}
+
+/** Las mismas filas de compareRows, agrupadas por tema; los grupos vacíos no salen. */
+export function compareGroups(plans: ComparablePlan[]): CompareGroup[] {
+  const rows = compareRows(plans)
+  return GROUPS
+    .map(g => ({
+      key: g.key,
+      label: g.label,
+      rows: rows.filter(r => ROWS.find(d => d.key === r.key)?.group === g.key),
+    }))
+    .filter(g => g.rows.length > 0)
+}
+
+/** Líneas propias de un plan: quita las que solo dicen "Todo lo de X". */
+export function ownFeatureLines(plan: ComparablePlan): string[] {
+  return featureLines(plan).filter(l => !/^todo lo de\s/i.test(l))
 }

@@ -1,85 +1,101 @@
 'use client'
 
-// Tabla "Comparar todo" de Mi Plan: una columna por plan, filas que salen de
-// compareRows (las que no cambian entre planes no se muestran). La columna del
-// plan elegido arriba se resalta con el acento, y los encabezados también
-// sirven para elegir.
+// Tabla "Comparar planes" de Mi Plan: una columna por plan y las filas
+// agrupadas por tema (compareGroups). Cada grupo muestra unas cuantas filas y
+// el resto detrás de "Ver más". En celular la tabla se desplaza de lado con
+// la columna de etiquetas fija.
 
-import { Check, Lock } from 'lucide-react'
-import { compareRows, formatMXN, pricePerMonthCents, type BillingMode, type ComparablePlan } from '../lib/planCompare'
-import { tierInfo } from '../lib/planTiers'
+import { Fragment, useState } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
+import { compareGroups, type ComparablePlan } from '../lib/planCompare'
+
+const VISIBLE_ROWS = 5
 
 type Props = {
+  id?: string
   plans: ComparablePlan[]
-  selectedSlug: string
-  onSelectedChange: (slug: string) => void
   currentSlug: string | null
-  billingMode: BillingMode
 }
 
-export default function PlanCompareTable({ plans, selectedSlug, onSelectedChange, currentSlug, billingMode }: Props) {
+export default function PlanCompareTable({ id, plans, currentSlug }: Props) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   if (plans.length === 0) return null
-  const rows = compareRows(plans)
-  const colClass = (slug: string) =>
-    `transition-colors duration-300 ${slug === selectedSlug ? 'bg-(--ia-accent)/5' : ''}`
+  const groups = compareGroups(plans)
+  const cols = plans.length + 1
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
-      <h3 className="text-lg font-black text-slate-900 tracking-tight mb-4">Comparar todo</h3>
+    <section id={id} className="scroll-mt-6 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-8">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Comparar planes</h2>
+        <div className="mx-auto mt-3 h-1 w-24 rounded-full bg-(--ia-accent)" />
+      </div>
+
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[480px] text-sm border-separate border-spacing-0">
+        <table className="w-full min-w-[520px] text-sm border-separate border-spacing-0">
           <thead>
             <tr>
-              <th className="w-[32%] sticky left-0 z-10 bg-white" />
-              {plans.map(p => {
-                const Icon = tierInfo(p).icon
-                const active = p.slug === selectedSlug
-                return (
-                  <th key={p.slug} className={`p-0 align-top rounded-t-2xl ${colClass(p.slug)}`}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectedChange(p.slug)}
-                      aria-pressed={active}
-                      className="w-full px-2 py-3 flex flex-col items-center gap-1 group"
-                    >
-                      <span
-                        className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors duration-300 ${
-                          active ? 'bg-(--ia-accent) text-white' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700'
-                        }`}
-                      >
-                        <Icon size={14} />
-                      </span>
-                      <span className={`text-sm font-black transition-colors duration-300 ${active ? 'text-(--ia-accent)' : 'text-slate-900'}`}>{p.name}</span>
-                      <span className="text-[11px] font-bold text-slate-500">{formatMXN(pricePerMonthCents(p, billingMode))}</span>
-                      {p.slug === currentSlug && (
-                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">Tu plan</span>
-                      )}
-                    </button>
-                  </th>
-                )
-              })}
+              <th className="sticky left-0 z-10 bg-white w-[34%] border-b-2 border-(--ia-accent)/15" />
+              {plans.map(p => (
+                <th key={p.slug} className="pb-4 text-center align-bottom border-b-2 border-(--ia-accent)/15">
+                  {p.slug === currentSlug && (
+                    <span className="inline-block mb-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">Tu plan</span>
+                  )}
+                  <span className="block text-sm sm:text-base font-black text-slate-900">{p.name}</span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, ri) => (
-              <tr key={r.key}>
-                <td className="sticky left-0 z-10 bg-white py-3 pr-3 text-slate-700 font-medium border-t border-slate-100 text-[13px] sm:text-sm">{r.label}</td>
-                {r.cells.map((c, i) => {
-                  const slug = plans[i].slug
-                  const last = ri === rows.length - 1
-                  return (
-                    <td key={slug} className={`py-3 text-center border-t border-slate-100 ${colClass(slug)} ${last ? 'rounded-b-2xl' : ''}`}>
-                      {c.kind === 'text' && <span className="font-bold text-slate-900">{c.value}</span>}
-                      {c.kind === 'yes' && <Check size={16} className="inline text-emerald-600 stroke-[3]" aria-label="Incluido" />}
-                      {c.kind === 'no' && <Lock size={14} className="inline text-slate-300" aria-label="No incluido" />}
+            {groups.map(g => {
+              const open = !!expanded[g.key]
+              const rows = open ? g.rows : g.rows.slice(0, VISIBLE_ROWS)
+              const hidden = g.rows.length - VISIBLE_ROWS
+              return (
+                <Fragment key={g.key}>
+                  <tr>
+                    <td colSpan={cols} className="pt-6">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-(--ia-accent)/5 border-l-4 border-(--ia-accent)">
+                        <span className="text-sm sm:text-base font-black text-slate-900">{g.label}</span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white text-(--ia-accent)">{g.rows.length}</span>
+                      </div>
                     </td>
-                  )
-                })}
-              </tr>
-            ))}
+                  </tr>
+                  {rows.map(r => (
+                    <tr key={r.key} className="animate-rise-in motion-reduce:animate-none">
+                      <td className="sticky left-0 z-10 bg-white py-3.5 pl-2 pr-3 text-slate-700 font-medium border-b border-slate-100 text-[13px] sm:text-sm">{r.label}</td>
+                      {r.cells.map((c, i) => (
+                        <td key={plans[i].slug} className="py-3.5 text-center border-b border-slate-100">
+                          {c.kind === 'text' && <span className="font-black text-slate-900">{c.value}</span>}
+                          {c.kind === 'yes' && (
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-(--ia-accent)/15 text-(--ia-accent)" aria-label="Incluido">
+                              <Check size={14} className="stroke-[3]" />
+                            </span>
+                          )}
+                          {c.kind === 'no' && <span className="text-slate-300 font-bold" aria-label="No incluido">—</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  {hidden > 0 && (
+                    <tr>
+                      <td colSpan={cols} className="border-b border-slate-100 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(e => ({ ...e, [g.key]: !open }))}
+                          className="py-3 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-(--ia-accent) hover:underline"
+                        >
+                          {open ? 'Ver menos' : `Ver ${hidden} más`}
+                          <ChevronDown size={14} className={`transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   )
 }

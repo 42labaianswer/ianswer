@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  compareRows, defaultSelectedSlug, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
+  compareGroups, compareRows, ownFeatureLines, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
   type ComparablePlan,
 } from './planCompare'
 
@@ -42,25 +42,6 @@ describe('featureLines', () => {
   })
 })
 
-describe('defaultSelectedSlug', () => {
-  const plans = [plan({ slug: 'lite' }), plan({ slug: 'start' }), plan({ slug: 'growth' })]
-  it('prefiere el plan actual', () => {
-    expect(defaultSelectedSlug(plans, 'start', 'growth')).toBe('start')
-  })
-  it('sin plan actual abre el recomendado', () => {
-    expect(defaultSelectedSlug(plans, null, 'growth')).toBe('growth')
-  })
-  it('si el plan actual ya no se ofrece, abre el recomendado', () => {
-    expect(defaultSelectedSlug(plans, 'legacy', 'growth')).toBe('growth')
-  })
-  it('sin recomendado abre el primero', () => {
-    expect(defaultSelectedSlug(plans, null, 'pro')).toBe('lite')
-  })
-  it('sin planes devuelve null', () => {
-    expect(defaultSelectedSlug([], null, 'growth')).toBeNull()
-  })
-})
-
 describe('compareRows', () => {
   const lite = plan({ slug: 'lite', max_sessions_per_month: 500, max_team_members: 1, max_agendas: 1, max_campaign_messages_per_month: 0 })
   const growth = plan({ slug: 'growth', max_team_members: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
@@ -86,5 +67,26 @@ describe('compareRows', () => {
   it('formatea miles', () => {
     const rows = compareRows([plan({ max_sessions_per_month: 2000 })])
     expect(rows[0].cells[0]).toEqual({ kind: 'text', value: (2000).toLocaleString('es-MX') })
+  })
+})
+
+describe('compareGroups', () => {
+  const lite = plan({ slug: 'lite', max_team_members: 1, max_campaign_messages_per_month: 0 })
+  const growth = plan({ slug: 'growth', max_team_members: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
+
+  it('agrupa por tema y en orden', () => {
+    const groups = compareGroups([lite, growth])
+    expect(groups.map(g => g.key)).toEqual(['capacity', 'messages', 'ai'])
+    expect(groups[0].rows.map(r => r.key)).toEqual(['sessions', 'members', 'channels'])
+  })
+  it('no muestra grupos sin filas', () => {
+    const keys = compareGroups([lite, growth]).map(g => g.key)
+    expect(keys).not.toContain('crm')
+  })
+})
+
+describe('ownFeatureLines', () => {
+  it('quita "Todo lo de X" sin importar mayúsculas', () => {
+    expect(ownFeatureLines(plan({ features: 'Todo lo de Start, escalado\n3 canales\ntodo lo de Growth' }))).toEqual(['3 canales'])
   })
 })
