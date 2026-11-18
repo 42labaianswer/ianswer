@@ -243,6 +243,32 @@ export default function PlansPage() {
   const hasLiveSubscription = !!data?.company?.stripe_subscription_id &&
     ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
 
+  const billingToggle = (
+    <div className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
+      <button
+        type="button"
+        onClick={() => setBillingMode('monthly')}
+        className={`px-5 py-2 text-xs font-bold rounded-full transition-all ${
+          billingMode === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Mensual
+      </button>
+      <button
+        type="button"
+        onClick={() => setBillingMode('yearly')}
+        className={`px-5 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-2 ${
+          billingMode === 'yearly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Anual
+        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+          -{yearlyDiscountBadge}%
+        </span>
+      </button>
+    </div>
+  )
+
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       <PageHeader
@@ -323,56 +349,21 @@ export default function PlansPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            {planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
-          </h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">
-            Elige un plan para ver qué incluye.
-          </p>
-        </div>
-
-        {/* Toggle mensual/anual */}
-        <div className="self-start sm:self-auto inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
-          <button
-            type="button"
-            onClick={() => setBillingMode('monthly')}
-            className={`px-5 py-2 text-xs font-bold rounded-full transition-all ${
-              billingMode === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            Mensual
-          </button>
-          <button
-            type="button"
-            onClick={() => setBillingMode('yearly')}
-            className={`px-5 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-2 ${
-              billingMode === 'yearly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            Anual
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
-              -{yearlyDiscountBadge}%
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Banner admin */}
-      {data?.isAdmin && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
-          <Sparkles size={18} className="text-amber-700 shrink-0" />
-          <p className="text-xs font-bold text-amber-900">
-            Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
-          </p>
-        </div>
-      )}
-
       <div id="plans-grid" className="space-y-6">
         {selectedSlug && (
           <>
             <PlanSelector
+              title={planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
+              subtitle="Elige un plan a la izquierda para ver qué incluye."
+              actions={billingToggle}
+              notice={data?.isAdmin ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+                  <Sparkles size={16} className="text-amber-700 shrink-0" />
+                  <p className="text-xs font-bold text-amber-900">
+                    Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
+                  </p>
+                </div>
+              ) : undefined}
               plans={plans}
               selectedSlug={selectedSlug}
               onSelectedChange={setPickedPlan}

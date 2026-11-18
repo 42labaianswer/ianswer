@@ -24,7 +24,7 @@ export default function PlanCompareTable({ plans, selectedSlug, onSelectedChange
     `transition-colors duration-300 ${slug === selectedSlug ? 'bg-(--ia-accent)/5' : ''}`
 
   return (
-    <div className="bg-white rounded-3xl border-2 border-slate-100 p-4 sm:p-6">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
       <h3 className="text-lg font-black text-slate-900 tracking-tight mb-4">Comparar todo</h3>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[480px] text-sm border-separate border-spacing-0">
