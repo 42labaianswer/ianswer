@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-  compareGroups, compareRows, ownFeatureLines, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
+  aiRepliesOf, usersOf, compareGroups, compareRows, ownFeatureLines, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
   type ComparablePlan,
 } from './planCompare'
 
 const plan = (over: Partial<ComparablePlan> = {}): ComparablePlan => ({
   slug: 'start', tier: 'start', name: 'Start', description: null,
   price_monthly_cents: 150000, price_yearly_cents: 1494000,
-  max_sessions_per_month: 300, max_team_members: 3, max_channels: 1,
+  max_sessions_per_month: 300, max_ai_replies_per_month: 1500, max_reminders_per_month: 500,
+  max_internal_users: 3, max_team_members: 3, max_channels: 1,
   max_agendas: 3, max_campaign_messages_per_month: 50,
   feature_flags: { agent_training_pro: false, ai_voice_notes: true }, features: null,
   ...over,
@@ -43,13 +44,21 @@ describe('featureLines', () => {
 })
 
 describe('compareRows', () => {
-  const lite = plan({ slug: 'lite', max_sessions_per_month: 500, max_team_members: 1, max_agendas: 1, max_campaign_messages_per_month: 0 })
-  const growth = plan({ slug: 'growth', max_team_members: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
+  const lite = plan({ slug: 'lite', max_ai_replies_per_month: 500, max_reminders_per_month: 100, max_internal_users: 1, max_team_members: 1, max_agendas: 1, max_campaign_messages_per_month: 0 })
+  const growth = plan({ slug: 'growth', max_internal_users: 10, max_team_members: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
 
   it('una celda por plan, en el mismo orden', () => {
     const rows = compareRows([lite, growth])
-    const members = rows.find(r => r.key === 'members')!
-    expect(members.cells).toEqual([{ kind: 'text', value: '1' }, { kind: 'text', value: '10' }])
+    const users = rows.find(r => r.key === 'users')!
+    expect(users.cells).toEqual([{ kind: 'text', value: '1' }, { kind: 'text', value: '10' }])
+  })
+  it('respuestas de IA caen a conversaciones si la columna nueva no tiene valor', () => {
+    const rows = compareRows([plan({ max_ai_replies_per_month: 0, max_sessions_per_month: 300 })])
+    expect(rows.find(r => r.key === 'ai_replies')!.cells[0]).toEqual({ kind: 'text', value: '300' })
+  })
+  it('usuarios caen a miembros del equipo si no hay usuarios internos', () => {
+    expect(usersOf(plan({ max_internal_users: 0, max_team_members: 7 }))).toBe(7)
+    expect(aiRepliesOf(lite)).toBe(500)
   })
   it('0 o vacío se muestra como no incluido', () => {
     const rows = compareRows([lite, growth])
@@ -65,19 +74,20 @@ describe('compareRows', () => {
     expect(keys).toContain('channels')
   })
   it('formatea miles', () => {
-    const rows = compareRows([plan({ max_sessions_per_month: 2000 })])
-    expect(rows[0].cells[0]).toEqual({ kind: 'text', value: (2000).toLocaleString('es-MX') })
+    const rows = compareRows([plan({ max_ai_replies_per_month: 2000 })])
+    expect(rows.find(r => r.key === 'ai_replies')!.cells[0]).toEqual({ kind: 'text', value: (2000).toLocaleString('es-MX') })
   })
 })
 
 describe('compareGroups', () => {
-  const lite = plan({ slug: 'lite', max_team_members: 1, max_campaign_messages_per_month: 0 })
-  const growth = plan({ slug: 'growth', max_team_members: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
+  const lite = plan({ slug: 'lite', max_internal_users: 1, max_campaign_messages_per_month: 0 })
+  const growth = plan({ slug: 'growth', max_internal_users: 10, feature_flags: { agent_training_pro: true, ai_voice_notes: true } })
 
   it('agrupa por tema y en orden', () => {
     const groups = compareGroups([lite, growth])
-    expect(groups.map(g => g.key)).toEqual(['capacity', 'messages', 'ai'])
-    expect(groups[0].rows.map(r => r.key)).toEqual(['sessions', 'members', 'channels'])
+    expect(groups.map(g => g.key)).toEqual(['messages', 'capacity', 'ai'])
+    expect(groups[0].rows.map(r => r.key)).toEqual(['ai_replies', 'reminders', 'campaigns'])
+    expect(groups[1].rows.map(r => r.key)).toEqual(['users', 'channels'])
   })
   it('no muestra grupos sin filas', () => {
     const keys = compareGroups([lite, growth]).map(g => g.key)

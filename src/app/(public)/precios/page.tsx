@@ -12,17 +12,20 @@ import PricingCard from '../../../components/public/PricingCard'
 import FAQAccordion from '../../../components/public/FAQAccordion'
 import CTABanner from '../../../components/public/CTABanner'
 import Reveal from '../../../lib/scrollReveal'
-import { MessageCircle, Users, Rocket } from 'lucide-react'
+import { MessageCircle, BellRing, PackagePlus } from 'lucide-react'
+import { yearlyDiscountPct } from '../../../lib/planCompare'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 interface Plan {
   slug: string
-  tier: 'start' | 'growth' | 'scale'
+  tier: 'lite' | 'start' | 'growth' | 'scale'
   name: string
   description: string | null
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
   max_team_members: number
   max_channels: number
   max_locations: number
@@ -68,6 +71,7 @@ export default function PreciosPage() {
 
   const recommendedTier = settings['pricing_recommended_slug'] || 'growth'
   const currency = settings['pricing_currency'] || 'MXN'
+  const yearlyPct = Math.max(0, ...plans.map(p => yearlyDiscountPct(p)))
 
   // Mismo texto que PlanCard en /dashboard/plans: plans.features, una línea por feature
   const buildFeatures = (plan: Plan): string[] =>
@@ -110,9 +114,11 @@ export default function PreciosPage() {
                 }`}
               >
                 Anual
-                <span className="text-[10px] px-2 py-0.5 bg-lime-400 text-slate-950 rounded-full font-black uppercase tracking-wider">
-                  −20%
-                </span>
+                {yearlyPct > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 bg-lime-400 text-slate-950 rounded-full font-black uppercase tracking-wider">
+                    −{yearlyPct}%
+                  </span>
+                )}
               </button>
             </div>
           </Reveal>
@@ -130,7 +136,9 @@ export default function PreciosPage() {
             {error && <p className="text-xs text-red-600 font-mono bg-red-50 px-3 py-2 rounded-lg inline-block">Debug: {error}</p>}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto ${
+            plans.length >= 4 ? 'xl:grid-cols-4 xl:gap-5 max-w-7xl' : 'lg:grid-cols-3 lg:gap-8 max-w-6xl'
+          }`}>
             {plans.map((plan, idx) => {
               const priceMonthly = Math.round((plan.price_monthly_cents || 0) / 100)
               const priceYearly  = plan.price_yearly_cents ? Math.round(plan.price_yearly_cents / 100) : undefined
@@ -174,16 +182,16 @@ export default function PreciosPage() {
                 Lo que necesitas saber
               </p>
               <h2 className="text-4xl md:text-6xl font-black text-slate-950 tracking-[-0.02em] leading-[1.05]">
-                Mismas funciones,<br/>distinto volumen.
+                Cuentan mensajes,<br/>no conversaciones.
               </h2>
             </div>
           </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {[
-              { icon: MessageCircle, title: 'Conversaciones', desc: 'Cada cliente único que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien.' },
-              { icon: Users,         title: 'Miembros',       desc: 'Los miembros son las personas de tu Equipo que atienden a tus clientes (por ejemplo, estilistas o doctores). La IA no cuenta como miembro.' },
-              { icon: Rocket,        title: 'Funciones',      desc: 'Todos los planes traen CRM, calendario y reportes. No bloqueamos features para forzarte a subir.' }
+              { icon: MessageCircle, title: 'Respuestas de IA', desc: 'Cada mensaje que envía la IA cuenta como una respuesta. Lo que te escriben tus clientes y lo que contesta tu equipo desde el CRM no cuenta.' },
+              { icon: BellRing,      title: 'Recordatorios',    desc: 'Cada recordatorio de cita entregado cuenta aparte, con botones para confirmar o reagendar. Ves tu consumo con una barrita en el panel.' },
+              { icon: PackagePlus,   title: 'Add-ons',          desc: 'En todos los planes, incluido Lite: +1,000 respuestas, +1,000 recordatorios y paquetes de mensajes de marketing desde 500.' }
             ].map((item, idx) => (
               <Reveal key={idx} delay={idx * 80}>
                 <div className="bg-[#FAFAF7] border border-slate-200 rounded-3xl p-7 h-full">

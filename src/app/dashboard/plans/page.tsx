@@ -27,6 +27,9 @@ type Plan = {
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
+  max_internal_users?: number | null
   max_team_members: number
   max_channels: number
   max_locations: number

@@ -10,8 +10,13 @@ export type ComparablePlan = {
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  /** Contadores por mensaje (planes_nov_2026.sql). 0 o ausente = aún no configurado. */
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
+  max_internal_users?: number | null
   max_team_members: number
   max_channels: number
+  max_locations?: number | null
   max_agendas?: number | null
   max_campaign_messages_per_month?: number | null
   feature_flags?: Record<string, boolean> | null
@@ -34,6 +39,16 @@ export function yearlyDiscountPct(plan: ComparablePlan): number {
 
 export function formatMXN(cents: number): string {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(cents / 100)
+}
+
+/** Respuestas de IA al mes; si la columna nueva aún no tiene valor, usa el tope de conversaciones. */
+export function aiRepliesOf(plan: ComparablePlan): number {
+  return plan.max_ai_replies_per_month || plan.max_sessions_per_month || 0
+}
+
+/** Usuarios internos del plan; cae a miembros del equipo si no está configurado. */
+export function usersOf(plan: ComparablePlan): number {
+  return plan.max_internal_users || plan.max_team_members || 0
 }
 
 /** Las features vienen como texto libre, una por línea. */
@@ -60,18 +75,20 @@ type RowDef = { key: string; group: GroupKey; label: string; cell: (p: Comparabl
 type GroupKey = 'capacity' | 'messages' | 'ai' | 'crm'
 
 const GROUPS: { key: GroupKey; label: string }[] = [
+  { key: 'messages', label: 'Mensajes al mes' },
   { key: 'capacity', label: 'Capacidad' },
-  { key: 'messages', label: 'Mensajes' },
   { key: 'ai', label: 'Inteligencia artificial' },
   { key: 'crm', label: 'CRM y reportes' },
 ]
 
 const ROWS: RowDef[] = [
-  { key: 'sessions', group: 'capacity', label: 'Conversaciones al mes', cell: p => num(p.max_sessions_per_month), always: true },
-  { key: 'members', group: 'capacity', label: 'Miembros del equipo', cell: p => num(p.max_team_members), always: true },
+  { key: 'ai_replies', group: 'messages', label: 'Respuestas de IA al mes', cell: p => num(aiRepliesOf(p)), always: true },
+  { key: 'reminders', group: 'messages', label: 'Recordatorios de cita al mes', cell: p => num(p.max_reminders_per_month), always: true },
+  { key: 'campaigns', group: 'messages', label: 'Mensajes de marketing incluidos', cell: p => num(p.max_campaign_messages_per_month) },
+  { key: 'users', group: 'capacity', label: 'Usuarios', cell: p => num(usersOf(p)), always: true },
   { key: 'channels', group: 'capacity', label: 'Canales', cell: p => num(p.max_channels), always: true },
+  { key: 'locations', group: 'capacity', label: 'Sucursales', cell: p => num(p.max_locations) },
   { key: 'agendas', group: 'capacity', label: 'Agendas', cell: p => num(p.max_agendas) },
-  { key: 'campaigns', group: 'messages', label: 'Mensajes de campaña al mes', cell: p => num(p.max_campaign_messages_per_month) },
   { key: 'training', group: 'ai', label: 'Entrenamiento PRO del agente', cell: p => flag(p.feature_flags?.agent_training_pro) },
   { key: 'voice', group: 'ai', label: 'Notas de voz e imágenes con IA', cell: p => flag(p.feature_flags?.ai_voice_notes) },
   { key: 'crm', group: 'crm', label: 'CRM completo', cell: p => flag(p.feature_flags?.crm_kanban) },
@@ -82,7 +99,7 @@ const sameCell = (a: CompareCell, b: CompareCell) =>
   a.kind === b.kind && (a.kind !== 'text' || a.value === (b as { value: string }).value)
 
 /**
- * Filas de la tabla comparativa. Las de capacidad siempre salen; las demás
+ * Filas de la tabla comparativa. Las marcadas como always siempre salen; las demás
  * solo si cambian entre planes (una fila igual en todos no ayuda a decidir).
  */
 export function compareRows(plans: ComparablePlan[]): CompareRow[] {

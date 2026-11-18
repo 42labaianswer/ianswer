@@ -21,12 +21,15 @@ import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 type Plan = {
   slug: string
-  tier: 'start' | 'growth' | 'scale'
+  tier: 'lite' | 'start' | 'growth' | 'scale'
   name: string
   description: string | null
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  /** Columnas de planes_nov_2026.sql; undefined si aún no se corre. */
+  max_ai_replies_per_month?: number
+  max_reminders_per_month?: number
   max_team_members: number
   max_internal_users: number
   max_channels: number
@@ -93,6 +96,8 @@ export default function PlansAdminTab() {
           price_monthly_cents: plan.price_monthly_cents,
           price_yearly_cents: plan.price_yearly_cents,
           max_sessions_per_month: plan.max_sessions_per_month,
+          ...(plan.max_ai_replies_per_month !== undefined && { max_ai_replies_per_month: plan.max_ai_replies_per_month }),
+          ...(plan.max_reminders_per_month !== undefined && { max_reminders_per_month: plan.max_reminders_per_month }),
           max_team_members: plan.max_team_members,
           max_internal_users: plan.max_internal_users,
           max_channels: plan.max_channels,
@@ -179,8 +184,14 @@ export default function PlansAdminTab() {
               )}
 
               <div className="text-xs text-slate-500 font-medium space-y-1 mt-3 pt-3 border-t border-slate-100">
+                {plan.max_ai_replies_per_month !== undefined && (
+                  <>
+                    <div className="flex justify-between"><span>Respuestas de IA:</span><strong className="text-slate-900">{plan.max_ai_replies_per_month.toLocaleString('es-MX')}</strong></div>
+                    <div className="flex justify-between"><span>Recordatorios:</span><strong className="text-slate-900">{(plan.max_reminders_per_month ?? 0).toLocaleString('es-MX')}</strong></div>
+                  </>
+                )}
                 <div className="flex justify-between"><span>Conversaciones:</span><strong className="text-slate-900">{plan.max_sessions_per_month.toLocaleString('es-MX')}</strong></div>
-                <div className="flex justify-between"><span>Usuarios:</span><strong className="text-slate-900">{plan.max_team_members}</strong></div>
+                <div className="flex justify-between"><span>Usuarios:</span><strong className="text-slate-900">{plan.max_internal_users || plan.max_team_members}</strong></div>
                 <div className="flex justify-between"><span>Canales:</span><strong className="text-slate-900">{plan.max_channels}</strong></div>
                 <div className="flex justify-between"><span>Sucursales:</span><strong className="text-slate-900">{plan.max_locations}</strong></div>
                 <div className="flex justify-between"><span>Mensajes de campaña:</span><strong className="text-slate-900">{plan.max_campaign_messages_per_month ?? 0}</strong></div>
@@ -292,6 +303,12 @@ function EditPlanSheet({
           {/* ─── Capacidad ─── */}
           <Section title="Capacidad">
             <div className="grid grid-cols-2 gap-3">
+              {draft.max_ai_replies_per_month !== undefined && (
+                <NumField label="Respuestas de IA/mes" value={draft.max_ai_replies_per_month} onChange={v => setDraft({ ...draft, max_ai_replies_per_month: v })} />
+              )}
+              {draft.max_reminders_per_month !== undefined && (
+                <NumField label="Recordatorios/mes" value={draft.max_reminders_per_month} onChange={v => setDraft({ ...draft, max_reminders_per_month: v })} />
+              )}
               <NumField label="Conversaciones/mes" value={draft.max_sessions_per_month} onChange={v => setDraft({ ...draft, max_sessions_per_month: v })} />
               <NumField label="Usuarios" value={draft.max_team_members} onChange={v => setDraft({ ...draft, max_team_members: v })} />
               <NumField label="Internos" value={draft.max_internal_users} onChange={v => setDraft({ ...draft, max_internal_users: v })} />
