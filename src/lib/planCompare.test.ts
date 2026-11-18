@@ -91,7 +91,37 @@ describe('compareGroups', () => {
   })
   it('no muestra grupos sin filas', () => {
     const keys = compareGroups([lite, growth]).map(g => g.key)
-    expect(keys).not.toContain('crm')
+    expect(keys).not.toContain('reports')
+  })
+})
+
+describe('funciones del plan (features_jsonb)', () => {
+  const lite = plan({ slug: 'lite', features_jsonb: { channels: ['whatsapp'], crm: 'basic', payment_links: false, questionnaire: false, team: false, escalation: true, addons: true, import_contacts: false, api: false } })
+  const start = plan({ slug: 'start', features_jsonb: { channels: ['whatsapp', 'instagram', 'facebook'], crm: 'full', payment_links: true, questionnaire: 'addon', team: false, escalation: true, addons: true, import_contacts: false, api: false } })
+  const pro = plan({ slug: 'scale', features_jsonb: { channels: ['whatsapp', 'instagram', 'facebook'], crm: 'full', payment_links: true, questionnaire: true, team: 'per_branch', escalation: true, addons: true, import_contacts: true, api: true } })
+  const cells = (key: string) => compareRows([lite, start, pro]).find(r => r.key === key)?.cells
+
+  it('canales por nombre', () => {
+    expect(cells('channels')).toEqual([
+      { kind: 'text', value: 'WhatsApp' },
+      { kind: 'text', value: 'WhatsApp, Instagram, Facebook' },
+      { kind: 'text', value: 'WhatsApp, Instagram, Facebook' },
+    ])
+  })
+  it('valores de texto del documento', () => {
+    expect(cells('crm')).toEqual([{ kind: 'text', value: 'Mensajes y calendario' }, { kind: 'text', value: 'Completo' }, { kind: 'text', value: 'Completo' }])
+    expect(cells('payment_links')![0]).toEqual({ kind: 'text', value: 'Solo agenda' })
+    expect(cells('questionnaire')).toEqual([{ kind: 'no' }, { kind: 'text', value: 'Add-on' }, { kind: 'yes' }])
+    expect(cells('team')).toEqual([{ kind: 'no' }, { kind: 'no' }, { kind: 'text', value: 'Por sucursal' }])
+  })
+  it('escala a humano y add-ons salen aunque todos los tengan', () => {
+    expect(cells('escalation')).toEqual([{ kind: 'yes' }, { kind: 'yes' }, { kind: 'yes' }])
+    expect(cells('addons')).toBeDefined()
+  })
+  it('sin features_jsonb no salen esas filas', () => {
+    const keys = compareRows([plan(), plan({ slug: 'growth' })]).map(r => r.key)
+    expect(keys).not.toContain('escalation')
+    expect(keys).not.toContain('team')
   })
 })
 

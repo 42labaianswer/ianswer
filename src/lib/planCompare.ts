@@ -2,6 +2,23 @@
 // Todo sale de la tabla plans; agregar un plan (por ejemplo Lite) no requiere
 // tocar la pantalla.
 
+/**
+ * Funciones por plan (plans.features_jsonb), tal como vienen en la sección 10-A
+ * del documento del 13-nov. Todo es opcional: si un plan no las trae, esas
+ * filas no salen en la comparativa.
+ */
+export type PlanFeatures = {
+  channels?: string[]
+  crm?: 'basic' | 'full'
+  payment_links?: boolean
+  questionnaire?: boolean | 'addon'
+  team?: boolean | 'per_branch'
+  escalation?: boolean
+  addons?: boolean
+  import_contacts?: boolean
+  api?: boolean
+}
+
 export type ComparablePlan = {
   slug: string
   tier: string | null
@@ -20,6 +37,7 @@ export type ComparablePlan = {
   max_agendas?: number | null
   max_campaign_messages_per_month?: number | null
   feature_flags?: Record<string, boolean> | null
+  features_jsonb?: PlanFeatures | null
   features: string | null
 }
 
@@ -69,16 +87,40 @@ const n = (v: number) => v.toLocaleString('es-MX')
 const num = (v: number | null | undefined): CompareCell =>
   v && v > 0 ? { kind: 'text', value: n(v) } : { kind: 'no' }
 const flag = (v: boolean | undefined): CompareCell => (v ? { kind: 'yes' } : { kind: 'no' })
+const text = (value: string): CompareCell => ({ kind: 'text', value })
 
-type RowDef = { key: string; group: GroupKey; label: string; cell: (p: ComparablePlan) => CompareCell; always?: boolean }
+const CHANNEL_NAMES: Record<string, string> = { whatsapp: 'WhatsApp', instagram: 'Instagram', facebook: 'Facebook', messenger: 'Messenger', web: 'Web' }
 
-type GroupKey = 'capacity' | 'messages' | 'ai' | 'crm'
+const feat = (p: ComparablePlan): PlanFeatures => p.features_jsonb || {}
+
+/** Canales por nombre si el plan los trae; si no, el número. */
+function channelsCell(p: ComparablePlan): CompareCell {
+  const list = feat(p).channels
+  if (list?.length) return text(list.map(c => CHANNEL_NAMES[c] || c).join(', '))
+  return num(p.max_channels)
+}
+
+type RowDef = {
+  key: string
+  group: GroupKey
+  label: string
+  cell: (p: ComparablePlan) => CompareCell
+  /** Sale aunque sea igual en todos los planes. */
+  always?: boolean
+  /** La fila solo sale si al menos un plan trae el dato. */
+  present?: (p: ComparablePlan) => boolean
+}
+
+type GroupKey = 'capacity' | 'messages' | 'features' | 'ai' | 'reports'
+
+const has = (k: keyof PlanFeatures) => (p: ComparablePlan) => feat(p)[k] !== undefined
 
 const GROUPS: { key: GroupKey; label: string }[] = [
   { key: 'messages', label: 'Mensajes al mes' },
   { key: 'capacity', label: 'Capacidad' },
+  { key: 'features', label: 'Funciones' },
   { key: 'ai', label: 'Inteligencia artificial' },
-  { key: 'crm', label: 'CRM y reportes' },
+  { key: 'reports', label: 'Reportes' },
 ]
 
 const ROWS: RowDef[] = [
@@ -86,13 +128,31 @@ const ROWS: RowDef[] = [
   { key: 'reminders', group: 'messages', label: 'Recordatorios de cita al mes', cell: p => num(p.max_reminders_per_month), always: true },
   { key: 'campaigns', group: 'messages', label: 'Mensajes de marketing incluidos', cell: p => num(p.max_campaign_messages_per_month) },
   { key: 'users', group: 'capacity', label: 'Usuarios', cell: p => num(usersOf(p)), always: true },
-  { key: 'channels', group: 'capacity', label: 'Canales', cell: p => num(p.max_channels), always: true },
+  { key: 'channels', group: 'capacity', label: 'Canales', cell: channelsCell, always: true },
   { key: 'locations', group: 'capacity', label: 'Sucursales', cell: p => num(p.max_locations) },
   { key: 'agendas', group: 'capacity', label: 'Agendas', cell: p => num(p.max_agendas) },
+  { key: 'crm', group: 'features', label: 'CRM', cell: p => {
+      const crm = feat(p).crm
+      if (crm) return crm === 'full' ? text('Completo') : text('Mensajes y calendario')
+      return p.feature_flags?.crm_kanban ? text('Completo') : text('Mensajes y calendario')
+    } },
+  { key: 'payment_links', group: 'features', label: 'Agenda, reagenda y links de pago', present: has('payment_links'),
+    cell: p => (feat(p).payment_links ? { kind: 'yes' } : text('Solo agenda')) },
+  { key: 'questionnaire', group: 'features', label: 'Cuestionario de personalización', present: has('questionnaire'),
+    cell: p => { const q = feat(p).questionnaire; return q === 'addon' ? text('Add-on') : flag(q === true) } },
+  { key: 'team', group: 'features', label: 'Equipo de trabajo (quién atiende qué, horarios y especialidades)', present: has('team'),
+    cell: p => { const t = feat(p).team; return t === 'per_branch' ? text('Por sucursal') : flag(t === true) } },
+  { key: 'escalation', group: 'features', label: 'Escala a humano en urgencias', always: true, present: has('escalation'),
+    cell: p => flag(feat(p).escalation) },
+  { key: 'addons', group: 'features', label: 'Add-ons (mensajes extra y marketing)', always: true, present: has('addons'),
+    cell: p => flag(feat(p).addons) },
+  { key: 'import_contacts', group: 'features', label: 'Importar contactos', present: has('import_contacts'),
+    cell: p => flag(feat(p).import_contacts) },
+  { key: 'api', group: 'features', label: 'Integraciones y API', present: has('api'),
+    cell: p => flag(feat(p).api) },
   { key: 'training', group: 'ai', label: 'Entrenamiento PRO del agente', cell: p => flag(p.feature_flags?.agent_training_pro) },
   { key: 'voice', group: 'ai', label: 'Notas de voz e imágenes con IA', cell: p => flag(p.feature_flags?.ai_voice_notes) },
-  { key: 'crm', group: 'crm', label: 'CRM completo', cell: p => flag(p.feature_flags?.crm_kanban) },
-  { key: 'reports', group: 'crm', label: 'Reportes con KPIs', cell: p => flag(p.feature_flags?.reports_kpis) },
+  { key: 'reports', group: 'reports', label: 'Reportes con KPIs', cell: p => flag(p.feature_flags?.reports_kpis) },
 ]
 
 const sameCell = (a: CompareCell, b: CompareCell) =>
@@ -104,6 +164,7 @@ const sameCell = (a: CompareCell, b: CompareCell) =>
  */
 export function compareRows(plans: ComparablePlan[]): CompareRow[] {
   return ROWS
+    .filter(r => !r.present || plans.some(r.present))
     .map(r => ({ key: r.key, label: r.label, always: r.always, cells: plans.map(r.cell) }))
     .filter(r => r.always || r.cells.some(c => !sameCell(c, r.cells[0])))
     .map(({ key, label, cells }) => ({ key, label, cells }))

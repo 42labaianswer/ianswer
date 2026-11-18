@@ -9,11 +9,12 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import PricingCard from '../../../components/public/PricingCard'
+import PricingCompareTable from '../../../components/public/PricingCompareTable'
 import FAQAccordion from '../../../components/public/FAQAccordion'
 import CTABanner from '../../../components/public/CTABanner'
 import Reveal from '../../../lib/scrollReveal'
-import { MessageCircle, BellRing, PackagePlus } from 'lucide-react'
-import { yearlyDiscountPct } from '../../../lib/planCompare'
+import { MessageCircle, BellRing, PackagePlus, ArrowDown } from 'lucide-react'
+import { yearlyDiscountPct, type ComparablePlan } from '../../../lib/planCompare'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 interface Plan {
@@ -27,8 +28,12 @@ interface Plan {
   max_ai_replies_per_month?: number | null
   max_reminders_per_month?: number | null
   max_team_members: number
+  max_internal_users?: number | null
   max_channels: number
   max_locations: number
+  max_agendas?: number | null
+  max_campaign_messages_per_month?: number | null
+  features_jsonb?: ComparablePlan['features_jsonb']
   features: string | null
   feature_flags: Record<string, any> | null
   is_active: boolean
@@ -170,8 +175,34 @@ export default function PreciosPage() {
           <p className="text-center text-xs text-slate-500 font-medium mt-10">
             Todos los precios en {currency} sin IVA. Sin permanencia. Cambia o cancela cuando quieras.
           </p>
+          {plans.length > 0 && (
+            <p className="text-center mt-4">
+              <a href="#comparar" className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-950 hover:text-lime-600 transition-colors">
+                Ver comparación completa <ArrowDown size={14} />
+              </a>
+            </p>
+          )}
         </Reveal>
       </section>
+
+      {/* COMPARAR PLANES */}
+      {plans.length > 0 && (
+        <section id="comparar" className="scroll-mt-20 max-w-7xl mx-auto px-4 md:px-8 mb-16 md:mb-24">
+          <Reveal>
+            <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+              <p className="text-xs font-bold text-lime-600 uppercase tracking-[0.2em] mb-4">
+                Comparativa
+              </p>
+              <h2 className="text-4xl md:text-6xl font-black text-slate-950 tracking-[-0.02em] leading-[1.05]">
+                Compara los planes
+              </h2>
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <PricingCompareTable plans={plans} recommendedSlug={recommendedTier} billing={billing} />
+          </Reveal>
+        </section>
+      )}
 
       {/* COMPARATIVA */}
       <section className="bg-white border-y border-slate-200 py-20 md:py-32">

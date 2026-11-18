@@ -84,6 +84,17 @@ UPDATE public.plans p SET
 FROM v
 WHERE p.slug = v.slug;
 
+-- Funciones por plan (sección 10-A del documento). Hoy solo las lee la tabla
+-- comparativa; la columna ya existía y no se usaba. No prende ni apaga nada.
+UPDATE public.plans p SET features_jsonb = v.f, updated_at = now()
+FROM (VALUES
+  ('lite',   '{"channels":["whatsapp"],"crm":"basic","payment_links":false,"questionnaire":false,"team":false,"escalation":true,"addons":true,"import_contacts":false,"api":false}'::jsonb),
+  ('start',  '{"channels":["whatsapp","instagram","facebook"],"crm":"full","payment_links":true,"questionnaire":"addon","team":false,"escalation":true,"addons":true,"import_contacts":false,"api":false}'::jsonb),
+  ('growth', '{"channels":["whatsapp","instagram","facebook"],"crm":"full","payment_links":true,"questionnaire":true,"team":true,"escalation":true,"addons":true,"import_contacts":false,"api":false}'::jsonb),
+  ('scale',  '{"channels":["whatsapp","instagram","facebook"],"crm":"full","payment_links":true,"questionnaire":true,"team":"per_branch","escalation":true,"addons":true,"import_contacts":true,"api":true}'::jsonb)
+) AS v (slug, f)
+WHERE p.slug = v.slug;
+
 -- Subtítulo de /precios: ya no se cuenta por conversaciones y los planes se
 -- separan por funciones (documento del 13-nov, sección 1).
 UPDATE public.site_settings
