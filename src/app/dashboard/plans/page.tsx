@@ -7,11 +7,12 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '../../../components/WorkspaceContext'
-import PlanCard from '../../../components/PlanCard'
+import PlanCards from '../../../components/PlanCards'
+import PlanCompareTable from '../../../components/PlanCompareTable'
 import PageHeader from '../../../components/PageHeader'
 import InfoHint from '../../../components/InfoHint'
 import toast from 'react-hot-toast'
-import { CreditCard, Loader2, Sparkles, ExternalLink, Clock, AlertTriangle, Info } from 'lucide-react'
+import { Sparkles, Clock, AlertTriangle, Info } from 'lucide-react'
 import UsageMeter from '../../../components/UsageMeter'
 import BillingSummary from '../../../components/BillingSummary'
 import { useConfirm } from '../../../hooks/useConfirm'
@@ -26,9 +27,15 @@ type Plan = {
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
+  max_internal_users?: number | null
   max_team_members: number
   max_channels: number
   max_locations: number
+  max_agendas: number | null
+  max_campaign_messages_per_month: number | null
+  feature_flags: Record<string, boolean> | null
   features: string | null
   is_active: boolean
   display_order: number
@@ -209,7 +216,7 @@ export default function PlansPage() {
   // plan_slug todavía no se confirmó.
   const currentPlanSlug = data?.company?.plan_slug || data?.company?.selected_plan_slug || 'start'
   const planIsLive = ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
-  const isActive = data?.company?.account_status === 'active'
+  const liveSlug = planIsLive ? currentPlanSlug : null
 
   // Descuento anual real, calculado del primer plan con datos válidos (no hardcodeado):
   // el badge debe coincidir con lo cargado en Stripe/DB. 17 es solo el fallback.
@@ -233,6 +240,32 @@ export default function PlansPage() {
   const hasLiveSubscription = !!data?.company?.stripe_subscription_id &&
     ['trialing', 'active', 'past_due'].includes(data?.company?.subscription_status || '')
 
+  const billingToggle = (
+    <div className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
+      <button
+        type="button"
+        onClick={() => setBillingMode('monthly')}
+        className={`px-5 py-2 text-xs font-bold rounded-full transition-all ${
+          billingMode === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Mensual
+      </button>
+      <button
+        type="button"
+        onClick={() => setBillingMode('yearly')}
+        className={`px-5 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-2 ${
+          billingMode === 'yearly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+        }`}
+      >
+        Anual
+        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+          -{yearlyDiscountBadge}%
+        </span>
+      </button>
+    </div>
+  )
+
   return (
     <div className="animate-in fade-in duration-500 pb-20">
       <PageHeader
@@ -240,8 +273,7 @@ export default function PlansPage() {
           <span className="inline-flex items-center gap-1.5">
             Mi Plan
             <InfoHint label="Cómo funcionan los planes">
-              Sin permanencia. Cambia o cancela cuando quieras. Todas las funciones están incluidas
-              en todos los planes — lo que limita es el volumen y el tamaño del equipo.
+              Sin permanencia. Cambia o cancela cuando quieras. Compara abajo qué incluye cada plan.
             </InfoHint>
           </span>
         }
@@ -291,90 +323,9 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Sub-header con CTA principal centrado */}
-      <div className="text-center mb-12">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-3">
-          Elige el plan correcto para tu equipo
-        </h2>
-
-        {/* Toggle mensual/anual */}
-        <div className="mt-4 inline-flex items-center gap-1 bg-slate-100 p-1 rounded-full">
-          <button
-            type="button"
-            onClick={() => setBillingMode('monthly')}
-            className={`px-5 py-2 text-xs font-bold rounded-full transition-all ${
-              billingMode === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            Mensual
-          </button>
-          <button
-            type="button"
-            onClick={() => setBillingMode('yearly')}
-            className={`px-5 py-2 text-xs font-bold rounded-full transition-all flex items-center gap-2 ${
-              billingMode === 'yearly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            Anual
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
-              -{yearlyDiscountBadge}%
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Banner admin */}
-      {data?.isAdmin && (
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
-          <Sparkles size={18} className="text-amber-700 shrink-0" />
-          <p className="text-xs font-bold text-amber-900">
-            Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
-          </p>
-        </div>
-      )}
-
-      {/* Grid de planes. Container queries (no breakpoints de ventana): el ancho
-          útil depende del sidebar (w-72 desde md), así que con md:grid-cols-3 las
-          tarjetas quedaban aplastadas a media pantalla. 1 → 2 → 3 columnas según
-          el ancho real; en 2 columnas la última tarjeta impar se centra sola. */}
-      <div className="@container">
-      <div id="plans-grid" className="grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6 lg:gap-8">
-        {plans.map(plan => {
-          // Solo es "tu plan actual" si la suscripción sigue viva; con una
-          // cancelada/vencida los 3 planes se pueden elegir para reactivar.
-          const isCurrent = planIsLive && plan.slug === currentPlanSlug
-          const isRecommended = plan.slug === 'growth'
-          return (
-            <PlanCard
-              key={plan.slug}
-              plan={plan}
-              className="@2xl:last:odd:col-span-2 @2xl:last:odd:justify-self-center @2xl:last:odd:w-full @2xl:last:odd:max-w-md @4xl:last:odd:col-span-1 @4xl:last:odd:max-w-none"
-              isCurrent={isCurrent}
-              isRecommended={isRecommended}
-              billingMode={billingMode}
-              isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
-              onSelect={async () => {
-                if (data?.isAdmin) {
-                  const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
-                  if (!ok) return
-                  adminForceMutation.mutate(plan.slug)
-                } else if (hasLiveSubscription) {
-                  // Ya hay suscripción: el cambio de plan va por el portal de
-                  // Stripe (un checkout nuevo crearía una segunda suscripción).
-                  portalMutation.mutate()
-                } else {
-                  subscribeMutation.mutate(plan)
-                }
-              }}
-            />
-          )
-        })}
-      </div>
-      </div>
-
-      {/* Uso de conversaciones + Resumen de facturación */}
+      {/* Tu consumo y facturación del plan actual */}
       {data?.company?.id && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           <UsageMeter
             companyId={data.company.id}
             accentColor={primaryTemplate?.accent_color || '#6366f1'}
@@ -395,32 +346,53 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Footer: gestionar suscripción */}
-      {isActive && data?.company?.stripe_customer_id && (
-        <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-black text-slate-900">Gestionar tu suscripción</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">
-              Cambia tu método de pago, descarga facturas o cancela tu suscripción.
+      <div id="plans-grid" className="space-y-8">
+        <div className="text-center pt-4">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            {planIsLive ? 'Cambiar de plan' : 'Elige tu plan'}
+          </h2>
+          <p className="text-sm sm:text-base text-slate-500 font-medium mt-2 max-w-xl mx-auto">
+            Paga mensual o anual. Sin permanencia: cambia o cancela cuando quieras.
+          </p>
+          <div className="mt-5 flex justify-center">{billingToggle}</div>
+        </div>
+
+        {data?.isAdmin && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+            <Sparkles size={16} className="text-amber-700 shrink-0" />
+            <p className="text-xs font-bold text-amber-900">
+              Modo admin activo: puedes forzar cambios de plan sin pasar por Stripe.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => portalMutation.mutate()}
-            disabled={portalMutation.isPending}
-            className="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl flex items-center gap-2 text-sm transition-colors"
-          >
-            {portalMutation.isPending ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <>
-                Abrir portal
-                <ExternalLink size={14} />
-              </>
-            )}
-          </button>
-        </div>
-      )}
+        )}
+
+        <PlanCards
+          plans={plans}
+          currentSlug={liveSlug}
+          recommendedSlug="growth"
+          billingMode={billingMode}
+          isLoading={subscribeMutation.isPending || adminForceMutation.isPending}
+          compareAnchor="comparar-planes"
+          onChoose={async (chosen) => {
+            const plan = plans.find(p => p.slug === chosen.slug)
+            if (!plan) return
+            if (data?.isAdmin) {
+              const ok = await confirm(`Forzar cambio a plan "${plan.name}" sin cobro?`, { title: 'Forzar cambio de plan', danger: true, confirmText: 'Forzar' })
+              if (!ok) return
+              adminForceMutation.mutate(plan.slug)
+            } else if (hasLiveSubscription) {
+              // Ya hay suscripción: el cambio de plan va por el portal de
+              // Stripe (un checkout nuevo crearía una segunda suscripción).
+              portalMutation.mutate()
+            } else {
+              subscribeMutation.mutate(plan)
+            }
+          }}
+        />
+
+        <PlanCompareTable id="comparar-planes" plans={plans} currentSlug={liveSlug} />
+      </div>
+
       {ConfirmDialog}
     </div>
   )
