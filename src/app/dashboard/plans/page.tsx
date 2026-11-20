@@ -32,6 +32,9 @@ type Plan = {
   max_locations: number
   max_agendas: number | null
   max_campaign_messages_per_month: number | null
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
+  allowed_channels?: string[] | null
   feature_flags: Record<string, boolean> | null
   features: string | null
   is_active: boolean

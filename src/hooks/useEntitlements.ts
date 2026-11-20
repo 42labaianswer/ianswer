@@ -84,15 +84,19 @@ export type EntitlementCapacity = {
   max_agendas: number
   max_bots: number
   max_campaign_messages_per_month: number
+  max_ai_replies_per_month?: number
+  max_reminders_per_month?: number
 }
 
 export type EntitlementPlan = {
   slug: string
-  tier: 'start' | 'growth' | 'scale' | null
+  tier: 'lite' | 'start' | 'growth' | 'scale' | null
   name: string
   description: string | null
   price_monthly_cents: number
   price_yearly_cents: number | null
+  /** whatsapp, instagram, facebook. Ausente en bases sin planes_nov2026.sql. */
+  allowed_channels?: string[] | null
 }
 
 export type InstalledTemplate = {

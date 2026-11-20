@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  compareGroups, compareRows, ownFeatureLines, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
+  channelsLabel, compareGroups, compareRows, hasMessageQuotas, ownFeatureLines, featureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
   type ComparablePlan,
 } from './planCompare'
 
@@ -88,5 +88,38 @@ describe('compareGroups', () => {
 describe('ownFeatureLines', () => {
   it('quita "Todo lo de X" sin importar mayúsculas', () => {
     expect(ownFeatureLines(plan({ features: 'Todo lo de Start, escalado\n3 canales\ntodo lo de Growth' }))).toEqual(['3 canales'])
+  })
+})
+
+describe('planes por mensaje', () => {
+  const lite = plan({ slug: 'lite', max_ai_replies_per_month: 500, max_reminders_per_month: 100, allowed_channels: ['whatsapp'] })
+  const start = plan({ slug: 'start', max_ai_replies_per_month: 1500, max_reminders_per_month: 500, allowed_channels: ['whatsapp', 'instagram', 'facebook'] })
+
+  it('hasMessageQuotas según la columna nueva', () => {
+    expect(hasMessageQuotas(lite)).toBe(true)
+    expect(hasMessageQuotas(plan())).toBe(false)
+  })
+  it('con límites por mensaje muestra respuestas y recordatorios, no conversaciones', () => {
+    const keys = compareRows([lite, start]).map(r => r.key)
+    expect(keys).toContain('ai_replies')
+    expect(keys).toContain('reminders')
+    expect(keys).not.toContain('sessions')
+  })
+  it('sin límites por mensaje muestra conversaciones', () => {
+    const keys = compareRows([plan(), plan({ slug: 'growth' })]).map(r => r.key)
+    expect(keys).toContain('sessions')
+    expect(keys).not.toContain('ai_replies')
+  })
+  it('canales en corto para la tabla', () => {
+    const rows = compareRows([lite, start])
+    expect(rows.find(r => r.key === 'channels')!.cells).toEqual([
+      { kind: 'text', value: 'WhatsApp' }, { kind: 'text', value: 'WA · IG · FB' },
+    ])
+  })
+  it('channelsLabel', () => {
+    expect(channelsLabel(lite)).toBe('Solo WhatsApp')
+    expect(channelsLabel(start)).toBe('WhatsApp, Instagram y Facebook')
+    expect(channelsLabel(plan({ max_channels: 3 }))).toBe('3 canales')
+    expect(channelsLabel(plan({ max_channels: 1 }))).toBe('1 canal')
   })
 })
