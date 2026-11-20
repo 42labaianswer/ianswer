@@ -328,7 +328,7 @@ export default function PlansPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           <UsageMeter
             companyId={data.company.id}
-            accentColor={primaryTemplate?.accent_color || '#6366f1'}
+            onUpgrade={() => document.getElementById('comparar-planes')?.scrollIntoView({ behavior: 'smooth' })}
           />
           <BillingSummary
             companyId={data.company.id}

@@ -25,12 +25,13 @@ import {
 } from 'lucide-react'
 import IAnswerLoader from './IAnswerLoader'
 import { hasDashboardAccess } from '../lib/subscription'
+import { aiRepliesOf } from '../lib/planCompare'
 
 // ============================================================================
 // OnboardingWizard — Stripe obligatorio
 // ----------------------------------------------------------------------------
 // P1: ¿A qué te dedicas?                  → template (cargado de la DB)
-// P2: ¿Cuántas conversaciones recibes?    → sugiere plan (rangos = plans.max_sessions_per_month)
+// P2: ¿Cuántos mensajes contestas al mes? → sugiere plan (rangos = respuestas de IA de cada plan)
 // P3: ¿Cuántos usuarios usarán?           → OCULTO (ENABLE_TEAM_SIZE_STEP)
 // P4: Addons sugeridos (OPCIONAL)         → solo "de interés", no se activan
 // P5: Casi listo                          → nombre + elegir plan → Stripe Checkout
@@ -53,8 +54,8 @@ const USER_BANDS = [
   { id: '6_plus', label: '6 o más usuarios',   description: 'Equipo grande / multi-sucursal',  suggestedPlan: 'scale' as const }
 ]
 
-const PLAN_NAMES = { start: 'Start', growth: 'Growth', scale: 'Scale' }
-type PlanSlug = 'start' | 'growth' | 'scale'
+const PLAN_NAMES: Record<PlanSlug, string> = { lite: 'Lite', start: 'Start', growth: 'Growth', scale: 'Pro' }
+type PlanSlug = 'lite' | 'start' | 'growth' | 'scale'
 type WizardStep = 1 | 2 | 3 | 4 | 5
 
 type PlanRow = {
@@ -63,26 +64,36 @@ type PlanRow = {
   description: string | null
   price_monthly_cents: number
   max_sessions_per_month: number
+  /** Solo en bases con planes_nov_2026.sql. */
+  max_ai_replies_per_month?: number | null
   max_team_members: number
   max_channels: number
   trial_days: number | null
   stripe_price_id: string | null
 }
 
-// Rangos del P2 armados con las conversaciones reales de cada plan (misma
-// fuente que /dashboard/plans y /precios), no escritos a mano.
+// Rangos del P2 armados con las respuestas de IA de cada plan (misma fuente
+// que /dashboard/plans y /precios): un rango por plan, en orden de tamaño.
 function buildVolumeBands(plans: PlanRow[]) {
-  const [start, growth] = plans
-  if (!start || !growth) return []
   const fmt = (n: number) => n.toLocaleString('es-MX')
-  return [
-    { id: 'small',  label: `Hasta ${fmt(start.max_sessions_per_month)}`,
-      range: 'Pocas conversaciones', suggestedPlan: start.slug },
-    { id: 'medium', label: `Entre ${fmt(start.max_sessions_per_month + 1)} y ${fmt(growth.max_sessions_per_month)}`,
-      range: 'Volumen medio', suggestedPlan: growth.slug },
-    { id: 'large',  label: `Más de ${fmt(growth.max_sessions_per_month)}`,
-      range: 'Alto volumen', suggestedPlan: (plans[2] || growth).slug },
-  ]
+  const sized = plans.filter(p => aiRepliesOf(p) > 0)
+  if (sized.length < 2) return []
+  const RANGES = ['Pocos mensajes', 'Volumen medio', 'Volumen alto', 'Muy alto volumen']
+  return sized.map((plan, i) => {
+    const prev = i > 0 ? aiRepliesOf(sized[i - 1]) : 0
+    const label = i === 0
+      ? `Hasta ${fmt(aiRepliesOf(plan))}`
+      : i === sized.length - 1
+        ? `Más de ${fmt(prev)}`
+        : `Entre ${fmt(prev + 1)} y ${fmt(aiRepliesOf(plan))}`
+    return {
+      id: plan.slug,
+      label,
+      range: RANGES[Math.min(i, RANGES.length - 1)],
+      suggestedPlan: plan.slug,
+      suggestedName: plan.name,
+    }
+  })
 }
 
 const ADDON_ICONS: Record<string, any> = {
@@ -111,7 +122,7 @@ function centsToMxn(cents: number): string {
 }
 
 function getMaxPlan(p1: PlanSlug, p2: PlanSlug): PlanSlug {
-  const order = { start: 0, growth: 1, scale: 2 }
+  const order: Record<PlanSlug, number> = { lite: 0, start: 1, growth: 2, scale: 3 }
   return order[p1] >= order[p2] ? p1 : p2
 }
 
@@ -166,14 +177,14 @@ export default function OnboardingWizard() {
     }
   })
 
-  // Planes reales (conversaciones, precio, price_id de Stripe)
+  // Planes reales (respuestas de IA, precio, price_id de Stripe)
   const { data: plans = [] } = useQuery({
     queryKey: ['onboarding-plans'],
     enabled: needsOnboarding,
     queryFn: async (): Promise<PlanRow[]> => {
       const { data, error } = await supabase
         .from('plans')
-        .select('slug, name, description, price_monthly_cents, max_sessions_per_month, max_team_members, max_channels, trial_days, stripe_price_id')
+        .select('*')
         .eq('is_active', true)
         .eq('is_legacy', false)
         .order('display_order')
@@ -564,10 +575,10 @@ export default function OnboardingWizard() {
           {step === 2 && (
             <>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
-                ¿Cuántas conversaciones recibes al mes?
+                ¿Cuántos mensajes contesta tu negocio al mes?
               </h2>
               <p className="text-sm text-slate-500 font-medium mb-8">
-                Cada cliente que te escribe en el mes cuenta como una conversación, sin importar cuántos mensajes intercambien. Es una estimación: te sugerimos un plan con base en esto.
+                Cuenta los mensajes que tu asistente contestaría por ti: cada respuesta que manda la IA cuenta una vez. Es una estimación: te sugerimos un plan con base en esto.
               </p>
               <div className="space-y-3 max-w-xl mx-auto">
                 {volumeBands.length === 0 && (
@@ -591,12 +602,12 @@ export default function OnboardingWizard() {
                         <MessageSquare size={20} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-black text-slate-900 text-lg">{band.label} <span className="text-sm font-bold text-slate-500">conversaciones</span></h3>
+                        <h3 className="font-black text-slate-900 text-lg">{band.label} <span className="text-sm font-bold text-slate-500">mensajes</span></h3>
                         <p className="text-xs text-slate-500 font-medium">{band.range}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] font-bold text-slate-500 uppercase">Plan sugerido</p>
-                        <p className="text-sm font-black text-slate-900">{PLAN_NAMES[band.suggestedPlan]}</p>
+                        <p className="text-sm font-black text-slate-900">{band.suggestedName}</p>
                       </div>
                       {isSelected && <CheckCircle2 size={20} className="text-slate-900 shrink-0" />}
                     </button>
@@ -815,7 +826,7 @@ export default function OnboardingWizard() {
                               {centsToMxn(plan.price_monthly_cents)}<span className="text-xs font-bold text-slate-500"> /mes + IVA</span>
                             </p>
                             <ul className="mt-3 space-y-1 text-xs text-slate-600 font-medium">
-                              <li>{plan.max_sessions_per_month.toLocaleString('es-MX')} conversaciones/mes</li>
+                              <li>{aiRepliesOf(plan).toLocaleString('es-MX')} respuestas de IA al mes</li>
                               <li>{plan.max_team_members} {plan.max_team_members === 1 ? 'usuario' : 'usuarios'}</li>
                               <li>{plan.max_channels} {plan.max_channels === 1 ? 'canal' : 'canales'}</li>
                             </ul>

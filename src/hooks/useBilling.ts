@@ -2,35 +2,24 @@
 
 // src/hooks/useBilling.ts
 // ----------------------------------------------------------------------------
-// Hooks para billing (plan + addons + próximo pago) y uso de sesiones.
+// Hooks para billing (plan + addons + próximo pago) y consumo del periodo.
 // ----------------------------------------------------------------------------
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import type { UsageSummary } from '../lib/usageSummary'
 
-// ─── Uso del mes actual (sesiones) ─────────────────────────────────────────
-export interface UsageData {
-  sessions_used: number
-  sessions_limit: number
-  period_start: string
-  period_end: string
-  pct_used: number
-}
-
-export function useUsageCurrentMonth(companyId: string | undefined) {
+// ─── Consumo del periodo de cobro (respuestas de IA, recordatorios, marketing)
+export function useUsageSummary(companyId: string | undefined) {
   return useQuery({
-    queryKey: ['usage-current-month', companyId],
+    queryKey: ['usage-summary', companyId],
     enabled: !!companyId,
-    queryFn: async (): Promise<UsageData | null> => {
+    queryFn: async (): Promise<UsageSummary | null> => {
       if (!companyId) return null
-      const { data, error } = await supabase.rpc('get_usage_current_month', {
-        p_company_id: companyId,
-      })
+      const { data, error } = await supabase.rpc('get_usage_summary', { p_company_id: companyId })
       if (error) throw error
-      // La RPC devuelve un array con una fila
-      const row = Array.isArray(data) ? data[0] : data
-      return (row as UsageData) || null
+      return (data as UsageSummary) || null
     },
     staleTime: 60 * 1000,
   })

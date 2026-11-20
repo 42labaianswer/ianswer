@@ -24,7 +24,7 @@ import {
   type CampaignTemplate, type TemplateParams,
 } from '../../../lib/campaigns'
 
-interface Usage { used: number; limit: number; remaining: number }
+interface Usage { used: number; limit: number; remaining: number; period_end?: string }
 interface Tag { id: string; name: string; color: string }
 interface CampaignRow {
   id: string
@@ -155,7 +155,7 @@ export default function CampaignsPage() {
     !name.trim() ? 'Ponle un nombre a la campaña' :
     paramsError ? paramsError :
     recipients === 0 ? 'No hay contactos que cumplan el filtro' :
-    overLimit ? `Esta campaña necesita ${recipients} mensajes y te quedan ${remaining} este mes` :
+    overLimit ? `Esta campaña necesita ${recipients} mensajes y te quedan ${remaining} en este periodo` :
     null
 
   const preview = useMemo(() => {
@@ -193,7 +193,7 @@ export default function CampaignsPage() {
         description="Manda una plantilla de marketing aprobada por Meta a tus contactos de WhatsApp. Solo cuentan los mensajes que Meta acepta; los contactos que se dieron de baja nunca la reciben."
       />
 
-      {/* ─── Uso del mes ─── */}
+      {/* ─── Uso del periodo ─── */}
       <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-5">
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
@@ -201,8 +201,12 @@ export default function CampaignsPage() {
               <Megaphone size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">Mensajes de campaña este mes</p>
-              <p className="text-xs text-slate-500">Se reinicia el día 1 de cada mes</p>
+              <p className="text-sm font-bold text-slate-900">Mensajes de marketing de este periodo</p>
+              <p className="text-xs text-slate-500">
+                {usage?.period_end
+                  ? `Se reinicia el ${new Date(usage.period_end).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}`
+                  : 'Se reinicia cada mes en tu fecha de corte'}
+              </p>
             </div>
           </div>
           <div className="text-right">
@@ -343,7 +347,7 @@ export default function CampaignsPage() {
             {overLimit && !counting && (
               <p className="mt-2 text-xs text-rose-600 flex items-start gap-1.5">
                 <AlertCircle size={14} className="shrink-0 mt-px" />
-                Te quedan {remaining} mensajes este mes. Usa filtros para llegar a menos contactos o cambia de plan.
+                Te quedan {remaining} mensajes en este periodo. Usa filtros para llegar a menos contactos o cambia de plan.
               </p>
             )}
           </div>
