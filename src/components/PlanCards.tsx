@@ -7,7 +7,7 @@
 
 import { Check, Loader2, ArrowDown } from 'lucide-react'
 import {
-  channelsLabel, hasMessageQuotas, ownFeatureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct,
+  ownFeatureLines, formatMXN, pricePerMonthCents, yearlyDiscountPct, aiRepliesOf, usersOf,
   type BillingMode, type ComparablePlan,
 } from '../lib/planCompare'
 import { tierInfo } from '../lib/planTiers'
@@ -78,16 +78,12 @@ export default function PlanCards({
 
             <div className="mt-5 rounded-xl border border-(--ia-accent)/15 bg-(--ia-accent)/5 p-4">
               <p className="text-[10px] font-black uppercase tracking-widest text-(--ia-accent)">Cada mes</p>
-              {hasMessageQuotas(plan) ? (
-                <>
-                  <p className="mt-0.5 whitespace-nowrap"><span className="text-base font-black text-slate-900">{n(plan.max_ai_replies_per_month)}</span> <span className="text-sm font-bold text-slate-700">respuestas de IA</span></p>
-                  <p className="whitespace-nowrap"><span className="text-base font-black text-slate-900">{n(plan.max_reminders_per_month)}</span> <span className="text-sm font-bold text-slate-700">recordatorios</span></p>
-                </>
-              ) : (
-                <p className="mt-0.5 whitespace-nowrap"><span className="text-base font-black text-slate-900">{n(plan.max_sessions_per_month)}</span> <span className="text-sm font-bold text-slate-700">conversaciones</span></p>
+              <p className="mt-0.5 whitespace-nowrap"><span className="text-base font-black text-slate-900">{n(aiRepliesOf(plan))}</span> <span className="text-sm font-bold text-slate-700">respuestas de IA</span></p>
+              {!!plan.max_reminders_per_month && (
+                <p className="whitespace-nowrap"><span className="text-base font-black text-slate-900">{n(plan.max_reminders_per_month)}</span> <span className="text-sm font-bold text-slate-700">recordatorios</span></p>
               )}
               <p className="text-xs text-slate-600 font-medium mt-1 @5xl:min-h-8">
-                {channelsLabel(plan)} · {n(plan.max_team_members)} {plan.max_team_members === 1 ? 'usuario' : 'usuarios'} · {n(plan.max_agendas)} {plan.max_agendas === 1 ? 'agenda' : 'agendas'}
+                {n(usersOf(plan))} {usersOf(plan) === 1 ? 'usuario' : 'usuarios'} · {n(plan.max_channels)} {plan.max_channels === 1 ? 'canal' : 'canales'}{(plan.max_locations ?? 1) > 1 ? ` · ${n(plan.max_locations)} sucursales` : ''}
               </p>
               {billingMode === 'yearly' && discount > 0 && (
                 <p className="text-xs font-bold text-emerald-700 mt-1 animate-rise-in motion-reduce:animate-none">

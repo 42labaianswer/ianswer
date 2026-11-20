@@ -27,14 +27,14 @@ type Plan = {
   price_monthly_cents: number
   price_yearly_cents: number | null
   max_sessions_per_month: number
+  max_ai_replies_per_month?: number | null
+  max_reminders_per_month?: number | null
+  max_internal_users?: number | null
   max_team_members: number
   max_channels: number
   max_locations: number
   max_agendas: number | null
   max_campaign_messages_per_month: number | null
-  max_ai_replies_per_month?: number | null
-  max_reminders_per_month?: number | null
-  allowed_channels?: string[] | null
   feature_flags: Record<string, boolean> | null
   features: string | null
   is_active: boolean
