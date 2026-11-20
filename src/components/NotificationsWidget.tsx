@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Bell, Check, MessageSquare, UserCog, CheckCircle2, Trash2 } from 'lucide-react'
+import { Bell, Check, MessageSquare, UserCog, CheckCircle2, Trash2, Gauge } from 'lucide-react'
 
 type Notification = {
   id: string
@@ -82,8 +82,8 @@ export default function NotificationsWidget() {
         // Lanzamos un Toast bonito
         toast.custom((t) => (
           <div className="flex items-start gap-3 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 animate-in slide-in-from-top-2">
-            <div className={`p-2 rounded-full mt-0.5 ${newNotif.type === 'human_request' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'}`}>
-              {newNotif.type === 'human_request' ? <UserCog size={16} /> : <MessageSquare size={16} />}
+            <div className={`p-2 rounded-full mt-0.5 ${notifTone(newNotif.type)}`}>
+              <NotifIcon type={newNotif.type} size={16} />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">{newNotif.title}</p>
@@ -187,9 +187,9 @@ export default function NotificationsWidget() {
                     className={`p-4 flex gap-4 cursor-pointer transition-colors hover:bg-slate-50 ${!notif.is_read ? 'bg-blue-50/20' : 'opacity-70'}`}
                   >
                     <div className={`mt-1 shrink-0 h-10 w-10 rounded-full flex items-center justify-center shadow-sm
-                      ${notif.type === 'human_request' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'}`}
+                      ${notifTone(notif.type)}`}
                     >
-                      {notif.type === 'human_request' ? <UserCog size={18} /> : <MessageSquare size={18} />}
+                      <NotifIcon type={notif.type} size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm truncate ${!notif.is_read ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>{notif.title}</p>
@@ -209,4 +209,17 @@ export default function NotificationsWidget() {
       )}
     </div>
   )
+}
+
+function notifTone(type: string): string {
+  if (type === 'human_request') return 'bg-rose-100 text-rose-600'
+  if (type === 'usage_100') return 'bg-red-100 text-red-600'
+  if (type === 'usage_80') return 'bg-amber-100 text-amber-600'
+  return 'bg-blue-100 text-blue-600'
+}
+
+function NotifIcon({ type, size }: { type: string; size: number }) {
+  if (type === 'human_request') return <UserCog size={size} />
+  if (type.startsWith('usage_')) return <Gauge size={size} />
+  return <MessageSquare size={size} />
 }
