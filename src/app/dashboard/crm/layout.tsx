@@ -12,8 +12,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Users, ListChecks, Bell, Tag as TagIcon
+  Users, ListChecks, Bell, Tag as TagIcon, Lock
 } from 'lucide-react'
+import { useEntitlements } from '../../../hooks/useEntitlements'
+import { planLockFor } from '../../../lib/planLocks'
 
 const TABS = [
   { slug: 'clientes',      label: 'Clientes',       icon: Users,      title: 'Clientes',        description: 'Tu base de contactos y prospectos.' },
@@ -26,6 +28,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const currentSlug = pathname.split('/').filter(Boolean).pop() || 'clientes'
   const currentTab = TABS.find(t => t.slug === currentSlug) || TABS[0]
+  const { data: entitlements } = useEntitlements()
+  const planFeatures = entitlements?.features as Record<string, boolean | undefined> | undefined
+  const isLocked = (slug: string) => !!planLockFor(`/dashboard/crm/${slug}`, planFeatures)
 
   return (
     <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] bg-slate-50">
@@ -48,6 +53,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               >
                 <Icon size={14} className={isActive ? 'text-white' : 'text-slate-400'} />
                 <span>{tab.label}</span>
+                {isLocked(tab.slug) && <Lock size={11} className={isActive ? 'text-white/70' : 'text-slate-400'} aria-label="No incluido en tu plan" />}
               </Link>
             )
           })}
@@ -81,7 +87,8 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon size={16} className={isActive ? 'text-white' : 'text-slate-400'} />
-                  <span>{tab.label}</span>
+                  <span className={`flex-1 ${isLocked(tab.slug) && !isActive ? 'opacity-60' : ''}`}>{tab.label}</span>
+                  {isLocked(tab.slug) && <Lock size={13} className={isActive ? 'text-white/70' : 'text-slate-400'} aria-label="No incluido en tu plan" />}
                 </Link>
               )
             })}

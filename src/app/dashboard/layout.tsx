@@ -16,6 +16,7 @@ import ServerThemeHydrator from '../../components/ServerThemeHydrator'
 import { getServerTheme } from '../../lib/getServerTheme'
 import { headers } from 'next/headers'
 import { GATE_HEADER } from '../../lib/dashboardGate'
+import PlanLockGate from '../../components/PlanLockGate'
 
 // ============================================================================
 // DashboardLayout - Server-resolved theme
@@ -78,7 +79,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <TrialBanner />
               <DashboardHeader />
               <MainContainer>
-                {children}
+                <PlanLockGate>{children}</PlanLockGate>
               </MainContainer>
             </div>
           </div>

@@ -79,6 +79,10 @@ export default function ConnectivityPage() {
   const maxChannels = entitlements?.capacity?.max_channels ?? 1
   const usedChannels = connectedPlatforms.length
   const atLimit = usedChannels >= maxChannels
+  // Canales que incluye el plan (Lite: solo WhatsApp). Sin la lista, todos.
+  const allowedChannels = entitlements?.plan?.allowed_channels
+  const notInPlan = (p: Platform) =>
+    !!allowedChannels && !allowedChannels.includes(p === 'messenger' ? 'facebook' : p)
 
   // ⚠️ `route` (carpeta real en /dashboard/connectivity/*) y `platform` (valor
   // que vive en la tabla `integrations`, con CHECK whatsapp/messenger/instagram)
@@ -153,14 +157,19 @@ export default function ConnectivityPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {channels.map((channel) => {
           const isConnected = isPlatformConnected(channel.platform)
+          const locked = !isConnected && notInPlan(channel.platform)
 
           return (
-            <div key={channel.route} className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col group">
+            <div key={channel.route} className={`bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col group ${locked ? 'opacity-75' : ''}`}>
               <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-2xl ${channel.bgIcon} ${channel.color} border border-slate-100`}>
+                <div className={`p-3 rounded-2xl ${channel.bgIcon} ${channel.color} border border-slate-100 ${locked ? 'grayscale' : ''}`}>
                   <channel.icon size={24} strokeWidth={2} />
                 </div>
-                {channel.badge && (
+                {locked ? (
+                  <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-full border border-slate-200 inline-flex items-center gap-1">
+                    <Lock size={10} /> No incluido
+                  </span>
+                ) : channel.badge && (
                   <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-full border border-slate-200">
                     {channel.badge}
                   </span>
@@ -169,9 +178,17 @@ export default function ConnectivityPage() {
 
               <h3 className="font-bold text-slate-900 text-lg mb-2">{channel.name}</h3>
               <p className="text-sm text-slate-500 flex-1 leading-relaxed mb-6">
-                {channel.description}
+                {locked ? 'Tu plan incluye solo WhatsApp. Este canal viene desde el plan Start.' : channel.description}
               </p>
 
+              {locked ? (
+                <button
+                  onClick={() => router.push('/dashboard/plans')}
+                  className="w-full py-2.5 text-sm font-bold rounded-xl border transition-all flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900"
+                >
+                  <Lock size={14} /> Mejorar plan
+                </button>
+              ) : (
               <button
                 onClick={() => {
                   // Si está al límite y no es uno ya conectado, redirigir al addon
@@ -198,6 +215,7 @@ export default function ConnectivityPage() {
                     : 'Conectar Canal'
                 }
               </button>
+              )}
             </div>
           )
         })}

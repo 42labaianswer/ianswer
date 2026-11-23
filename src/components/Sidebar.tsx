@@ -11,13 +11,15 @@ import { useMobileSidebar } from './MobileSidebarContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
 import { useBlockedNavigation } from '../hooks/useBlockedNavigation'
 import { ROUTES } from '../lib/routes'
+import { useEntitlements } from '../hooks/useEntitlements'
+import { planLockFor } from '../lib/planLocks'
 
 import {
   LayoutDashboard, MessageSquare, Plug, Settings, Zap,
   Calendar, BarChart3, BrainCircuit, Stethoscope,
   ShieldAlert, X,
   Home, Utensils, UserSquare, UserCog, Megaphone, Sparkles,
-  PackageOpen, Layers, CreditCard, ClipboardList
+  PackageOpen, Layers, CreditCard, ClipboardList, Lock
 } from 'lucide-react'
 
 // ============================================================================
@@ -35,6 +37,8 @@ type MenuItem = {
   icon: any
   show: boolean
   badgeKey?: string
+  /** Prefijo para marcarlo activo cuando href no es la raíz de la sección. */
+  activePrefix?: string
 }
 
 export default function Sidebar() {
@@ -42,6 +46,10 @@ export default function Sidebar() {
   const { platform, modules, primaryTemplate } = useWorkspace()
   const isAdmin = useIsAdmin()
   const guardClick = useBlockedNavigation()
+  const { data: entitlements } = useEntitlements()
+  const planFeatures = entitlements?.features as Record<string, boolean | undefined> | undefined
+  // Si el plan no incluye Clientes (Lite), el Gestor abre en Recordatorios.
+  const crmHref = planLockFor('/dashboard/crm/clientes', planFeatures) ? '/dashboard/crm/recordatorios' : '/dashboard/crm'
 
   console.log('[Sidebar] isAdmin =', isAdmin)
 
@@ -78,7 +86,7 @@ export default function Sidebar() {
     { name: 'Mensajes',           href: '/dashboard/inbox',        icon: MessageSquare,   show: true },
     { name: 'Agente AI',          href: '/dashboard/ai-agent',     icon: BrainCircuit,    show: true },
     { name: 'Equipo',             href: ROUTES.team,               icon: UserCog,         show: true },
-    { name: 'Gestor de Clientes', href: '/dashboard/crm',          icon: UserSquare,      show: true, badgeKey: 'overdue_tasks' },
+    { name: 'Gestor de Clientes', href: crmHref,                  icon: UserSquare,      show: true, badgeKey: 'overdue_tasks', activePrefix: '/dashboard/crm' },
     { name: 'Campañas',           href: '/dashboard/campaigns',    icon: Megaphone,       show: true },
     { name: 'Calendario',         href: '/dashboard/calendar',     icon: Calendar,        show: !!modules.calendar },
     { name: 'Propiedades',        href: '/dashboard/properties',   icon: Home,            show: !!modules.properties },
@@ -102,11 +110,13 @@ export default function Sidebar() {
 
   const renderItem = (item: MenuItem) => {
     const Icon = item.icon
+    const sectionRoot = item.activePrefix || item.href
     const isActive =
-      (pathname?.startsWith(item.href) && item.href !== '/dashboard') ||
+      (pathname?.startsWith(sectionRoot) && sectionRoot !== '/dashboard') ||
       pathname === item.href
 
     const badgeValue = item.badgeKey ? (badges as any)[item.badgeKey] : 0
+    const locked = !!planLockFor(item.href, planFeatures)
 
     return (
       <Link
@@ -121,7 +131,8 @@ export default function Sidebar() {
         style={isActive ? { backgroundColor: accentColor } : {}}
       >
         <Icon size={18} className={isActive ? 'text-white' : 'group-hover:text-white transition-colors'} />
-        <span className="flex-1 font-bold text-sm">{item.name}</span>
+        <span className={`flex-1 font-bold text-sm ${locked && !isActive ? 'opacity-60' : ''}`}>{item.name}</span>
+        {locked && <Lock size={13} className="text-white/50" aria-label="No incluido en tu plan" />}
         {badgeValue > 0 && (
           <span
             className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
