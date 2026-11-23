@@ -1,5 +1,5 @@
 // Parte de servidor de las campañas: plantillas del WABA, destinatarios y uso
-// del mes. Requiere un cliente con service_role.
+// del periodo de cobro. Requiere un cliente con service_role.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { GRAPH } from './metaGraph'
@@ -19,6 +19,8 @@ export interface CampaignUsage {
   limit: number
   remaining: number
   period_start: string
+  /** Cuándo se reinicia el saldo (lo agrega contadores_nov_2026.sql). */
+  period_end?: string
 }
 
 export async function getCampaignUsage(admin: SupabaseClient, companyId: string): Promise<CampaignUsage> {

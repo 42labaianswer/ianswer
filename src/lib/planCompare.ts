@@ -60,7 +60,7 @@ export function formatMXN(cents: number): string {
 }
 
 /** Respuestas de IA al mes; si la columna nueva aún no tiene valor, usa el tope de conversaciones. */
-export function aiRepliesOf(plan: ComparablePlan): number {
+export function aiRepliesOf(plan: Pick<ComparablePlan, 'max_ai_replies_per_month' | 'max_sessions_per_month'>): number {
   return plan.max_ai_replies_per_month || plan.max_sessions_per_month || 0
 }
 
