@@ -31,7 +31,7 @@ export default function PageHeader({ eyebrow, title, description, actions }: Pag
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 mb-4 md:mb-6 px-4 md:px-8 py-4 md:py-5 bg-white border-b border-slate-200">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 sm:min-w-[14rem]">
           {eyebrow && (
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
               {eyebrow}
@@ -47,7 +47,7 @@ export default function PageHeader({ eyebrow, title, description, actions }: Pag
           )}
         </div>
         {actions && (
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-2 flex-wrap sm:justify-end">
             {actions}
           </div>
         )}
