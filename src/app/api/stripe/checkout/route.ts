@@ -127,6 +127,9 @@ export async function POST(req: Request) {
         locale: 'es-419',
         payment_method_types: ['card'],
         line_items: [{ price: priceId, quantity: 1 }],
+        // Campo "Agregar código promocional": los cupones y sus códigos se
+        // crean en el dashboard de Stripe.
+        allow_promotion_codes: true,
         metadata: {
           companyId,
           planSlug,

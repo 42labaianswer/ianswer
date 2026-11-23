@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       customer: customerId,
       mode: isOneTime ? 'payment' : 'subscription',
       payment_method_types: ['card'],
+      allow_promotion_codes: true,
       line_items: [{
         price: addon.stripe_price_id,
         quantity: 1,
