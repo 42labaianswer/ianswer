@@ -8,7 +8,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -21,7 +21,7 @@ import {
   ArrowRight, ArrowLeft, Loader2, MessageSquare, Users,
   Building2, CheckCircle2, X, PackageOpen, Layers,
   FileText, Phone, Plug, ShieldCheck, Zap, Wrench, GraduationCap,
-  TrendingUp, Palette, LifeBuoy, Info
+  TrendingUp, Palette, LifeBuoy, Info, AlertCircle
 } from 'lucide-react'
 import IAnswerLoader from './IAnswerLoader'
 import { hasDashboardAccess } from '../lib/subscription'
@@ -131,6 +131,9 @@ export default function OnboardingWizard() {
   const [userBand, setUserBand] = useState<typeof USER_BANDS[number]['id'] | null>(null)
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [companyName, setCompanyName] = useState('')
+  // Error del nombre: se muestra al intentar continuar sin él, y se quita al escribir.
+  const [nameError, setNameError] = useState<string | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   // Estado aparte para "Salir por ahora": si usara isSaving, el botón principal
   // del P5 mostraría "Abriendo Stripe..." aunque no se va a Stripe.
@@ -435,7 +438,7 @@ export default function OnboardingWizard() {
     (step === 2 && !!volumeBand) ||
     (step === 3 && !!userBand) ||
     step === 4 ||
-    (step === 5 && companyName.trim().length >= 2 && plans.length > 0)
+    (step === 5 && plans.length > 0)
 
   if (loading) return null
   if (!needsOnboarding) return null
@@ -766,19 +769,32 @@ export default function OnboardingWizard() {
               <div className="max-w-3xl mx-auto space-y-6">
                 {/* Input nombre */}
                 <div className="max-w-xl mx-auto">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">
-                    Nombre de tu negocio
+                  <label htmlFor="onboarding-company-name" className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">
+                    Nombre de tu negocio <span className="text-rose-500">*</span>
                   </label>
+                  <p className="text-xs text-slate-500 font-medium mb-2">Así te verán tus clientes en WhatsApp.</p>
                   <input
+                    ref={nameInputRef}
+                    id="onboarding-company-name"
                     type="text"
                     value={companyName}
-                    onChange={e => setCompanyName(e.target.value)}
-                    placeholder="Nombre de tu negocio"
-                    className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 rounded-xl outline-none focus:border-slate-900 text-base font-bold transition-colors"
+                    onChange={e => { setCompanyName(e.target.value); if (nameError) setNameError(null) }}
+                    placeholder="Tu negocio"
+                    aria-invalid={!!nameError}
+                    aria-describedby={nameError ? 'onboarding-company-name-error' : undefined}
+                    className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl outline-none text-base font-bold transition-colors placeholder:font-medium placeholder:text-slate-400 placeholder:[-webkit-text-fill-color:#94a3b8] ${
+                      nameError ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 focus:border-slate-900'
+                    }`}
                     style={{ color: '#0f172a', WebkitTextFillColor: '#0f172a', caretColor: '#0f172a' }}
                     autoFocus
                     autoComplete="off"
                   />
+                  {nameError && (
+                    <p id="onboarding-company-name-error" role="alert" className="mt-2 flex items-center gap-1.5 text-xs font-bold text-rose-600">
+                      <AlertCircle size={14} className="shrink-0" />
+                      {nameError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Selector de plan */}
@@ -930,8 +946,14 @@ export default function OnboardingWizard() {
             )}
             <button
               onClick={() => {
-                if (step === 5) handleComplete()
-                else goNext()
+                if (step === 5) {
+                  if (companyName.trim().length < 2) {
+                    setNameError('Escribe el nombre de tu negocio (mínimo 2 letras).')
+                    nameInputRef.current?.focus()
+                    return
+                  }
+                  void handleComplete()
+                } else goNext()
               }}
               disabled={!canAdvance || isSaving || isExiting}
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
