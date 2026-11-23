@@ -952,7 +952,7 @@ export default function OnboardingWizard() {
                     nameInputRef.current?.focus()
                     return
                   }
-                  handleComplete()
+                  void handleComplete()
                 } else goNext()
               }}
               disabled={!canAdvance || isSaving || isExiting}
