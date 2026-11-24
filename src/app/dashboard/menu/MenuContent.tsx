@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import BatchPublishBar, { PublishDot } from '../../../components/BatchPublishBar'
 
-import { hasCap, useAppCapability, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
+import { hasCap, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
 import MenuItemDrawer, { MenuItem } from '../../../components/MenuItemDrawer'
 import MenuImportWizard from '../../../components/MenuImportWizard'
 import PageHeader from '../../../components/PageHeader'
@@ -36,8 +36,8 @@ function MenuContent() {
   const { primaryTemplate: vertical } = useWorkspace()
   const accentColor = vertical?.accent_color || '#ea580c'
 
-  const canPdfImport     = useFeature('ai_pdf_wizard')
-  const canPublicCatalog = useAppCapability('menu', 'public_catalog')
+  const canPdfImport     = useFeature('menu_pdf_import')
+  const canPublicCatalog = useFeature('menu_public_catalog')
   const maxItems         = useAppLimit('menu', 'max_menu_items')
 
   const [companyId, setCompanyId] = useState<string>('')

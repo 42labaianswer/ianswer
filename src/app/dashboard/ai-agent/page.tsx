@@ -656,10 +656,15 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
                   <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-4"><GraduationCap size={26} /></div>
                   <h3 className="font-black text-slate-900 mb-1">Entrenamiento PRO</h3>
-                  <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">Entrena a tu agente como a un empleado nuevo: un asistente te entrevista sobre cómo trabaja tu empresa y genera un documento que el agente consulta en cada conversación. Incluido en los planes Growth y Scale.</p>
-                  <a href="/dashboard/plans" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold" style={{ backgroundColor: accent }}>
-                    <Lock size={15} /> Ver planes
-                  </a>
+                  <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">Entrena a tu agente como a un empleado nuevo: un asistente te entrevista sobre cómo trabaja tu empresa y genera un documento que el agente consulta en cada conversación. Viene incluido en Growth y Pro; en Lite y Start lo puedes agregar como complemento.</p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <a href="/dashboard/addons" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold" style={{ backgroundColor: accent }}>
+                      <Lock size={15} /> Agregar complemento
+                    </a>
+                    <a href="/dashboard/plans" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
+                      Ver planes
+                    </a>
+                  </div>
                 </div>
               )
             )}

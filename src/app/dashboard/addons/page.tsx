@@ -41,7 +41,14 @@ type AddonRow = {
   display_order: number
   feature_flags?: Record<string, boolean>
   capacity_grants?: Record<string, number>
+  credit_grants?: Record<string, number>
+  pack_group?: string | null
+  plan_ok?: boolean
 }
+
+// Con pocos add-ons los chips de categoría sobran (la mayoría quedaban
+// vacíos). Prender cuando el catálogo crezca.
+const SHOW_CATEGORY_FILTERS = false
 
 const CATEGORIES = [
   { id: 'all',      label: 'Todos' },
@@ -74,6 +81,16 @@ export default function AddonsPage() {
 
   // Loading state de la mutación
   const isMutating = activate.isPending || activateAsAdmin.isPending
+
+  // Paquetes del mismo grupo (marketing 500 … 10,000): la tienda muestra uno
+  // solo y el modal deja elegir la cantidad.
+  const packsByGroup = useMemo(() => {
+    const groups: Record<string, AddonRow[]> = {}
+    for (const a of (Array.isArray(catalog) ? (catalog as AddonRow[]) : [])) {
+      if (a?.pack_group) (groups[a.pack_group] ||= []).push(a)
+    }
+    return groups
+  }, [catalog])
 
   const handleActivate = (addon: AddonRow) => {
     if (isAdmin) {
@@ -114,8 +131,15 @@ export default function AddonsPage() {
     try {
       const safeCatalog = Array.isArray(catalog) ? (catalog as AddonRow[]) : []
 
-      for (const addon of safeCatalog) {
+      for (let addon of safeCatalog) {
         if (!addon || typeof addon !== 'object' || !addon.id) continue
+
+        // De cada grupo de paquetes solo entra el primero, con el nombre del grupo.
+        if (addon.pack_group) {
+          const first = safeCatalog.find(a => a?.pack_group === addon.pack_group)
+          if (first?.id !== addon.id) continue
+          addon = { ...addon, short_name: undefined }
+        }
 
         // Filtro de categoría
         if (categoryFilter !== 'all' && addon.category !== categoryFilter) continue
@@ -182,7 +206,7 @@ export default function AddonsPage() {
       )}
 
       {/* Barra de búsqueda */}
-      <div className="relative mb-4">
+      <div className={`relative ${SHOW_CATEGORY_FILTERS ? 'mb-4' : 'mb-8'}`}>
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         <input
           type="text"
@@ -210,6 +234,7 @@ export default function AddonsPage() {
       </div>
 
       {/* Chips de categoría */}
+      {SHOW_CATEGORY_FILTERS && (
       <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
         {CATEGORIES.map(c => (
           <button
@@ -226,6 +251,7 @@ export default function AddonsPage() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Secciones por template instalado */}
       {safeInstalledTemplates.map(tpl => {
@@ -306,12 +332,17 @@ export default function AddonsPage() {
       {/* Modal de detalle */}
       <AddonDetailModal
         addon={selectedAddon}
+        packOptions={selectedAddon?.pack_group ? packsByGroup[selectedAddon.pack_group] : undefined}
         isActive={selectedAddon ? activeIds.has(selectedAddon.id) : false}
         isAdmin={isAdmin}
         isLoading={isMutating}
         isDeactivating={deactivateAsAdmin.isPending}
         onClose={() => setSelectedAddon(null)}
-        onActivate={() => selectedAddon && handleActivate(selectedAddon)}
+        onActivate={(chosenId) => {
+          if (!selectedAddon) return
+          const pack = chosenId ? (catalog as AddonRow[]).find(a => a.id === chosenId) : undefined
+          handleActivate(pack ?? selectedAddon)
+        }}
         onDeactivate={() =>
           selectedAddon &&
           deactivateAsAdmin.mutate(

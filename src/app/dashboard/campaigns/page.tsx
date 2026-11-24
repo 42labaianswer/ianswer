@@ -14,9 +14,11 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import {
   Megaphone, Send, Users, Loader2, AlertCircle, CheckCircle2,
-  FileText, RefreshCw, Image as ImageIcon, XCircle, Plug,
+  FileText, RefreshCw, Image as ImageIcon, XCircle, Plug, Lock,
 } from 'lucide-react'
 import PageHeader from '../../../components/PageHeader'
+import { useCampaignsLocked } from '../../../hooks/useCampaignAccess'
+import { useIsAdmin } from '../../../hooks/useIsAdmin'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import {
@@ -63,6 +65,59 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
 const templateKey = (t: { name: string; language: string }) => `${t.name}::${t.language}`
 
 export default function CampaignsPage() {
+  const locked = useCampaignsLocked()
+  const isAdmin = useIsAdmin()
+
+  if (locked && isAdmin !== true) return <CampaignsLocked />
+  return (
+    <>
+      {locked && (
+        <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 px-4 md:px-8 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-xs font-bold text-amber-900">
+          <Lock size={14} className="text-amber-700 shrink-0" />
+          El plan de esta cuenta no incluye mensajes de marketing. La ves porque eres admin.
+        </div>
+      )}
+      <div className={locked ? 'pt-4 md:pt-6' : ''}>
+        <CampaignsContent />
+      </div>
+    </>
+  )
+}
+
+// Solo el plan Pro trae mensajes de marketing; en los demás se compran por
+// paquete y Campañas se abre en cuanto hay saldo.
+function CampaignsLocked() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center animate-rise-in motion-reduce:animate-none">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-(--ia-accent)/10 text-(--ia-accent) mb-4">
+          <Megaphone size={22} />
+        </span>
+        <h1 className="text-xl font-black text-slate-900 tracking-tight">Campañas viene en el plan Pro</h1>
+        <p className="text-sm text-slate-500 font-medium leading-relaxed mt-2">
+          Manda promociones a tus contactos por WhatsApp. Pro incluye 500 mensajes de marketing al mes; en tu plan
+          puedes comprar un paquete desde 500 mensajes, válido por 3 meses.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            href="/dashboard/addons"
+            className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 rounded-xl bg-(--ia-accent) text-white text-sm font-bold hover:brightness-110 transition"
+          >
+            Comprar mensajes de marketing
+          </Link>
+          <Link
+            href="/dashboard/plans"
+            className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition"
+          >
+            Ver planes
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CampaignsContent() {
   const funnels = useWorkspace(s => s.funnels)
 
   const qc = useQueryClient()
@@ -151,7 +206,7 @@ export default function CampaignsPage() {
 
   const blocker =
     !whatsappConnected ? 'Conecta WhatsApp para mandar campañas' :
-    usage && usage.limit === 0 ? 'Tu plan no incluye mensajes de campaña' :
+    usage && usage.limit === 0 ? 'Compra un paquete de mensajes de marketing para mandar campañas' :
     !name.trim() ? 'Ponle un nombre a la campaña' :
     paramsError ? paramsError :
     recipients === 0 ? 'No hay contactos que cumplan el filtro' :
@@ -217,10 +272,20 @@ export default function CampaignsPage() {
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <div className={`h-full rounded-full ${pct >= 90 ? 'bg-rose-500' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
         </div>
-        {usage && usage.limit === 0 && (
-          <p className="mt-3 text-xs text-slate-600">
-            Tu plan no incluye mensajes de campaña. <Link href="/dashboard/plans" className="font-bold text-indigo-600 hover:underline">Ver planes</Link>
-          </p>
+        {usage && usage.remaining === 0 && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+            <p className="text-xs text-indigo-900">
+              {usage.limit === 0
+                ? 'Los mensajes de marketing vienen incluidos solo en el plan Pro. En tu plan los compras por paquete: desde 500 mensajes, válidos por 3 meses.'
+                : 'Ya usaste todos tus mensajes de marketing. Compra un paquete para seguir mandando campañas; vale 3 meses.'}
+            </p>
+            <Link
+              href="/dashboard/addons"
+              className="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold"
+            >
+              Comprar mensajes
+            </Link>
+          </div>
         )}
       </div>
 

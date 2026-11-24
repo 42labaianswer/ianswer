@@ -1,7 +1,7 @@
 ﻿ 
 
 import { NextResponse } from 'next/server'
-import { requireActiveCompany, isOwnStorageUrl } from '../../../lib/apiAuth'
+import { requireActiveCompany, isOwnStorageUrl, companyHasFeature, ADDON_REQUIRED_ERROR } from '../../../lib/apiAuth'
 import { extractText, getDocumentProxy } from 'unpdf'
 
 /**
@@ -41,6 +41,9 @@ export async function POST(req: Request) {
   try {
     const auth = await requireActiveCompany()
     if (!auth.ok) return auth.response
+    if (!(await companyHasFeature(auth.supabase, auth.companyId, 'ai_pdf_wizard_properties'))) {
+      return NextResponse.json({ error: ADDON_REQUIRED_ERROR }, { status: 403 })
+    }
 
     const { pdf_url } = await req.json()
     if (!pdf_url) return NextResponse.json({ error: 'pdf_url es requerido' }, { status: 400 })

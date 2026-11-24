@@ -13,6 +13,7 @@ import { useBlockedNavigation } from '../hooks/useBlockedNavigation'
 import { ROUTES } from '../lib/routes'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { planLockFor } from '../lib/planLocks'
+import { useCampaignsLocked } from '../hooks/useCampaignAccess'
 
 import {
   LayoutDashboard, MessageSquare, Plug, Settings, Zap,
@@ -47,6 +48,7 @@ export default function Sidebar() {
   const isAdmin = useIsAdmin()
   const guardClick = useBlockedNavigation()
   const { data: entitlements } = useEntitlements()
+  const campaignsLocked = useCampaignsLocked()
   const planFeatures = entitlements?.features as Record<string, boolean | undefined> | undefined
   // Si el plan no incluye Clientes (Lite), el Gestor abre en Recordatorios.
   const crmHref = planLockFor('/dashboard/crm/clientes', planFeatures) ? '/dashboard/crm/recordatorios' : '/dashboard/crm'
@@ -116,7 +118,7 @@ export default function Sidebar() {
       pathname === item.href
 
     const badgeValue = item.badgeKey ? (badges as any)[item.badgeKey] : 0
-    const locked = !!planLockFor(item.href, planFeatures)
+    const locked = !!planLockFor(item.href, planFeatures) || (item.href === '/dashboard/campaigns' && campaignsLocked)
 
     return (
       <Link
