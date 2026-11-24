@@ -3,14 +3,15 @@
 // ============================================================================
 // AccountsAdminTab
 // ----------------------------------------------------------------------------
-// Buscar una cuenta por el correo de cualquiera de sus usuarios y cambiarle la
-// industria principal. La lógica vive en /api/admin/change-industry.
+// Lista de cuentas (AccountsTable) y, al elegir una, su industria principal
+// para cambiarla. La lógica del cambio vive en /api/admin/change-industry.
 // ============================================================================
 
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { Users, Search, Loader2, AlertTriangle, ArrowRight, Building2 } from 'lucide-react'
+import { Users, Loader2, AlertTriangle, ArrowRight, Building2, X } from 'lucide-react'
 import { useConfirm } from '../../../../hooks/useConfirm'
+import AccountsTable, { type AccountRow } from './AccountsTable'
 
 interface AccountTemplate { id: string; name: string; is_active: boolean; is_selectable: boolean }
 interface ActiveAddon { addon_id: string; name: string; available_for_templates: string[] }
@@ -24,7 +25,9 @@ interface Account {
 
 export default function AccountsAdminTab() {
   const [email, setEmail] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [account, setAccount] = useState<Account | null>(null)
   const [newTemplate, setNewTemplate] = useState('')
   const [removePrevious, setRemovePrevious] = useState(true)
@@ -38,10 +41,14 @@ export default function AccountsAdminTab() {
     return data as Account
   }
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const target = email.trim()
-    if (!target) return
+  async function handleSelect(row: AccountRow) {
+    if (!row.owner_email) {
+      toast.error('Esta cuenta no tiene usuarios con correo')
+      return
+    }
+    const target = row.owner_email
+    setEmail(target)
+    setSelectedId(row.company_id)
     setSearching(true)
     setAccount(null)
     setNewTemplate('')
@@ -86,6 +93,7 @@ export default function AccountsAdminTab() {
       else toast.success(`Industria cambiada a ${templateName(newTemplate)}`)
       setAccount(await load(email.trim()))
       setNewTemplate('')
+      setRefreshKey(k => k + 1)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
@@ -102,34 +110,22 @@ export default function AccountsAdminTab() {
         <div>
           <h2 className="text-xl font-black text-slate-950">Cuentas</h2>
           <p className="text-sm text-slate-600 font-medium">
-            Busca una cuenta por el correo de uno de sus usuarios para cambiarle la industria.
+            Todas las cuentas de la plataforma. Elige una para ver su industria y cambiarla.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSearch} className="flex flex-wrap gap-2 max-w-xl">
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="correo@empresa.com"
-          className="flex-1 min-w-[220px] px-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-        />
-        <button
-          type="submit"
-          disabled={searching || !email.trim()}
-          className="px-4 py-2.5 text-sm font-bold bg-slate-900 text-white rounded-xl disabled:opacity-40 flex items-center gap-2"
-        >
-          {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-          Buscar
-        </button>
-      </form>
+      {searching && (
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Loader2 size={14} className="animate-spin" /> Cargando la cuenta…
+        </div>
+      )}
 
       {account && (
         <div className="max-w-xl bg-white border border-slate-200 rounded-3xl p-6 space-y-5">
           <div className="flex items-start gap-3">
             <Building2 size={18} className="text-slate-400 mt-0.5" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-black text-slate-900 truncate">{account.company.name}</p>
               <p className="text-xs text-slate-500 font-medium">
                 {account.user.full_name ? `${account.user.full_name} · ` : ''}{account.user.email}
@@ -138,6 +134,14 @@ export default function AccountsAdminTab() {
                 Plan {account.company.plan_slug ?? '—'} · {account.company.subscription_status ?? 'sin suscripción'}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => { setAccount(null); setSelectedId(null); setNewTemplate('') }}
+              aria-label="Cerrar"
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400"
+            >
+              <X size={16} />
+            </button>
           </div>
 
           <div>
@@ -206,6 +210,8 @@ export default function AccountsAdminTab() {
           </button>
         </div>
       )}
+
+      <AccountsTable selectedId={selectedId} onSelect={handleSelect} refreshKey={refreshKey} />
 
       {ConfirmDialog}
     </div>

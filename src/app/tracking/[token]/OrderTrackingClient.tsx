@@ -10,6 +10,7 @@
  * ============================================================================
  */
 
+import { publicBrandColors, tint } from '../../../lib/publicBrand'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -79,8 +80,8 @@ export default function OrderTrackingClient({
   const items: any[] = order.items || []
   const history: any[] = order.history || []
 
-  const primaryColor = order.company_primary_color || '#ea580c'
-  const accentColor  = order.company_accent_color  || '#f97316'
+  // Colores del restaurante; si no eligió, los de iAnswer (lib/publicBrand).
+  const { primary: primaryColor, accent: accentColor } = publicBrandColors(order.company_primary_color, order.company_accent_color)
 
   const isCompleted = order.status_semantic === 'delivered'
   const isCancelled = order.status_semantic === 'cancelled'
@@ -248,7 +249,7 @@ export default function OrderTrackingClient({
 
         {/* Entrega info */}
         <section className="bg-white rounded-3xl shadow-sm p-4 flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
+          <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tint(accentColor) }}>
             <DeliveryIcon size={20} style={{ color: primaryColor }} />
           </div>
           <div className="min-w-0 flex-1">

@@ -161,7 +161,9 @@ export default function OrderKanbanBoard({ companyId, accentColor }: Props) {
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4">
+      {/* En el celular las columnas van una debajo de otra (ahí se usa el botón
+          rápido de cada tarjeta, no arrastrar); en pantalla grande, lado a lado. */}
+      <div className="flex flex-col lg:flex-row gap-3 lg:overflow-x-auto pb-4">
         {/* Columnas regulares */}
         {statuses.map((status, idx) => {
           const columnOrders = ordersByStep.get(status.step) || []
@@ -246,7 +248,7 @@ function KanbanColumn({ status, nextStatus, onAdvance, advancingId, orders, acce
     <div
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className={`shrink-0 w-72 rounded-2xl flex flex-col transition-all ${
+      className={`w-full lg:w-72 lg:shrink-0 rounded-2xl flex flex-col transition-all ${
         isHover ? 'bg-slate-100 ring-2 ring-offset-2' : 'bg-slate-50'
       }`}
       style={isHover ? { '--tw-ring-color': color } as any : {}}
@@ -263,10 +265,11 @@ function KanbanColumn({ status, nextStatus, onAdvance, advancingId, orders, acce
       </div>
 
       {/* Cards */}
-      <div className="flex-1 p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto">
+      <div className="flex-1 p-2 space-y-2 lg:min-h-[200px] lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto">
         {orders.length === 0 ? (
-          <div className="text-center py-8 text-[10px] text-slate-400 font-bold">
-            Arrastra cards aquí
+          <div className="text-center py-3 lg:py-8 text-[10px] text-slate-400 font-bold">
+            <span className="lg:hidden">Sin pedidos</span>
+            <span className="hidden lg:inline">Arrastra cards aquí</span>
           </div>
         ) : (
           orders.map(order => (
