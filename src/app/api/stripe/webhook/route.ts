@@ -4,7 +4,7 @@ import { stripe } from '../../../../lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { loadPlatformBranding } from '../../../../lib/siteSettings'
 import {
-  applyPlanSubscription, customerContact, invoiceSubscriptionId, toIso
+  activateCheckoutAddons, applyPlanSubscription, customerContact, invoiceSubscriptionId, toIso
 } from '../../../../lib/stripePlan'
 import { getAppBaseUrl } from '../../../../lib/appUrl'
 import { desgloseIva } from '../../../../lib/iva'
@@ -121,6 +121,7 @@ export async function POST(req: Request) {
           const subId = typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id
           const sub = await stripe.subscriptions.retrieve(subId)
           const { normalized, planSlug } = await applyPlanSubscription(supabaseAdmin, sub, { companyId, markStarted: true })
+          await activateCheckoutAddons(supabaseAdmin, obj, sub, companyId)
           console.log(`[Webhook] Plan ${planSlug} → ${normalized} para company ${companyId}`)
         }
 

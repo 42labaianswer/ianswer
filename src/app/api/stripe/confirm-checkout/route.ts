@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { stripe } from '../../../../lib/stripe'
-import { applyPlanSubscription } from '../../../../lib/stripePlan'
+import { activateCheckoutAddons, applyPlanSubscription } from '../../../../lib/stripePlan'
 
 // ============================================================================
 // POST /api/stripe/confirm-checkout   body: { sessionId }
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       companyId: profile.company_id,
       markStarted: true,
     })
+    await activateCheckoutAddons(admin, session, sub, profile.company_id)
 
     return NextResponse.json({ ok: true, subscription_status: normalized, plan_slug: planSlug })
   } catch (error) {

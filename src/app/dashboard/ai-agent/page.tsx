@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   MessageCircle, X, Sparkles, BrainCircuit, Smile, AlignLeft, Wand2, CheckCircle2,
-  LifeBuoy, PlayCircle, Bot, Send, User, UserCog, BadgeCheck, Stethoscope, Zap, Lock,
+  LifeBuoy, PlayCircle, Bot, Send, User, UserCog, BadgeCheck, Stethoscope, Zap, Lock, Loader2,
   ChevronDown, Network, GraduationCap, Ban, MessageSquareText, Clock3, Languages,
 } from 'lucide-react'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
@@ -20,6 +20,8 @@ import { ROUTES } from '../../../lib/routes'
 import AgentTrainingStudio from '../../../components/AgentTrainingStudio'
 import { useHasAgentTraining } from '../../../hooks/useAgentTraining'
 import IAnswerLoader from '../../../components/IAnswerLoader'
+import { useEntitlements } from '../../../hooks/useEntitlements'
+import { planLockFor } from '../../../lib/planLocks'
 
 type TeamMember = {
   id: string
@@ -68,6 +70,25 @@ export default function AIAgentBuilderPage() {
   const isEnterprisePlan = !!planFeatures?.ai_multi_agent_mode
   const hasSimulator = useFeature('ai_agent_simulator')
   const { data: hasTraining } = useHasAgentTraining()
+
+  // En los planes sin Equipo (Lite) el perfil del agente se crea aquí mismo:
+  // sin él no hay nada que configurar y la sección Equipo está bloqueada.
+  const { data: entitlements } = useEntitlements()
+  const teamLocked = !!planLockFor(ROUTES.team, entitlements?.features as Record<string, boolean | undefined> | undefined)
+  const [profileName, setProfileName] = useState('')
+  const createProfileMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!companyId) throw new Error('Sin empresa')
+      const { error } = await supabase.from('team').insert([{ company_id: companyId, full_name: name }])
+      if (error) throw error
+      await supabase.from('companies').update({ agent_mode: 'general' }).eq('id', companyId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aiAgentsData'] })
+      toast.success('Listo, ya puedes configurar a tu agente')
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'No se pudo crear el perfil'),
+  })
 
   const [agentMode, setAgentMode] = useState<'general' | 'per_staff'>('per_staff')
   const [configTab, setConfigTab] = useState<ConfigTab>('personality')
@@ -439,7 +460,42 @@ FALLOS: Si hay un error técnico di: "${member.ai_fallback_message}"
         </div>
       )}
 
-      {!selectedMember && team.length === 0 ? (
+      {!selectedMember && team.length === 0 && teamLocked ? (
+        <form
+          onSubmit={e => {
+            e.preventDefault()
+            const name = (profileName || clinicName).trim()
+            if (name) createProfileMutation.mutate(name)
+          }}
+          className="bg-white rounded-2xl border-2 border-dashed border-slate-200 px-6 py-12 sm:px-12 flex flex-col items-center text-center"
+        >
+          <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${accent}15`, color: accent }}>
+            <BrainCircuit size={30} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Crea el perfil de tu agente</h2>
+          <p className="text-sm text-slate-600 font-medium max-w-lg mb-6">
+            Es el nombre con el que tu agente atiende a tus {clientPlural}. Después le das su personalidad aquí mismo.
+          </p>
+          <label className="w-full max-w-sm text-left">
+            <span className="text-xs font-bold text-slate-700">Nombre</span>
+            <input
+              value={profileName}
+              onChange={e => setProfileName(e.target.value)}
+              placeholder={clinicName || 'Tu negocio'}
+              className="mt-1 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-slate-200"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={createProfileMutation.isPending || !(profileName || clinicName).trim()}
+            className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white text-sm font-black shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: accent }}
+          >
+            {createProfileMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <UserCog size={16} />}
+            Crear perfil
+          </button>
+        </form>
+      ) : !selectedMember && team.length === 0 ? (
         // Estado vacío sin nadie en Equipo: explica qué hacer para empezar.
         <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 px-6 py-12 sm:px-12 flex flex-col items-center text-center">
           <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${accent}15`, color: accent }}>

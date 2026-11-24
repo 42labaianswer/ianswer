@@ -202,13 +202,13 @@ export function useAddonMutations() {
 
   const cancel = useMutation({
     mutationFn: async (addonId: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single()
-      const { error } = await supabase.rpc('cancel_addon', {
-        p_company_id: profile!.company_id,
-        p_addon_id: addonId
+      const res = await fetch('/api/stripe/cancel-addon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addonId }),
       })
-      if (error) throw error
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || 'No se pudo cancelar')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-addons'] })
