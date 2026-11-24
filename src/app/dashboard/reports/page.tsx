@@ -2,6 +2,7 @@
 
 'use client'
 
+import { StatCard, accentTint } from '../../../components/ui/DashCards'
 import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext' 
@@ -14,7 +15,7 @@ import IAnswerLoader from '../../../components/IAnswerLoader'
 import { 
   Filter, Download, Users, CalendarCheck, 
   TrendingUp, MessageSquare, Target, Sparkles, Bot, UserCog, Trophy, Activity, AlertCircle, CalendarRange,
-  Share2, ArrowUp, ArrowDown
+  Share2, ArrowUp, ArrowDown, UserPlus, Repeat, Moon
 } from 'lucide-react'
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer'
@@ -56,7 +57,7 @@ export default function ReportsPage() {
 
       // Preparar queries
       let qContacts = supabase.from('contacts').select('id, lifecycle_stage, ai_active, staff_id, chat_status, recovery_status').eq('company_id', companyId)
-      let qTeam = supabase.from('team').select('id, name').eq('company_id', companyId)
+      const qTeam = supabase.from('team').select('id, name:full_name').eq('company_id', companyId)
       let qMsgBot = supabase.from('messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('sender', 'asistente')
       let qMsgHuman = supabase.from('messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('sender', 'admin')
       let qMsgPat = supabase.from('messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('sender', 'patient')
@@ -393,18 +394,18 @@ export default function ReportsPage() {
       />
 
       {/* BLOQUE NARRATIVO (INSIGHTS) */}
-      <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[2rem] p-8 md:p-10 text-white shadow-xl shadow-indigo-900/10 mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+      <div className="bg-(--ia-theme) rounded-2xl p-6 md:p-8 text-white shadow-sm mb-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-(--ia-accent)/30 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
-          <div className="shrink-0 bg-white/10 p-4 rounded-2xl border border-white/10">
-            <Sparkles size={32} className="text-indigo-300" />
+          <div className="shrink-0 bg-(--ia-accent) p-3.5 rounded-xl shadow-md">
+            <Sparkles size={28} className="text-white" />
           </div>
           <div className="flex-1 space-y-4">
             <h2 className="text-2xl font-black tracking-tight">El pulso de tu operación</h2>
             <div className="space-y-3">
               {narrative.map((text, idx) => (
-                <p key={idx} className="text-indigo-100 font-medium leading-relaxed flex items-start gap-2">
-                  <span className="text-indigo-400 mt-1">•</span> {text}
+                <p key={idx} className="text-white/80 font-medium leading-relaxed flex items-start gap-2">
+                  <span className="text-white/50 mt-1">•</span> {text}
                 </p>
               ))}
             </div>
@@ -418,66 +419,44 @@ export default function ReportsPage() {
       {/* BLOQUE DE REFERIDOS (solo si feature activa) */}
       {features?.crm_referral_tracking && <ReferralBlock />}
       
-      {/* TARJETAS DE KPIs AVANZADAS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity"><Users size={80} className="text-blue-500"/></div>
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><Users size={16} className="text-blue-500"/> Universo {clientLabelPlural}</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.totalLeads}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity"><MessageSquare size={80} className="text-orange-500"/></div>
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><MessageSquare size={16} className="text-orange-500"/> Pláticas Activas</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.activeChats}</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:border-purple-300 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity"><Target size={80} className="text-purple-500"/></div>
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><Target size={16} className="text-purple-500"/> Conversión a Cita</p>
-          <div className="flex items-end gap-2">
-            <p className="text-4xl font-black text-slate-900">{metrics.conversionRate}<span className="text-xl text-slate-400 ml-1">%</span></p>
-            <p className="text-xs font-bold text-emerald-600 mb-1 bg-emerald-50 px-2 py-0.5 rounded-md">({metrics.uniqueAppointmentsCount} Citas)</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity"><Bot size={80} className="text-emerald-500"/></div>
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><Bot size={16} className="text-emerald-500"/> Autonomía de IA</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.automationRate}<span className="text-xl text-slate-400 ml-1">%</span></p>
-        </div>
+      {/* Números principales y de seguimiento (mismo estilo que el inicio) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 mb-5">
+        <StatCard title={`Universo de ${clientLabelPlural.toLowerCase()}`} subtitle="Contactos en el periodo" value={metrics.totalLeads} icon={<Users size={18} />} />
+        <StatCard title="Pláticas activas" subtitle="Conversaciones en curso" value={metrics.activeChats} icon={<MessageSquare size={18} />} />
+        <StatCard
+          title="Conversión a cita"
+          subtitle={`${metrics.uniqueAppointmentsCount} citas agendadas`}
+          value={metrics.conversionRate}
+          suffix="%"
+          icon={<Target size={18} />}
+        />
+        <StatCard title="Autonomía de IA" subtitle="Atendidas sin pasar a una persona" value={metrics.automationRate} suffix="%" icon={<Bot size={18} />} />
       </div>
-
-      {/* Estado de citas + Recuperación de clientes (datos que no están en los KPIs de arriba) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><CalendarCheck size={16} className="text-emerald-500"/> Citas confirmadas</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.apptStats.confirmed}</p>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><AlertCircle size={16} className="text-rose-500"/> Citas canceladas</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.apptStats.cancelled}</p>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><TrendingUp size={16} className="text-blue-500"/> Clientes recuperados</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.recovery.recovered}</p>
-          <p className="text-[11px] text-slate-400 mt-1">{metrics.recovery.followup_sent} seguimientos enviados</p>
-        </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-sm font-bold text-slate-500 mb-1 flex items-center gap-2"><UserCog size={16} className="text-slate-400"/> Clientes perdidos</p>
-          <p className="text-4xl font-black text-slate-900">{metrics.recovery.lost}</p>
-          <p className="text-[11px] text-slate-400 mt-1">sin respuesta tras el recordatorio</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 mb-8">
+        <StatCard title="Citas confirmadas" value={metrics.apptStats.confirmed} icon={<CalendarCheck size={18} />} />
+        <StatCard title="Citas canceladas" value={metrics.apptStats.cancelled} icon={<AlertCircle size={18} />} />
+        <StatCard
+          title="Clientes recuperados"
+          value={metrics.recovery.recovered}
+          icon={<TrendingUp size={18} />}
+          footer={<p className="text-[11px] text-slate-400">{metrics.recovery.followup_sent} seguimientos enviados</p>}
+        />
+        <StatCard
+          title="Clientes perdidos"
+          value={metrics.recovery.lost}
+          icon={<UserCog size={18} />}
+          footer={<p className="text-[11px] text-slate-400">Sin respuesta tras el recordatorio</p>}
+        />
       </div>
 
       {/* CONVERSACIONES POR CANAL — cuenta pláticas reales (mensajes), no filas
           de contactos, para que WhatsApp, Messenger e Instagram se reflejen aunque
           el contacto no se haya creado. */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-8">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <Share2 size={20} className="text-slate-400" />
-            <h2 className="text-lg font-black text-slate-800">Conversaciones por canal</h2>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Share2 size={18} className="text-(--ia-accent)" />
+            <h2 className="text-base font-black text-slate-900">Conversaciones por canal</h2>
           </div>
           <p className="text-sm text-slate-500">
             <strong className="text-slate-900">{metrics.conversacionesTotal}</strong> conversaciones en total
@@ -516,21 +495,21 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 
         {/* EMBUDO DEL CICLO DE VIDA */}
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex justify-between items-center gap-3">
             <div>
-              <h2 className="text-lg font-black text-slate-800">Embudo de Ventas</h2>
+              <h2 className="text-base font-black text-slate-900">Embudo de Ventas</h2>
               <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">Distribución del recorrido</p>
             </div>
-            <Filter className="text-slate-300" size={24}/>
+            <Filter className="text-(--ia-accent) shrink-0" size={20}/>
           </div>
           
           <div className="p-8 flex-1 flex flex-col justify-center space-y-6">
             {[
-              { id: 'new_lead', name: vertical?.funnels?.new_lead || 'Nuevos Prospectos', color: 'bg-blue-500', count: metrics.funnel.new_lead },
-              { id: 'hot_lead', name: vertical?.funnels?.hot_lead || 'Interesados', color: 'bg-orange-500', count: metrics.funnel.hot_lead },
-              { id: 'payment', name: vertical?.funnels?.payment || 'En Proceso / Pago', color: 'bg-emerald-500', count: metrics.funnel.payment },
-              { id: 'customer', name: vertical?.funnels?.customer || `Nuevos ${clientLabelPlural}`, color: 'bg-purple-500', count: metrics.funnel.customer },
+              { id: 'new_lead', name: vertical?.funnels?.new_lead || 'Nuevos Prospectos', color: 'bg-(--ia-accent)/40', count: metrics.funnel.new_lead },
+              { id: 'hot_lead', name: vertical?.funnels?.hot_lead || 'Interesados', color: 'bg-(--ia-accent)/60', count: metrics.funnel.hot_lead },
+              { id: 'payment', name: vertical?.funnels?.payment || 'En Proceso / Pago', color: 'bg-(--ia-accent)/80', count: metrics.funnel.payment },
+              { id: 'customer', name: vertical?.funnels?.customer || `Nuevos ${clientLabelPlural}`, color: 'bg-(--ia-accent)', count: metrics.funnel.customer },
             ].map((stage, index, arr) => {
               const percentage = metrics.totalLeads > 0 ? Math.max((stage.count / maxFunnelValue) * 100, 2) : 0
               return (
@@ -558,13 +537,13 @@ export default function ReportsPage() {
         </div>
 
         {/* DISTRIBUCIÓN DE MENSAJERÍA */}
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex justify-between items-center gap-3">
             <div>
-              <h2 className="text-lg font-black text-slate-800">Carga Operativa</h2>
+              <h2 className="text-base font-black text-slate-900">Carga Operativa</h2>
               <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">Quién envía los mensajes</p>
             </div>
-            <MessageSquare className="text-slate-300" size={24}/>
+            <MessageSquare className="text-(--ia-accent) shrink-0" size={20}/>
           </div>
           
           <div className="p-8 flex-1 flex flex-col items-center justify-center">
@@ -573,12 +552,12 @@ export default function ReportsPage() {
             ) : (
               <div className="w-full max-w-sm space-y-6">
                 
-                <div className="flex items-center justify-between p-4 border border-emerald-200 bg-emerald-50 rounded-2xl">
+                <div className="flex items-center justify-between p-4 border border-(--ia-accent)/25 rounded-2xl" style={{ backgroundColor: accentTint(6) }}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><Bot size={20}/></div>
+                    <div className="p-2 bg-(--ia-accent) text-white rounded-xl"><Bot size={20}/></div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">Inteligencia Artificial</p>
-                      <p className="text-xs font-semibold text-emerald-600">Resolución Automática</p>
+                      <p className="text-xs font-semibold text-(--ia-accent)">Resolución Automática</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -587,12 +566,12 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border border-blue-200 bg-blue-50 rounded-2xl">
+                <div className="flex items-center justify-between p-4 border border-slate-200 bg-white rounded-2xl">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><UserCog size={20}/></div>
+                    <div className="p-2 text-(--ia-accent) rounded-xl" style={{ backgroundColor: accentTint(12) }}><UserCog size={20}/></div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">Agentes Humanos</p>
-                      <p className="text-xs font-semibold text-blue-600">Soporte Manual</p>
+                      <p className="text-xs font-semibold text-slate-500">Soporte Manual</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -626,10 +605,10 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* LEADERBOARD DE STAFF */}
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex justify-between items-center gap-3">
             <div>
-              <h2 className="text-lg font-black text-slate-800">Leaderboard del Equipo</h2>
+              <h2 className="text-base font-black text-slate-900">Leaderboard del Equipo</h2>
               <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">Rendimiento por especialista</p>
             </div>
             <Trophy className="text-yellow-500" size={24}/>
@@ -643,7 +622,7 @@ export default function ReportsPage() {
                     ? 'Todavía no agregas miembros a tu equipo.'
                     : 'Tu equipo no tiene contactos ni citas asignadas.'}
                 </p>
-                <a href={ROUTES.team} className="inline-block text-xs font-bold text-indigo-600 hover:underline">
+                <a href={ROUTES.team} className="inline-block text-xs font-bold text-(--ia-accent) hover:underline">
                   {metrics.teamSize === 0 ? 'Agregar equipo →' : 'Ir a equipo →'}
                 </a>
               </div>
@@ -687,13 +666,13 @@ export default function ReportsPage() {
         </div>
 
         {/* SALUD DE LAS CITAS (Custom CSS Donut Chart) */}
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex justify-between items-center gap-3">
             <div>
-              <h2 className="text-lg font-black text-slate-800">Salud de la Agenda</h2>
+              <h2 className="text-base font-black text-slate-900">Salud de la Agenda</h2>
               <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">Estado de citas creadas</p>
             </div>
-            <CalendarCheck className="text-slate-300" size={24}/>
+            <CalendarCheck className="text-(--ia-accent) shrink-0" size={20}/>
           </div>
           
           <div className="p-8 flex-1 flex flex-col md:flex-row items-center justify-center gap-10">
@@ -838,11 +817,11 @@ function RetentionBlock() {
   const maxBar = Math.max(maxNuevos, maxVolvieron, 1)
 
   return (
-    <div className="bg-gradient-to-br from-emerald-50/40 via-white to-blue-50/30 rounded-[2rem] border border-emerald-100 p-6 md:p-8 mb-8">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 mb-8">
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md">
+            <div className="h-10 w-10 rounded-xl bg-(--ia-accent) text-white flex items-center justify-center shadow-md">
               <TrendingUp size={18} />
             </div>
             Salud real de tu negocio
@@ -851,59 +830,54 @@ function RetentionBlock() {
             Las 3 cifras que importan: cuánto creces, cuánto te quedas con lo que tienes, y cuánto se te está yendo.
           </p>
         </div>
-        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
+        <span className="text-[11px] font-bold text-(--ia-accent) px-3 py-1.5 rounded-full uppercase tracking-wider" style={{ backgroundColor: accentTint(12) }}>
           Snapshot actual
         </span>
       </div>
 
       {/* Las 3 cifras */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Nuevos */}
-        <div className="bg-white rounded-2xl border-2 border-emerald-200 p-5 shadow-sm">
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-xs font-black text-emerald-700 uppercase tracking-wider">Pacientes nuevos · este mes</p>
-            {trendNuevos !== null && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 ${
-                trendNuevos >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-              }`}>
-                {trendNuevos >= 0 ? <ArrowUp size={9} /> : <ArrowDown size={9} />}
-                {Math.abs(trendNuevos)}%
-              </span>
-            )}
-          </div>
-          <p className="text-4xl font-black text-emerald-700 tabular-nums">{snapshot.pacientes_nuevos_mes}</p>
-          <p className="text-[11px] text-slate-500 font-medium mt-1.5">
-            vs {snapshot.pacientes_nuevos_mes_anterior} mes anterior
-          </p>
-        </div>
-
-        {/* Volvieron */}
-        <div className="bg-white rounded-2xl border-2 border-blue-200 p-5 shadow-sm">
-          <p className="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">Pacientes que volvieron</p>
-          <p className="text-4xl font-black text-blue-700 tabular-nums">{snapshot.pacientes_volvieron_mes}</p>
-          <p className="text-[11px] text-slate-500 font-medium mt-1.5">
-            Repetidores este mes (ya habían venido antes)
-          </p>
-        </div>
-
-        {/* Inactivos */}
-        <div className="bg-white rounded-2xl border-2 border-amber-200 p-5 shadow-sm">
-          <p className="text-xs font-black text-amber-700 uppercase tracking-wider mb-2">Inactivos +90 días</p>
-          <p className="text-4xl font-black text-amber-600 tabular-nums">{snapshot.pacientes_inactivos_90d}</p>
-          <p className="text-[11px] text-slate-500 font-medium mt-1.5">
-            Pacientes dormidos elegibles para reactivar
-          </p>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          title="Pacientes nuevos"
+          subtitle="Este mes"
+          value={snapshot.pacientes_nuevos_mes}
+          icon={<UserPlus size={18} />}
+          footer={
+            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              {trendNuevos !== null && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 ${
+                  trendNuevos >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {trendNuevos >= 0 ? <ArrowUp size={9} /> : <ArrowDown size={9} />}
+                  {Math.abs(trendNuevos)}%
+                </span>
+              )}
+              vs {snapshot.pacientes_nuevos_mes_anterior} el mes anterior
+            </p>
+          }
+        />
+        <StatCard
+          title="Pacientes que volvieron"
+          subtitle="Ya habían venido antes"
+          value={snapshot.pacientes_volvieron_mes}
+          icon={<Repeat size={18} />}
+        />
+        <StatCard
+          title="Inactivos +90 días"
+          subtitle="Dormidos, listos para reactivar"
+          value={snapshot.pacientes_inactivos_90d}
+          icon={<Moon size={18} />}
+        />
       </div>
 
       {/* Mini-bar chart de tendencia */}
       {monthly.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <div className="rounded-2xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-black text-slate-700 uppercase tracking-wider">Tendencia últimos 12 meses</p>
             <div className="flex items-center gap-4 text-[10px] font-bold">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-emerald-500"></span> Nuevos</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-blue-500"></span> Volvieron</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-(--ia-accent)"></span> Nuevos</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-(--ia-accent)/35"></span> Volvieron</span>
             </div>
           </div>
           <div className="grid grid-cols-12 gap-1.5">
@@ -911,12 +885,12 @@ function RetentionBlock() {
               <div key={m.month_key} className="flex flex-col items-center gap-1">
                 <div className="h-32 w-full flex items-end gap-0.5 justify-center">
                   <div
-                    className="flex-1 max-w-[8px] bg-emerald-500 rounded-t-sm transition-all hover:bg-emerald-600"
+                    className="flex-1 max-w-[8px] bg-(--ia-accent) rounded-t-sm transition-all hover:brightness-110"
                     style={{ height: `${(m.nuevos / maxBar) * 100}%`, minHeight: m.nuevos > 0 ? '4px' : '0' }}
                     title={`${m.nuevos} nuevos`}
                   />
                   <div
-                    className="flex-1 max-w-[8px] bg-blue-500 rounded-t-sm transition-all hover:bg-blue-600"
+                    className="flex-1 max-w-[8px] bg-(--ia-accent)/35 rounded-t-sm transition-all hover:bg-(--ia-accent)/50"
                     style={{ height: `${(m.volvieron / maxBar) * 100}%`, minHeight: m.volvieron > 0 ? '4px' : '0' }}
                     title={`${m.volvieron} volvieron`}
                   />
@@ -976,16 +950,16 @@ function ReferralBlock() {
   const totalTracked = breakdown.reduce((acc, b) => acc + b.total_contacts, 0)
   const totalKnown = breakdown.filter(b => b.source !== 'unknown').reduce((acc, b) => acc + b.total_contacts, 0)
 
-  const sourceLabels: Record<string, { label: string, color: string }> = {
-    patient:   { label: 'Otro paciente',     color: 'bg-emerald-500' },
-    doctor:    { label: 'Otro médico',       color: 'bg-blue-500' },
-    google:    { label: 'Google',            color: 'bg-amber-500' },
-    facebook:  { label: 'Facebook',          color: 'bg-indigo-500' },
-    instagram: { label: 'Instagram',         color: 'bg-pink-500' },
-    direct:    { label: 'Recomendación directa', color: 'bg-purple-500' },
-    event:     { label: 'Evento/feria',      color: 'bg-cyan-500' },
-    other:     { label: 'Otra fuente',       color: 'bg-slate-400' },
-    unknown:   { label: 'Sin clasificar',    color: 'bg-slate-300' }
+  const sourceLabels: Record<string, { label: string }> = {
+    patient:   { label: 'Otro paciente' },
+    doctor:    { label: 'Otro médico' },
+    google:    { label: 'Google' },
+    facebook:  { label: 'Facebook' },
+    instagram: { label: 'Instagram' },
+    direct:    { label: 'Recomendación directa' },
+    event:     { label: 'Evento/feria' },
+    other:     { label: 'Otra fuente' },
+    unknown:   { label: 'Sin clasificar' }
   }
 
   if (totalTracked === 0) return null
@@ -993,10 +967,10 @@ function ReferralBlock() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* Breakdown por fuente */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-            <Share2 size={18} className="text-emerald-500" />
+            <Share2 size={18} className="text-(--ia-accent)" />
             De dónde vienen tus pacientes
           </h3>
           <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
@@ -1017,13 +991,13 @@ function ReferralBlock() {
                   <span className="font-bold text-slate-500 tabular-nums">
                     {b.total_contacts} <span className="text-slate-400">·</span> {pct}%
                     {b.converted_contacts > 0 && (
-                      <span className="text-emerald-600 ml-2">{conversionPct}% convirtieron</span>
+                      <span className="text-(--ia-accent) ml-2">{conversionPct}% convirtieron</span>
                     )}
                   </span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${cfg.color} transition-all`}
+                    className="h-full bg-(--ia-accent) transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -1034,9 +1008,9 @@ function ReferralBlock() {
       </div>
 
       {/* Top referidores */}
-      <div className="bg-gradient-to-br from-emerald-50 to-white rounded-[2rem] border border-emerald-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <h3 className="text-base font-black text-slate-900 flex items-center gap-2 mb-4">
-          <Trophy size={18} className="text-emerald-500" />
+          <Trophy size={18} className="text-(--ia-accent)" />
           Tus mejores embajadores
         </h3>
 
@@ -1051,7 +1025,7 @@ function ReferralBlock() {
         ) : (
           <div className="space-y-2">
             {topReferrers.map((r, idx) => (
-              <div key={r.referrer_contact_id} className="flex items-center gap-3 px-3 py-2.5 bg-white border border-emerald-100 rounded-xl">
+              <div key={r.referrer_contact_id} className="flex items-center gap-3 px-3 py-2.5 bg-white border border-slate-100 rounded-xl">
                 <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
                   idx === 0 ? 'bg-amber-100 text-amber-700' :
                   idx === 1 ? 'bg-slate-200 text-slate-600' :
@@ -1065,7 +1039,7 @@ function ReferralBlock() {
                   <p className="text-[10px] text-slate-500 font-medium">{r.referrer_phone}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xl font-black text-emerald-700 tabular-nums leading-none">{r.referrals_count}</p>
+                  <p className="text-xl font-black text-(--ia-accent) tabular-nums leading-none">{r.referrals_count}</p>
                   <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
                     {r.referrals_converted > 0 && `${r.referrals_converted} convertidos`}
                     {r.referrals_converted === 0 && (r.referrals_count === 1 ? 'referido' : 'referidos')}

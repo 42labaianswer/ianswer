@@ -19,8 +19,9 @@ import { useEntitlements } from '../../hooks/useEntitlements'
 import { useUsageSummary } from '../../hooks/useBilling'
 import { useDashboardHome, type DashboardHomeData } from '../../hooks/useDashboardHome'
 import IAnswerLoader from '../../components/IAnswerLoader'
+import { StatCard, SectionCard as Card, accentTint } from '../../components/ui/DashCards'
 import {
-  avatarColor, greeting, gridHours, initials, isActiveAppointment, startsIn, timeAgo,
+  greeting, gridHours, initials, isActiveAppointment, startsIn, timeAgo,
   upcomingAppointments, weekDays, ymd, type AppointmentRow,
 } from '../../lib/dashboardHome'
 
@@ -84,7 +85,7 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-12 space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight pt-2">
+      <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight pt-2">
         {greeting()}{data.userName ? `, ${data.userName}` : ''}
       </h1>
 
@@ -104,7 +105,6 @@ export default function DashboardPage() {
           subtitle="Personas con las que has hablado"
           value={n(data.totalClients)}
           icon={<Users size={18} />}
-          tone="green"
           href="/dashboard/crm"
         />
         {modules.menu ? (
@@ -113,7 +113,6 @@ export default function DashboardPage() {
             subtitle="Recibidos hoy, sin entregar"
             value={n(data.activeOrders)}
             icon={<ClipboardList size={18} />}
-            tone="orange"
             href="/dashboard/orders"
           />
         ) : modules.calendar ? (
@@ -122,7 +121,6 @@ export default function DashboardPage() {
             subtitle="Para hoy"
             value={n(todayPending)}
             icon={<CalendarDays size={18} />}
-            tone="orange"
             href="/dashboard/calendar"
           />
         ) : (
@@ -131,7 +129,6 @@ export default function DashboardPage() {
             subtitle="Conversaciones en modo humano"
             value={n(data.pendingChats)}
             icon={<MessageSquare size={18} />}
-            tone="orange"
             href="/dashboard/inbox?filtro=atencion"
           />
         )}
@@ -141,7 +138,6 @@ export default function DashboardPage() {
             subtitle="Personas activas"
             value={n(data.teamCount)}
             icon={<UserCog size={18} />}
-            tone="blue"
             href="/dashboard/team"
           />
         ) : (
@@ -150,7 +146,6 @@ export default function DashboardPage() {
             subtitle={ai?.limit ? `De ${n(ai.limit)} en este periodo` : 'En este periodo'}
             value={n(ai?.used ?? 0)}
             icon={<Bot size={18} />}
-            tone="blue"
             href="/dashboard/plans"
           />
         )}
@@ -190,61 +185,12 @@ export default function DashboardPage() {
 
 // ─── Piezas ──────────────────────────────────────────────────────────────────
 
-const TONES = {
-  green: { bg: '#E9FFF3', fg: '#1D571A' },
-  orange: { bg: '#FFF5E9', fg: '#B66748' },
-  blue: { bg: '#E9FBFF', fg: '#2B606F' },
-} as const
-
-function StatCard({ title, subtitle, value, icon, tone, href }: {
-  title: string; subtitle: string; value: string; icon: ReactNode; tone: keyof typeof TONES; href: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group bg-white border border-slate-300/80 rounded-xl p-5 flex items-start justify-between gap-3 hover:border-slate-400 transition-colors"
-    >
-      <div className="min-w-0">
-        <p className="text-[15px] font-semibold text-slate-900">{title}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
-        <p className="text-3xl font-semibold text-slate-900 mt-3 tabular-nums">{value}</p>
-      </div>
-      <span
-        className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center"
-        style={{ backgroundColor: TONES[tone].bg, color: TONES[tone].fg }}
-      >
-        {icon}
-      </span>
-    </Link>
-  )
-}
-
-function Card({ title, href, linkLabel, badge, children }: {
-  title: string; href: string; linkLabel: string; badge?: number; children: ReactNode
-}) {
-  return (
-    <section className="bg-white border border-slate-300/80 rounded-xl flex flex-col min-w-0">
-      <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-          {title}
-          {!!badge && badge > 0 && (
-            <span className="text-[10px] font-bold text-white bg-(--ia-accent) rounded-full px-1.5 py-0.5">{badge > 99 ? '99+' : badge}</span>
-          )}
-        </h2>
-        <Link href={href} className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-(--ia-accent) hover:underline">
-          {linkLabel} <ArrowRight size={14} />
-        </Link>
-      </header>
-      <div className="flex-1 px-5 py-4">{children}</div>
-    </section>
-  )
-}
-
 function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
   return (
     <span
-      className="shrink-0 rounded-full flex items-center justify-center text-white font-semibold"
-      style={{ width: size, height: size, backgroundColor: avatarColor(name), fontSize: size * 0.33 }}
+      className="shrink-0 rounded-full flex items-center justify-center font-bold text-(--ia-accent)"
+      style={{ width: size, height: size, backgroundColor: accentTint(14), fontSize: size * 0.33 }}
+      title={name || undefined}
     >
       {initials(name)}
     </span>
@@ -254,11 +200,11 @@ function Avatar({ name, size = 36 }: { name: string | null; size?: number }) {
 function Empty({ icon, title, text, href, cta }: { icon: ReactNode; title: string; text: string; href?: string; cta?: string }) {
   return (
     <div className="h-full min-h-40 flex flex-col items-center justify-center text-center py-6 px-4">
-      <span className="h-10 w-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">{icon}</span>
+      <span className="h-10 w-10 rounded-xl flex items-center justify-center mb-3 text-(--ia-accent)" style={{ backgroundColor: accentTint(10) }}>{icon}</span>
       <p className="text-sm font-semibold text-slate-800">{title}</p>
       <p className="text-xs text-slate-500 mt-1 max-w-xs">{text}</p>
       {href && cta && (
-        <Link href={href} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-(--ia-accent) text-white text-xs font-semibold hover:brightness-110">
+        <Link href={href} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-(--ia-accent) text-white text-xs font-bold hover:brightness-110">
           {cta} <ArrowRight size={13} />
         </Link>
       )}
@@ -389,7 +335,7 @@ function WeekCalendar({ appointments, verified }: { appointments: AppointmentRow
                   return (
                     <td key={ymd(d)} className="py-1 pr-1.5">
                       {cell.map(a => (
-                        <div key={a.id} className="rounded-md bg-[#5A89F0] text-white px-1.5 py-1 mb-1 leading-tight" title={a.patient_name || ''}>
+                        <div key={a.id} className="rounded-md bg-(--ia-accent) text-white px-1.5 py-1 mb-1 leading-tight" title={a.patient_name || ''}>
                           <p className="font-semibold">{a.appointment_time.slice(0, 5)}</p>
                           <p className="truncate opacity-90">{a.patient_name || 'Sin nombre'}</p>
                         </div>
@@ -423,9 +369,9 @@ function Upcoming({ appointments, appointmentLabel, appointmentsLabel, calendarC
   const end = (a: typeof first) => new Date(a.start.getTime() + (a.duration_minutes || 30) * 60_000)
   return (
     <div className="space-y-3">
-      <div className="rounded-xl bg-slate-50 p-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: accentTint(7) }}>
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="font-semibold text-slate-600">{startsIn(first.start)}</span>
+          <span className="font-bold text-(--ia-accent)">{startsIn(first.start)}</span>
           <span className="text-slate-500">{hhmm(first.start)} – {hhmm(end(first))}</span>
         </div>
         <div className="flex items-center gap-3 mt-3">

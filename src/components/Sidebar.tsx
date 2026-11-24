@@ -53,8 +53,6 @@ export default function Sidebar() {
   // Si el plan no incluye Clientes (Lite), el Gestor abre en Recordatorios.
   const crmHref = planLockFor('/dashboard/crm/clientes', planFeatures) ? '/dashboard/crm/recordatorios' : '/dashboard/crm'
 
-  console.log('[Sidebar] isAdmin =', isAdmin)
-
   // Badges dinámicos
   const { data: badges = {} } = useQuery({
     queryKey: ['sidebar-badges'],
