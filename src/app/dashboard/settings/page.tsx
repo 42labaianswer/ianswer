@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import PageHeader from '../../../components/PageHeader'
@@ -23,6 +23,12 @@ import IAnswerLoader from '../../../components/IAnswerLoader'
 export default function SettingsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'profile' | 'brand' | 'hours' | 'calendars' | 'widget'>('profile')
+
+  // ?tab=calendars (p. ej. desde "Conectar calendario" en el inicio) abre esa pestaña.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (tab === 'profile' || tab === 'brand' || tab === 'hours' || tab === 'calendars' || tab === 'widget') setActiveTab(tab)
+  }, [])
 
   // 1. TANSTACK QUERY: Obtener toda la data inicial de la empresa
   const { data, isLoading } = useQuery({
