@@ -53,6 +53,13 @@ export function useIsAppInstalled(appId: AppId): boolean {
  * Si la capacity no existe, devuelve Infinity (sin límite).
  * Útil para gates como `if (items.length >= maxItems) showPaywall()`.
  */
+/** true si el límite es un tope real que vale la pena mostrar ("3 de 50").
+ * Infinity (sin la llave en el plan), 0 y 9999 (ilimitado en la tabla plans)
+ * se muestran sin tope. */
+export function hasCap(limit: number): boolean {
+  return Number.isFinite(limit) && limit > 0 && limit < 9999
+}
+
 export function useAppLimit(_appId: AppId, capabilityKey: string): number {
   const { data: entitlements } = useEntitlements()
   const value = (entitlements?.capacity as any)?.[capabilityKey]

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import BatchPublishBar, { PublishDot } from '../../../components/BatchPublishBar'
 
-import { useAppCapability, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
+import { hasCap, useAppCapability, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
 import MenuItemDrawer, { MenuItem } from '../../../components/MenuItemDrawer'
 import MenuImportWizard from '../../../components/MenuImportWizard'
 import PageHeader from '../../../components/PageHeader'
@@ -235,7 +235,7 @@ function MenuContent() {
 
       <PageHeader
         title="Menú digital"
-        description={`${items.length} ${maxItems > 0 ? `de ${maxItems === 9999 ? '∞' : maxItems}` : ''} platillos · ${categories.length} categorías`}
+        description={`${items.length}${hasCap(maxItems) ? ` de ${maxItems}` : ''} platillos · ${categories.length} categorías`}
         actions={
           <>
             <button

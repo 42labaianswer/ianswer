@@ -23,11 +23,13 @@ export default function PlanLockGate({ children }: { children: ReactNode }) {
   if (isAdmin === true) {
     return (
       <>
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs font-bold text-amber-900">
+        {/* Barra a todo lo ancho, como PageHeader: la página empieza debajo y su
+            encabezado (que sube con margen negativo) queda pegado a la barra. */}
+        <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 px-4 md:px-8 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-xs font-bold text-amber-900">
           <Lock size={14} className="text-amber-700 shrink-0" />
           {lock.name} no está en el plan de esta cuenta. La ves porque eres admin.
         </div>
-        {children}
+        <div className="pt-4 md:pt-6">{children}</div>
       </>
     )
   }
