@@ -84,7 +84,7 @@ export default function AIAgentBuilderPage() {
       await supabase.from('companies').update({ agent_mode: 'general' }).eq('id', companyId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['aiAgentsData'] })
+      void queryClient.invalidateQueries({ queryKey: ['aiAgentsData'] })
       toast.success('Listo, ya puedes configurar a tu agente')
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'No se pudo crear el perfil'),
