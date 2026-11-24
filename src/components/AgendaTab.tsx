@@ -2,14 +2,16 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock } from 'lucide-react'
+import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock, ExternalLink } from 'lucide-react'
 import { useConfirm } from '../hooks/useConfirm'
+
+const NEW_LOCATION = '__new__'
 
 type Agenda = {
   id: string
@@ -39,6 +41,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     staff_id: '',
     room_name: ''
   })
+  const [newLocationName, setNewLocationName] = useState('')
 
   // maxAgendas viene de entitlements (mergea plan + addons). Fallback a 1.
   const maxAgendas = (entitlements as any)?.capacity?.max_agendas ?? 1
@@ -70,6 +73,11 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
   const { serviceAccount, webhookUrl, agendas, locations, team } = data || { serviceAccount: '', webhookUrl: '', agendas: [], locations: [], team: [] }
 
+  const maxLocations = entitlements?.capacity?.max_locations ?? 1
+  const canAddLocation = locations.length < maxLocations
+  // Sin sedes no hay nada que elegir: se pide el nombre de la primera.
+  const creatingLocation = canAddLocation && (locations.length === 0 || newAgenda.location_id === NEW_LOCATION)
+
   const verifyCalendarWithN8N = async (calendarId: string) => {
     try {
       if (!webhookUrl) return false
@@ -86,13 +94,25 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
   // 2. TANSTACK MUTATION: Crear y verificar agenda
   const createAgendaMutation = useMutation({
     mutationFn: async () => {
+      let locationId = newAgenda.location_id
+      let locationName = locations.find((l: any) => l.id === locationId)?.name as string | undefined
+      if (showAdvancedTypes && newAgenda.type === 'location' && creatingLocation) {
+        const name = newLocationName.trim()
+        if (!name) throw new Error('Escribe el nombre de la sede')
+        const { data: loc, error: locError } = await supabase
+          .from('locations').insert([{ company_id: companyId, name }]).select('id, name').single()
+        if (locError || !loc) throw new Error('No se pudo crear la sede')
+        locationId = loc.id
+        locationName = loc.name
+      }
+
       // Autogenerar nombre según el tipo seleccionado
       let finalName = 'Calendario Principal'
-      if (newAgenda.type === 'location' && newAgenda.location_id) {
-        finalName = `Sede: ${locations.find((l: any) => l.id === newAgenda.location_id)?.name || 'Desconocida'}`
+      if (newAgenda.type === 'location' && locationId) {
+        finalName = `Sede: ${locationName || 'Desconocida'}`
       } else if (newAgenda.type === 'doctor' && newAgenda.staff_id) {
-        const doc: any = team.find((t: any) => t.id === newAgenda.staff_id)
-        finalName = `Dr/a: ${doc?.name || doc?.full_name || 'Especialista'}` // <-- Doble chequeo de nombre
+        const person: any = team.find((t: any) => t.id === newAgenda.staff_id)
+        finalName = `Agenda de ${person?.name || person?.full_name || 'especialista'}`
       } else if (newAgenda.type === 'room') {
         finalName = `Cuarto/Sala: ${newAgenda.room_name}`
       }
@@ -104,7 +124,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
         type: newAgenda.type, 
         google_calendar_id: newAgenda.google_calendar_id, 
         schedule_rules: newAgenda.schedule_rules,
-        location_id: newAgenda.type === 'location' ? newAgenda.location_id : null,
+        location_id: newAgenda.type === 'location' && locationId ? locationId : null,
         staff_id: newAgenda.type === 'doctor' ? newAgenda.staff_id : null,
         room_name: newAgenda.type === 'room' ? newAgenda.room_name : null
       }]).select().single()
@@ -120,6 +140,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
       queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
       setIsAdding(false)
       setNewAgenda({ type: 'location', google_calendar_id: '', schedule_rules: '', location_id: '', staff_id: '', room_name: '' })
+      setNewLocationName('')
       if (result.isVerified) toast.success("¡Agenda guardada y verificada exitosamente!")
       else toast.error("Guardada, pero Google denegó el acceso. Verifica permisos.")
     },
@@ -180,12 +201,49 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
         <div className="p-8">
           <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8">
-            <h3 className="text-indigo-900 font-bold mb-2 flex items-center gap-2"><ShieldCheck size={18}/> ¿Cómo conectar tu calendario?</h3>
-            <p className="text-sm text-indigo-700 mb-4">Abre tu Google Calendar, ve a Configuración, Agregar Personas, y pega este correo dándole permiso de <strong>Realizar cambios en eventos</strong>:</p>
-            <div className="flex items-center gap-2 bg-white border border-indigo-200 p-2 rounded-xl">
-              <input readOnly value={serviceAccount || 'Cargando correo...'} className="flex-1 bg-transparent outline-none text-sm font-mono text-slate-600 px-2" />
-              <button type="button" onClick={() => { navigator.clipboard.writeText(serviceAccount); toast.success("Copiado") }} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg text-xs font-bold flex items-center gap-2"><Copy size={14}/> Copiar</button>
-            </div>
+            <h3 className="text-indigo-900 font-bold mb-1 flex items-center gap-2"><ShieldCheck size={18}/> ¿Cómo conectar tu calendario?</h3>
+            <p className="text-sm text-indigo-700 mb-5">Son dos partes: compartir tu calendario con iAnswer desde Google y después agregarlo aquí.</p>
+
+            <ol className="space-y-5">
+              <GuideStep n={1} title="Abre Google Calendar">
+                <p>
+                  Entra a{' '}
+                  <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer" className="font-bold text-indigo-700 underline inline-flex items-center gap-1">
+                    calendar.google.com <ExternalLink size={12} />
+                  </a>{' '}
+                  con la cuenta donde quieres recibir las citas. Te recomendamos crear un calendario solo para las citas del negocio
+                  (en la barra izquierda, junto a <strong>Otros calendarios</strong>, presiona <strong>+</strong> y luego <strong>Crear calendario</strong>).
+                </p>
+              </GuideStep>
+
+              <GuideStep n={2} title="Compártelo con iAnswer">
+                <p>
+                  En la barra izquierda, en <strong>Mis calendarios</strong>, pasa el cursor sobre el calendario, presiona los <strong>tres puntos</strong> y
+                  elige <strong>Configuración y uso compartido</strong>. En <strong>Compartido con</strong> presiona <strong>Agregar personas y grupos</strong>,
+                  pega este correo y en permisos elige <strong>Realizar cambios en los eventos</strong>:
+                </p>
+                <div className="mt-2 flex items-center gap-2 bg-white border border-indigo-200 p-2 rounded-xl">
+                  <input readOnly value={serviceAccount || 'Cargando correo...'} className="flex-1 min-w-0 bg-transparent outline-none text-sm font-mono text-slate-600 px-2" />
+                  <button type="button" onClick={() => { void navigator.clipboard.writeText(serviceAccount); toast.success('Correo copiado') }} className="shrink-0 px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg text-xs font-bold flex items-center gap-2"><Copy size={14}/> Copiar</button>
+                </div>
+              </GuideStep>
+
+              <GuideStep n={3} title="Copia el ID del calendario">
+                <p>
+                  En esa misma página baja hasta <strong>Integrar el calendario</strong> y copia el <strong>ID de calendario</strong>.
+                  Si usas tu calendario principal, el ID es tu correo de Gmail.
+                </p>
+              </GuideStep>
+
+              <GuideStep n={4} title="Agrégalo aquí">
+                <p>Vuelve a esta página, presiona <strong>Agregar agenda</strong>, pega el ID y guarda. iAnswer revisa que tenga acceso al momento.</p>
+                {!isAdding && agendas.length < maxAgendas && (
+                  <button type="button" onClick={() => setIsAdding(true)} className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                    <CalendarPlus size={16}/> Agregar agenda
+                  </button>
+                )}
+              </GuideStep>
+            </ol>
           </div>
 
           {isAdding && (
@@ -215,10 +273,32 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
                   {/* Selectores dinámicos */}
                   <div className="pt-2">
                     {newAgenda.type === 'location' && (
-                      <select required value={newAgenda.location_id} onChange={e => setNewAgenda({...newAgenda, location_id: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700">
-                        <option value="">-- Selecciona a qué sede pertenece --</option>
-                        {locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                      </select>
+                      <div className="space-y-2">
+                        {locations.length > 0 && (
+                          <select required value={newAgenda.location_id} onChange={e => setNewAgenda({...newAgenda, location_id: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700">
+                            <option value="">-- Selecciona a qué sede pertenece --</option>
+                            {locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                            {canAddLocation && <option value={NEW_LOCATION}>+ Crear una sede nueva</option>}
+                          </select>
+                        )}
+                        {creatingLocation && (
+                          <>
+                            <input
+                              type="text"
+                              required
+                              value={newLocationName}
+                              onChange={e => setNewLocationName(e.target.value)}
+                              placeholder="Ej. Sucursal Centro"
+                              className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700"
+                            />
+                            <p className="text-xs text-slate-500">
+                              {locations.length === 0
+                                ? 'Aún no tienes sedes. Escribe el nombre de tu sucursal o local y se guardará junto con la agenda.'
+                                : 'La sede nueva se guardará junto con la agenda.'}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     )}
                     {newAgenda.type === 'doctor' && (
                       <select required value={newAgenda.staff_id} onChange={e => setNewAgenda({...newAgenda, staff_id: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700">
@@ -228,7 +308,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
                       </select>
                     )}
                     {newAgenda.type === 'room' && (
-                      <input type="text" required placeholder="Ej. Quirófano 1" value={newAgenda.room_name} onChange={e => setNewAgenda({...newAgenda, room_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700" />
+                      <input type="text" required placeholder="Ej. Sala 1" value={newAgenda.room_name} onChange={e => setNewAgenda({...newAgenda, room_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700" />
                     )}
                   </div>
                 </div>
@@ -236,12 +316,13 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-bold text-slate-700">ID de Google Calendar (Correo)</label>
-                  <input type="text" required value={newAgenda.google_calendar_id} onChange={e => setNewAgenda({...newAgenda, google_calendar_id: e.target.value})} placeholder="clinica@gmail.com" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium" />
+                  <label className="text-sm font-bold text-slate-700">ID de Google Calendar</label>
+                  <input type="text" required value={newAgenda.google_calendar_id} onChange={e => setNewAgenda({...newAgenda, google_calendar_id: e.target.value.trim()})} placeholder="tunegocio@gmail.com" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium" />
+                  <p className="text-xs text-slate-500">Está en Google Calendar, en la configuración del calendario, sección <strong>Integrar el calendario</strong> (paso 3).</p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-bold text-slate-700">Instrucciones extra para la IA (Reglas de esta agenda)</label>
-                  <textarea required value={newAgenda.schedule_rules} onChange={e => setNewAgenda({...newAgenda, schedule_rules: e.target.value})} placeholder="Ej. El Dr. solo atiende niños por las mañanas..." className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[100px] resize-none" />
+                  <textarea required value={newAgenda.schedule_rules} onChange={e => setNewAgenda({...newAgenda, schedule_rules: e.target.value})} placeholder="Ej. Solo se agendan citas por las mañanas y los sábados hasta las 2 pm." className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[100px] resize-none" />
                 </div>
               </div>
               
@@ -259,8 +340,8 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
               <div key={agenda.id} className={`p-6 border-2 rounded-2xl flex flex-col gap-4 transition-colors ${agenda.is_verified ? 'bg-white border-emerald-100 hover:border-emerald-300 shadow-sm' : 'bg-rose-50 border-rose-200'}`}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-1 block">
-                      {agenda.type === 'location' ? '📍 Sede' : agenda.type === 'doctor' ? '👨‍⚕️ Especialista' : '🚪 Sala/Cuarto'}
+                    <span className="text-[10px] font-black tracking-widest uppercase text-slate-400 mb-1 flex items-center gap-1">
+                      {agenda.type === 'location' ? <><MapPin size={11} /> Sede</> : agenda.type === 'doctor' ? <><User size={11} /> Especialista</> : <><DoorOpen size={11} /> Sala/Cuarto</>}
                     </span>
                     <h3 className="font-bold text-slate-900 text-xl">{agenda.name}</h3>
                   </div>
@@ -289,5 +370,17 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
       </div>
       {ConfirmDialog}
     </div>
+  )
+}
+
+function GuideStep({ n, title, children }: { n: number, title: string, children: ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="h-7 w-7 shrink-0 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center">{n}</span>
+      <div className="min-w-0 text-sm text-indigo-800 leading-relaxed">
+        <p className="font-bold text-indigo-950 mb-0.5">{title}</p>
+        {children}
+      </div>
+    </li>
   )
 }
