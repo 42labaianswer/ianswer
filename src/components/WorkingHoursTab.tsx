@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Clock, Save, Coffee, Loader2, LayoutGrid, Calendar } from 'lucide-react'
+import { DAYS_OF_WEEK, defaultWeek } from '../lib/agendaSetup'
 
 type WorkingHour = {
   day_of_week: number
@@ -26,8 +27,6 @@ type Agenda = {
   type: string
 }
 
-const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-const DEFAULT_HOURS = { start_time: '09:00', end_time: '18:00', slot_duration: 30, has_break: false, break_start_time: '13:00', break_end_time: '14:00' }
 
 export default function WorkingHoursTab({ companyId }: { companyId: string }) {
   const queryClient = useQueryClient()
@@ -74,16 +73,7 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
         return data as WorkingHour[]
       } else {
         // Generar defaults si esta agenda no tiene horarios aún
-        return DAYS_OF_WEEK.map((_, i) => ({
-          day_of_week: i,
-          start_time: DEFAULT_HOURS.start_time,
-          end_time: DEFAULT_HOURS.end_time,
-          has_break: DEFAULT_HOURS.has_break,
-          break_start_time: DEFAULT_HOURS.break_start_time,
-          break_end_time: DEFAULT_HOURS.break_end_time,
-          slot_duration: DEFAULT_HOURS.slot_duration,
-          is_active: i > 0 && i < 6
-        }))
+        return defaultWeek()
       }
     }
   })

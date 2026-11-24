@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock, ExternalLink } from 'lucide-react'
 import { useConfirm } from '../hooks/useConfirm'
+import { calendarVerifyUrl, defaultWeek, parseVerifyResponse, type VerifyResult } from '../lib/agendaSetup'
 
 const NEW_LOCATION = '__new__'
 
@@ -55,7 +56,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     enabled: !!companyId, // Espera a tener el ID antes de buscar
     queryFn: async () => {
       const [platformRes, agendasRes, locRes, teamRes] = await Promise.all([
-        supabase.from('platform_settings').select('google_service_account, n8n_webhook_calendar').limit(1).maybeSingle(), // Fallback seguro
+        supabase.from('platform_settings').select('google_service_account, n8n_webhook_calendar, n8n_webhook_calendar_verify').limit(1).maybeSingle(),
         supabase.from('agendas').select('*').eq('company_id', companyId).order('created_at'),
         supabase.from('locations').select('*').eq('company_id', companyId),
         supabase.from('team').select('*').eq('company_id', companyId)
@@ -63,7 +64,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
       return {
         serviceAccount: platformRes.data?.google_service_account || '',
-        webhookUrl: platformRes.data?.n8n_webhook_calendar || '',
+        verifyUrl: calendarVerifyUrl(platformRes.data || {}),
         agendas: (agendasRes.data as Agenda[]) || [],
         locations: locRes.data || [],
         team: teamRes.data || []
@@ -71,24 +72,21 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     }
   })
 
-  const { serviceAccount, webhookUrl, agendas, locations, team } = data || { serviceAccount: '', webhookUrl: '', agendas: [], locations: [], team: [] }
+  const { serviceAccount, verifyUrl, agendas, locations, team } = data || { serviceAccount: '', verifyUrl: '', agendas: [], locations: [], team: [] }
 
   const maxLocations = entitlements?.capacity?.max_locations ?? 1
   const canAddLocation = locations.length < maxLocations
   // Sin sedes no hay nada que elegir: se pide el nombre de la primera.
   const creatingLocation = canAddLocation && (locations.length === 0 || newAgenda.location_id === NEW_LOCATION)
 
-  const verifyCalendarWithN8N = async (calendarId: string) => {
+  const verifyCalendarWithN8N = async (calendarId: string): Promise<VerifyResult> => {
+    if (!verifyUrl) return { ok: false, message: 'La verificación de calendarios no está configurada. Avísale a soporte de iAnswer.' }
     try {
-      if (!webhookUrl) return false
-      const verifyUrl = webhookUrl.replace('obtener-calendario', 'verificar-calendario')
-      const response = await fetch(verifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ calendarId }) })
-      const text = await response.text()
-      if (response.ok) {
-        try { return JSON.parse(text).status === 'ok' } catch (e) { return text.includes('ok') }
-      }
-      return false
-    } catch (error) { return false }
+      const response = await fetch(verifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ calendarId: calendarId.trim() }) })
+      return parseVerifyResponse(response.status, await response.text())
+    } catch {
+      return { ok: false, message: 'No se pudo contactar al servicio de verificación. Revisa tu conexión e intenta de nuevo.' }
+    }
   }
 
   // 2. TANSTACK MUTATION: Crear y verificar agenda
@@ -131,18 +129,25 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
       if (error || !insertedAgenda) throw new Error("Error guardando en la Base de Datos")
 
-      const isVerified = await verifyCalendarWithN8N(insertedAgenda.google_calendar_id)
-      if (isVerified) await supabase.from('agendas').update({ is_verified: true }).eq('id', insertedAgenda.id)
+      // Sin filas en working_hours el calendario marca todos los días como no laborables.
+      const { error: hoursError } = await supabase.from('working_hours').insert(
+        defaultWeek().map(d => ({ ...d, company_id: companyId, agenda_id: insertedAgenda.id }))
+      )
 
-      return { isVerified }
+      const verification = await verifyCalendarWithN8N(insertedAgenda.google_calendar_id)
+      if (verification.ok) await supabase.from('agendas').update({ is_verified: true }).eq('id', insertedAgenda.id)
+
+      return { verification, hoursSaved: !hoursError }
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+    onSuccess: ({ verification, hoursSaved }) => {
+      void queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+      void queryClient.invalidateQueries({ queryKey: ['workingHours'] })
       setIsAdding(false)
       setNewAgenda({ type: 'location', google_calendar_id: '', schedule_rules: '', location_id: '', staff_id: '', room_name: '' })
       setNewLocationName('')
-      if (result.isVerified) toast.success("¡Agenda guardada y verificada exitosamente!")
-      else toast.error("Guardada, pero Google denegó el acceso. Verifica permisos.")
+      if (verification.ok) toast.success('Agenda guardada y verificada')
+      else toast.error(`Agenda guardada, pero sin acceso todavía. ${verification.message}`, { duration: 8000 })
+      if (hoursSaved) toast.success('Le pusimos horario de lunes a viernes de 9 a 6. Puedes cambiarlo en Horarios de Atención.', { duration: 6000 })
     },
     onError: (error) => toast.error(error.message)
   })
@@ -150,18 +155,16 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
   // Mutaciones Auxiliares (Verificar Manual y Borrar)
   const manualVerifyMutation = useMutation({
     mutationFn: async (agenda: Agenda) => {
-      const isVerified = await verifyCalendarWithN8N(agenda.google_calendar_id)
-      if (isVerified) {
-        await supabase.from('agendas').update({ is_verified: true }).eq('id', agenda.id)
-        return true
-      }
-      throw new Error("Fallo de Verificación. Google nos denegó el acceso.")
+      const verification = await verifyCalendarWithN8N(agenda.google_calendar_id)
+      if (!verification.ok) throw new Error(verification.message)
+      const { error } = await supabase.from('agendas').update({ is_verified: true }).eq('id', agenda.id)
+      if (error) throw new Error('Google dio acceso, pero no se pudo guardar. Intenta de nuevo.')
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
-      toast.success("¡Verificación exitosa!")
+      void queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+      toast.success('Calendario verificado')
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => toast.error(error.message, { duration: 8000 })
   })
 
   const deleteAgendaMutation = useMutation({
