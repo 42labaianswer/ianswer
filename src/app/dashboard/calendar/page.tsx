@@ -514,6 +514,24 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {activeAgenda && specificData && specificData.workingHours.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Clock className="text-amber-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-sm font-bold text-amber-900">Esta agenda todavía no tiene horario</p>
+              <p className="text-xs text-amber-800 mt-0.5">Por eso todos los días aparecen como no laborables y tu asistente no puede ofrecer horarios. Guarda los días y horas en que atiendes.</p>
+            </div>
+          </div>
+          <a
+            href="/dashboard/settings?tab=hours"
+            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1"
+          >
+            Configurar horario <ExternalLink size={14} />
+          </a>
+        </div>
+      )}
+
       {/* ============================================================ */}
       {/* TARJETAS KPI - solo si hay agenda y calendar_id */}
       {/* ============================================================ */}
