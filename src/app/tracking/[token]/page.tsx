@@ -17,7 +17,7 @@
  *   - Items del pedido con sus modifiers
  *   - Total
  *   - ETA si la orden está activa
- *   - Auto-refresh cada 30 segundos
+ *   - Se actualiza cada 10 segundos y al volver a la pestaña
  *
  * Es Client Component porque queremos polling. La data inicial viene SSR para
  * que el primer load sea instantáneo y haya Open Graph data.

@@ -5,7 +5,7 @@
  * OrderTrackingClient
  * ----------------------------------------------------------------------------
  * Client component del /tracking/<token>.
- * Hace polling cada 30s para actualizar el estado.
+ * Consulta el estado cada 10 s y al volver a la pestaña.
  * Renderiza timeline vertical con animaciones sutiles.
  * ============================================================================
  */
@@ -46,24 +46,33 @@ export default function OrderTrackingClient({
   const [order, setOrder] = useState<any>(initialOrder)
   const [isPolling, setIsPolling] = useState(false)
 
-  // Polling cada 30s
+  // Se consulta cada 10 s y, además, en cuanto el cliente regresa a la
+  // pestaña (lo normal es que vuelva desde WhatsApp después del aviso).
   useEffect(() => {
     const isFinal = order.status_semantic === 'delivered' || order.status_semantic === 'cancelled'
     if (isFinal) return
 
-    const interval = setInterval(async () => {
+    const refresh = async () => {
+      if (document.visibilityState === 'hidden') return
       setIsPolling(true)
       try {
         const { data } = await supabaseAnon.rpc('get_order_tracking', { p_token: token })
         if (data && data[0]) setOrder(data[0])
-      } catch (e) {
-        // silent fail
+      } catch {
+        // Si falla una consulta, la siguiente lo vuelve a intentar.
       } finally {
         setIsPolling(false)
       }
-    }, 30000)
+    }
 
-    return () => clearInterval(interval)
+    const interval = setInterval(refresh, 10_000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
   }, [token, order.status_semantic])
 
   const statuses: any[] = order.order_statuses || []
