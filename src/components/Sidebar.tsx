@@ -83,20 +83,43 @@ export default function Sidebar() {
   })
 
   // ── Items ──────────────────────────────────────────────────────────────
-  const primaryItems: MenuItem[] = [
-    { name: 'Dashboard',          href: '/dashboard',              icon: LayoutDashboard, show: true },
-    { name: 'Mensajes',           href: '/dashboard/inbox',        icon: MessageSquare,   show: true },
-    { name: 'Agente AI',          href: '/dashboard/ai-agent',     icon: BrainCircuit,    show: true },
-    { name: 'Equipo',             href: ROUTES.team,               icon: UserCog,         show: true },
-    { name: 'Gestor de Clientes', href: crmHref,                  icon: UserSquare,      show: true, badgeKey: 'overdue_tasks', activePrefix: '/dashboard/crm' },
-    { name: 'Campañas',           href: '/dashboard/campaigns',    icon: Megaphone,       show: true },
-    { name: 'Calendario',         href: '/dashboard/calendar',     icon: Calendar,        show: !!modules.calendar },
-    { name: 'Propiedades',        href: '/dashboard/properties',   icon: Home,            show: !!modules.properties },
-    { name: 'Menú Digital',       href: '/dashboard/menu',         icon: Utensils,        show: !!modules.menu },
-    { name: 'Órdenes',            href: '/dashboard/orders',       icon: ClipboardList,   show: !!modules.menu },
-    { name: 'Métricas',           href: '/dashboard/reports',      icon: BarChart3,       show: true },
-    { name: 'Conectividad',       href: '/dashboard/connectivity', icon: Plug,            show: true }
+  // Agrupados por para qué se usan: el día a día, lo propio de la industria,
+  // crecer y configurar al agente. Entre grupos hay más aire que dentro.
+  const primaryGroups: MenuItem[][] = [
+    [
+      { name: 'Dashboard',          href: '/dashboard',              icon: LayoutDashboard, show: true },
+    ],
+    [
+      { name: 'Mensajes',           href: '/dashboard/inbox',        icon: MessageSquare,   show: true },
+      { name: 'Calendario',         href: '/dashboard/calendar',     icon: Calendar,        show: !!modules.calendar },
+      { name: 'Gestor de Clientes', href: crmHref,                  icon: UserSquare,      show: true, badgeKey: 'overdue_tasks', activePrefix: '/dashboard/crm' },
+    ],
+    [
+      { name: 'Propiedades',        href: '/dashboard/properties',   icon: Home,            show: !!modules.properties },
+      { name: 'Menú Digital',       href: '/dashboard/menu',         icon: Utensils,        show: !!modules.menu },
+      { name: 'Órdenes',            href: '/dashboard/orders',       icon: ClipboardList,   show: !!modules.menu },
+    ],
+    [
+      { name: 'Campañas',           href: '/dashboard/campaigns',    icon: Megaphone,       show: true },
+      { name: 'Métricas',           href: '/dashboard/reports',      icon: BarChart3,       show: true },
+    ],
+    [
+      { name: 'Agente AI',          href: '/dashboard/ai-agent',     icon: BrainCircuit,    show: true },
+      { name: 'Equipo',             href: ROUTES.team,               icon: UserCog,         show: true },
+      { name: 'Conectividad',       href: '/dashboard/connectivity', icon: Plug,            show: true },
+    ],
   ]
+
+  const isLocked = (item: MenuItem) =>
+    !!planLockFor(item.href, planFeatures) || (item.href === '/dashboard/campaigns' && campaignsLocked)
+
+  // Lo que el plan no incluye se junta al final, para que el menú empiece por
+  // lo que sí se puede usar.
+  const visibleItems = primaryGroups.flat().filter(i => i.show)
+  const unlockedGroups = primaryGroups
+    .map(group => group.filter(i => i.show && !isLocked(i)))
+    .filter(group => group.length > 0)
+  const lockedItems = visibleItems.filter(isLocked)
 
   const billingItems: MenuItem[] = [
     { name: 'Extras',     href: '/dashboard/addons',    icon: PackageOpen, show: true },
@@ -118,7 +141,7 @@ export default function Sidebar() {
       pathname === item.href
 
     const badgeValue = item.badgeKey ? (badges as any)[item.badgeKey] : 0
-    const locked = !!planLockFor(item.href, planFeatures) || (item.href === '/dashboard/campaigns' && campaignsLocked)
+    const locked = isLocked(item)
 
     return (
       <Link
@@ -218,8 +241,21 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto scrollbar-hide">
-          {primaryItems.filter(i => i.show).map(i => renderItem(i))}
+        <nav className="flex-1 px-4 py-4 overflow-y-auto scrollbar-hide">
+          {unlockedGroups.map((group, gi) => (
+            <div key={gi} className={`space-y-1 ${gi > 0 ? 'mt-3 pt-3 border-t border-white/5' : ''}`}>
+              {group.map(i => renderItem(i))}
+            </div>
+          ))}
+
+          {lockedItems.length > 0 && (
+            <div className="pt-6 mt-6 border-t border-white/10 space-y-1">
+              <p className="px-4 text-[10px] font-black text-white/40 uppercase mb-3 tracking-[0.2em]">
+                Mejora tu plan
+              </p>
+              {lockedItems.map(i => renderItem(i))}
+            </div>
+          )}
 
           <div className="pt-6 mt-6 border-t border-white/10 space-y-1.5">
             <p className="px-4 text-[10px] font-black text-white/40 uppercase mb-3 tracking-[0.2em]">
