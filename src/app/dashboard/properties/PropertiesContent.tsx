@@ -84,7 +84,6 @@ function PropertiesContent() {
   const canPublicCatalog = catalogFromFeatures || catalogFromEntitlements || !!catalogViaRpc
   const maxProperties    = useAppLimit('propiedades', 'max_properties')
 
-  const [companyId, setCompanyId] = useState<string>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [editing, setEditing] = useState<Property | null>(null)
@@ -98,24 +97,27 @@ function PropertiesContent() {
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
-  // 1) Cargar
-  const { data: properties = [], isLoading } = useQuery({
-    queryKey: ['properties', companyId],
-    queryFn: async (): Promise<Property[]> => {
+  // 1) Cargar. La empresa sale del resultado de la consulta: un setState
+  // dentro de ella se perdía al volver a la página (la consulta viene de
+  // caché) y el editor de propiedades quedaba sin empresa.
+  const { data: propertiesData, isLoading } = useQuery({
+    queryKey: ['properties'],
+    queryFn: async (): Promise<{ companyId: string, properties: Property[] }> => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Sin sesión')
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
       if (!profile?.company_id) throw new Error('Sin company')
-      setCompanyId(profile.company_id)
       const { data, error } = await supabase
         .from('properties')
         .select('*')
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data || []) as Property[]
+      return { companyId: profile.company_id as string, properties: (data || []) as Property[] }
     }
   })
+  const companyId = propertiesData?.companyId ?? ''
+  const properties = useMemo(() => propertiesData?.properties ?? [], [propertiesData])
 
   // 2) Cambiar status rápido (sin abrir drawer)
   const changeStatusMutation = useMutation({

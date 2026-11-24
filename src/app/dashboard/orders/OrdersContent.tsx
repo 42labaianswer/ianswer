@@ -3,6 +3,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { useQuery } from '@tanstack/react-query'
@@ -89,26 +90,34 @@ function OrdersContent() {
   const { primaryTemplate: vertical } = useWorkspace()
   const accentColor = vertical?.accent_color || '#ea580c'
 
-  const [tab, setTab] = useState<Tab>('list')
+  // La pestaña vive en ?tab=: así la ruta del encabezado la muestra
+  // ("Órdenes / Pedidos"), el link se puede compartir y "Órdenes" en la ruta
+  // regresa a Pedidos.
+  const searchParams = useSearchParams()
+  const tabParam = searchParams?.get('tab')
+  const tab: Tab = tabParam === 'tracking' || tabParam === 'settings' ? tabParam : 'list'
+  const setTab = (t: Tab) => window.history.replaceState(null, '', `?tab=${t}`)
   const currentTab = ORDER_TABS.find(t => t.id === tab) ?? ORDER_TABS[0]
-  const [companyId, setCompanyId] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [makerOpen, setMakerOpen] = useState(false)
 
-  // Cargar company_id
-  const { isLoading: isLoadingContext } = useQuery({
+  // La empresa sale del resultado de la consulta (no de un setState dentro de
+  // ella): al volver a la página la consulta viene de caché y no se vuelve a
+  // ejecutar, así que un setState ahí nunca llegaba y la página se quedaba
+  // cargando.
+  const { data: ctx, isLoading: isLoadingContext } = useQuery({
     queryKey: ['orders-context'],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ companyId: string }> => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Sin sesión')
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
       if (!profile?.company_id) throw new Error('Sin company')
-      setCompanyId(profile.company_id)
-      return { companyId: profile.company_id }
+      return { companyId: profile.company_id as string }
     }
   })
+  const companyId = ctx?.companyId ?? ''
 
   // Cargar TODAS las órdenes de la company
   const { data: orders = [], isLoading: isLoadingOrders, refetch } = useQuery({
@@ -161,7 +170,7 @@ function OrdersContent() {
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 flex flex-col lg:flex-row lg:min-h-[calc(100vh-80px)] bg-slate-50 animate-in fade-in duration-500">
       {/* ── Celular: pestañas arriba, deslizables ─────────────────────── */}
-      <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <div className="lg:hidden bg-white border-b border-slate-200 shadow-sm">
         <nav className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
           {ORDER_TABS.map(t => {
             const Icon = t.icon

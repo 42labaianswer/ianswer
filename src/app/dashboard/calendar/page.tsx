@@ -440,7 +440,7 @@ export default function CalendarPage() {
       />
 
       {/* Tarjeta de estado y acciones */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-sm relative overflow-hidden flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
         <div className="relative z-10">
           <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2">Estado de Google Calendar</h3>
           {hasCalendarId ? (
@@ -458,7 +458,7 @@ export default function CalendarPage() {
           )}
         </div>
         
-        <div className="relative z-10 w-full md:w-auto flex flex-col sm:flex-row gap-3">
+        <div className="relative z-10 w-full xl:w-auto flex flex-col sm:flex-row flex-wrap gap-3">
           <button
             onClick={() => {
               const today = formatYMD(new Date())
@@ -467,7 +467,7 @@ export default function CalendarPage() {
               setGlobalBookingOpen(true)
             }}
             disabled={!activeAgenda}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-black text-sm shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 bg-(--ia-accent) hover:brightness-110 text-white disabled:opacity-50"
           >
             <CalendarPlus size={18} /> Agendar Cita
           </button>

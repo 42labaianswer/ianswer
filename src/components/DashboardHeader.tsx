@@ -9,7 +9,9 @@
 // el sidebar drawer.
 // ============================================================================
 
+import { Suspense } from 'react'
 import Link from 'next/link'
+import Breadcrumbs from './Breadcrumbs'
 import { LifeBuoy, Menu } from 'lucide-react'
 import { useMobileSidebar } from './MobileSidebarContext'
 import NotificationsWidget from './NotificationsWidget'
@@ -31,11 +33,10 @@ export default function DashboardHeader() {
           <Menu size={22} />
         </button>
 
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-400 font-medium hidden sm:inline">Dashboard</span>
-          <span className="text-slate-300 hidden sm:inline">/</span>
-          <span className="text-slate-900 font-semibold tracking-tight">Panel Principal</span>
-        </div>
+        {/* useSearchParams pide un Suspense alrededor en el app router. */}
+        <Suspense fallback={null}>
+          <Breadcrumbs />
+        </Suspense>
       </div>
 
       <div className="flex items-center gap-2 md:gap-5">

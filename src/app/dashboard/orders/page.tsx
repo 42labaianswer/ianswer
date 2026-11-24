@@ -2,6 +2,8 @@
 
 'use client'
 
+import { Suspense } from 'react'
+
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import OrdersContent from './OrdersContent'
 import { ClipboardList } from 'lucide-react'
@@ -34,5 +36,6 @@ export default function OrdersPage() {
     )
   }
 
-  return <OrdersContent />
+  // OrdersContent lee ?tab= con useSearchParams, que pide un Suspense.
+  return <Suspense fallback={null}><OrdersContent /></Suspense>
 }

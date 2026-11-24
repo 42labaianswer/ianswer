@@ -2,7 +2,8 @@
 
 'use client'
 
-import { useState } from 'react'
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import PageHeader from '../../../components/PageHeader'
@@ -20,9 +21,20 @@ import BrandTab from '../../../components/BrandTab'
 import SubscriptionSyncOnSuccess from '../../../components/SubscriptionSyncOnSuccess'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
+// SettingsContent lee ?tab= con useSearchParams, que pide un Suspense.
 export default function SettingsPage() {
+  return <Suspense fallback={null}><SettingsContent /></Suspense>
+}
+
+function SettingsContent() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'profile' | 'brand' | 'hours' | 'calendars' | 'widget'>('profile')
+  // La pestaña vive en ?tab=: la ruta del encabezado la muestra y
+  // "Conectar calendario" del inicio abre directo ?tab=calendars.
+  type SettingsTab = 'profile' | 'brand' | 'hours' | 'calendars' | 'widget'
+  const tabParam = useSearchParams()?.get('tab')
+  const activeTab: SettingsTab =
+    tabParam === 'brand' || tabParam === 'hours' || tabParam === 'calendars' || tabParam === 'widget' ? tabParam : 'profile'
+  const setActiveTab = (t: SettingsTab) => window.history.replaceState(null, '', `?tab=${t}`)
 
   // 1. TANSTACK QUERY: Obtener toda la data inicial de la empresa
   const { data, isLoading } = useQuery({

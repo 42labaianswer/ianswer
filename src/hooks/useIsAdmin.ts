@@ -18,11 +18,8 @@ export function useIsAdmin(): boolean {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        console.log('[useIsAdmin] No user')
         return false
       }
-
-      console.log('[useIsAdmin] User:', user.email, user.id)
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -35,9 +32,7 @@ export function useIsAdmin(): boolean {
         return false
       }
 
-      console.log('[useIsAdmin] Profile:', profile)
       const isAdmin = profile?.is_admin === true
-      console.log('[useIsAdmin] isAdmin:', isAdmin)
       return isAdmin
     },
     // 🔥 Sin caché para forzar consulta siempre
@@ -50,7 +45,6 @@ export function useIsAdmin(): boolean {
   // 🔄 Refetch cuando cambia la sesión
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      console.log('[useIsAdmin] Auth changed, refetching...')
       refetch()
     })
     return () => listener?.subscription?.unsubscribe()
