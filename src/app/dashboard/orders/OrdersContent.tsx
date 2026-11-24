@@ -170,7 +170,7 @@ function OrdersContent() {
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 flex flex-col lg:flex-row lg:min-h-[calc(100vh-80px)] bg-slate-50 animate-in fade-in duration-500">
       {/* ── Celular: pestañas arriba, deslizables ─────────────────────── */}
-      <div className="lg:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <div className="lg:hidden bg-white border-b border-slate-200 shadow-sm">
         <nav className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-hide">
           {ORDER_TABS.map(t => {
             const Icon = t.icon
