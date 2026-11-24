@@ -63,6 +63,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Addon no encontrado' }, { status: 404 })
     }
 
+    // Mismo criterio que la tienda (addon_unavailable_reason): no se vende un
+    // add-on que pide un plan mayor ni uno que el plan ya incluye.
+    const adminDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data: unavailable } = await adminDb.rpc('addon_unavailable_reason', {
+      p_company_id: companyId,
+      p_addon_id: addonId,
+    })
+    if (unavailable === 'plan') {
+      return NextResponse.json({ error: 'Este complemento no está disponible en tu plan. Sube de plan para activarlo.' }, { status: 400 })
+    }
+    if (unavailable === 'included') {
+      return NextResponse.json({ error: 'Tu plan ya incluye esta función.' }, { status: 400 })
+    }
+
     if (!addon.stripe_price_id || addon.stripe_price_id.includes('...')) {
       return NextResponse.json({
         error: 'Este addon aún no tiene precio configurado en Stripe. Avísale al admin.'

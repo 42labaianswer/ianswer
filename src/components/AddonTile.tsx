@@ -23,6 +23,11 @@ interface AddonTileProps {
     icon: string
     requires_template?: string | null
     is_featured?: boolean
+    price_monthly_cents?: number
+    price_one_time_cents?: number
+    is_recurring?: boolean
+    pack_group?: string | null
+    plan_ok?: boolean
   }
   isActive: boolean
   onClick: () => void
@@ -62,6 +67,14 @@ function getIntro(description: string | null | undefined): string {
   const firstSentence = description.split(/[.\n]/)[0].trim()
   if (firstSentence.length <= 90) return firstSentence
   return firstSentence.slice(0, 85).trim() + '…'
+}
+
+function priceLabel(addon: AddonTileProps['addon']): string {
+  const cents = addon.is_recurring ? addon.price_monthly_cents ?? 0 : addon.price_one_time_cents ?? 0
+  if (cents <= 0) return 'Gratis'
+  const amount = '$' + (cents / 100).toLocaleString('es-MX', { maximumFractionDigits: 0 })
+  if (addon.pack_group) return 'Desde ' + amount
+  return addon.is_recurring ? amount + ' al mes' : amount + ' pago único'
 }
 
 export default function AddonTile({ addon, isActive, onClick }: AddonTileProps) {
@@ -126,6 +139,14 @@ export default function AddonTile({ addon, isActive, onClick }: AddonTileProps) 
       {/* Intro corta (1-2 líneas) */}
       <p className="text-sm text-slate-600 font-medium leading-snug line-clamp-2">
         {intro}
+      </p>
+
+      {/* Precio */}
+      <p className="mt-auto pt-3 text-sm font-black text-slate-900">
+        {priceLabel(addon)}
+        {addon.plan_ok === false && (
+          <span className="ml-2 text-[11px] font-bold text-amber-700">Desde Start</span>
+        )}
       </p>
     </button>
   )

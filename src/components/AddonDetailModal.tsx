@@ -31,13 +31,19 @@ interface AddonDetailModalProps {
     requires_template?: string | null
     feature_flags?: Record<string, boolean>
     capacity_grants?: Record<string, number>
+    credit_grants?: Record<string, number>
+    /** false si el plan de la empresa no alcanza (requires_plan_min). */
+    plan_ok?: boolean
   } | null
+  /** Paquetes del mismo grupo para elegir cantidad (marketing 500 … 10,000). */
+  packOptions?: { id: string; price_one_time_cents: number; credit_grants?: Record<string, number> }[]
   isActive: boolean
   isAdmin: boolean
   isLoading?: boolean
   isDeactivating?: boolean
   onClose: () => void
-  onActivate: () => void
+  /** Con selector de cantidad recibe el id del paquete elegido. */
+  onActivate: (chosenId?: string) => void
   onDeactivate?: () => void
 }
 
@@ -74,19 +80,10 @@ function getIconBg(addon: { requires_template?: string | null, category: string 
   return CATEGORY_ICON_BG[addon.category] || CATEGORY_ICON_BG.feature
 }
 
-const CATEGORY_LABEL: Record<string, string> = {
-  channel:  'Canal',
-  ai:       'Inteligencia',
-  feature:  'Función',
-  service:  'Servicio',
-  support:  'Soporte',
-  capacity: 'Capacidad'
-}
-
 const PLAN_TIER_NAMES: Record<string, string> = {
   start:  'Start',
   growth: 'Growth',
-  scale:  'Scale'
+  scale:  'Pro'
 }
 
 function formatPrice(cents: number, currency: string = 'mxn'): string {
@@ -110,8 +107,15 @@ function featureFlagLabel(key: string): string {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
+const CREDIT_LABEL: Record<string, string> = {
+  ai_replies: 'respuestas de IA',
+  reminders: 'recordatorios',
+  campaign_messages: 'mensajes de marketing',
+}
+
 export default function AddonDetailModal({
   addon,
+  packOptions,
   isActive,
   isAdmin,
   isLoading = false,
@@ -121,6 +125,7 @@ export default function AddonDetailModal({
   onDeactivate
 }: AddonDetailModalProps) {
   const [confirmingDeactivate, setConfirmingDeactivate] = useState(false)
+  const [chosenPackId, setChosenPackId] = useState<string | null>(null)
 
   // Cerrar con ESC
   useEffect(() => {
@@ -135,7 +140,13 @@ export default function AddonDetailModal({
   if (!addon) return null
 
   const Icon = getIcon(addon.icon)
-  const price = addon.is_recurring ? addon.price_monthly_cents : addon.price_one_time_cents
+  const packs = packOptions && packOptions.length > 1 ? packOptions : null
+  const chosenPack = packs ? (packs.find(p => p.id === chosenPackId) ?? packs[0]) : null
+  const credits = Object.entries((chosenPack ?? addon).credit_grants || {}).filter(([, v]) => v > 0)
+  const isPack = credits.length > 0
+  const price = chosenPack
+    ? chosenPack.price_one_time_cents
+    : addon.is_recurring ? addon.price_monthly_cents : addon.price_one_time_cents
   const isFree = price === 0
   const tplLabel = addon.requires_template ? TEMPLATE_LABEL[addon.requires_template] : null
   const features = Object.entries(addon.feature_flags || {}).filter(([_, v]) => v === true)
@@ -158,9 +169,6 @@ export default function AddonDetailModal({
                 {tplLabel.label}
               </span>
             )}
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              {CATEGORY_LABEL[addon.category] || addon.category}
-            </span>
           </div>
           <button
             onClick={onClose}
@@ -210,6 +218,34 @@ export default function AddonDetailModal({
             </div>
           )}
 
+          {packs && (
+            <div className="w-full mb-2">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Cantidad</p>
+              <div className="flex flex-wrap justify-center gap-2" role="radiogroup" aria-label="Cantidad">
+                {packs.map(p => {
+                  const amount = Object.values(p.credit_grants || {})[0] ?? 0
+                  const selected = p.id === chosenPack?.id
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setChosenPackId(p.id)}
+                      className={`px-3.5 py-2 rounded-xl border text-sm font-bold transition-colors ${
+                        selected
+                          ? 'bg-slate-950 border-slate-950 text-white'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                      }`}
+                    >
+                      {amount.toLocaleString('es-MX')}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Estado actual */}
           {isActive && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full mb-2">
@@ -231,7 +267,7 @@ export default function AddonDetailModal({
         )}
 
         {/* Lo que activa */}
-        {(features.length > 0 || capacities.length > 0) && (
+        {(features.length > 0 || capacities.length > 0 || isPack) && (
           <div className="px-6 md:px-8 pb-6">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
               Qué incluye
@@ -244,6 +280,16 @@ export default function AddonDetailModal({
                   </div>
                   <span className="text-sm text-slate-800 font-medium">
                     {featureFlagLabel(key)}
+                  </span>
+                </li>
+              ))}
+              {credits.map(([key, value]) => (
+                <li key={key} className="flex items-center gap-2.5">
+                  <div className="h-5 w-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <Check size={11} strokeWidth={3} />
+                  </div>
+                  <span className="text-sm text-slate-800 font-medium">
+                    +{value.toLocaleString('es-MX')} {CREDIT_LABEL[key] ?? key} en tu periodo actual
                   </span>
                 </li>
               ))}
@@ -261,13 +307,13 @@ export default function AddonDetailModal({
           </div>
         )}
 
-        {/* Requiere plan mínimo */}
-        {addon.requires_plan_min && (
+        {/* Requiere plan mínimo: solo cuando el plan actual no alcanza */}
+        {addon.requires_plan_min && addon.plan_ok === false && (
           <div className="mx-6 md:mx-8 mb-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5">
             <Crown size={16} className="text-amber-700 shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-amber-900 leading-tight">
-                Requiere plan {PLAN_TIER_NAMES[addon.requires_plan_min] || addon.requires_plan_min} o superior
+                Disponible desde el plan {PLAN_TIER_NAMES[addon.requires_plan_min] || addon.requires_plan_min}. Sube de plan para activarlo.
               </p>
             </div>
           </div>
@@ -326,8 +372,8 @@ export default function AddonDetailModal({
             </>
           ) : (
             <button
-              onClick={onActivate}
-              disabled={isLoading}
+              onClick={() => onActivate(chosenPack?.id)}
+              disabled={isLoading || (!isAdmin && addon.plan_ok === false)}
               className={`
                 w-full px-6 py-3.5 rounded-2xl font-black text-sm
                 transition-colors flex items-center justify-center gap-2
@@ -341,28 +387,34 @@ export default function AddonDetailModal({
               ) : isAdmin ? (
                 <>
                   <Sparkles size={14} />
-                  Activar (admin · 30 días gratis)
+                  {isPack ? 'Agregar saldo (admin, sin cobro)' : 'Activar (admin · 30 días gratis)'}
                 </>
               ) : isFree ? (
                 <>
                   <Sparkles size={14} />
                   Activar gratis
                 </>
+              ) : addon.plan_ok === false ? (
+                <>No disponible en tu plan</>
               ) : (
-                <>Instalar ahora</>
+                <>{isPack ? 'Comprar' : 'Instalar ahora'}</>
               )}
             </button>
           )}
 
-          {!isActive && !isAdmin && isFree && (
+          {!isActive && !isAdmin && isFree && addon.plan_ok !== false && (
             <p className="text-[11px] text-center text-emerald-600 font-bold">
               Esta función es gratis. Se activa al instante.
             </p>
           )}
 
-          {!isActive && !isAdmin && price > 0 && (
+          {!isActive && !isAdmin && price > 0 && addon.plan_ok !== false && (
             <p className="text-[11px] text-center text-slate-500 font-medium">
-              Cobra a tu método de pago. Cancela cuando quieras.
+              {isPack
+                ? 'Pago único. Se suma a tu saldo hasta que se reinicie tu periodo; lo que no uses no pasa al siguiente.'
+                : addon.is_recurring
+                  ? 'Cobra a tu método de pago. Cancela cuando quieras.'
+                  : 'Pago único.'}
             </p>
           )}
         </div>

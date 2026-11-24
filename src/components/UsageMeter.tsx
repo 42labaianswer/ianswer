@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, Calendar, Gauge, TrendingUp } from 'lucide-react'
 import { useUsageSummary } from '../hooks/useBilling'
-import { USAGE_METRICS, daysUntil, meterState, type MeterLevel } from '../lib/usageSummary'
+import { USAGE_METRICS, daysUntil, extraLabel, meterState, type MeterLevel } from '../lib/usageSummary'
 
 const BAR: Record<MeterLevel, string> = {
   ok: 'bg-(--ia-accent)',
@@ -89,6 +89,7 @@ export default function UsageMeter({ companyId, onUpgrade }: { companyId: string
               </div>
               <p className="mt-1 text-[11px] font-medium text-slate-500">
                 {state!.level === 'full' ? 'Sin saldo en este periodo' : `Te quedan ${n(state!.remaining)}`}
+                {extraLabel(usage.metrics[key]) && ` · ${extraLabel(usage.metrics[key])}`}
               </p>
             </div>
           ))}

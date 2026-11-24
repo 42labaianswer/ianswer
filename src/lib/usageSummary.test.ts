@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysUntil, meterState } from './usageSummary'
+import { daysUntil, extraLabel, meterState } from './usageSummary'
 
 describe('meterState', () => {
   it('sin límite no muestra barra', () => {
@@ -27,5 +27,17 @@ describe('daysUntil', () => {
   })
   it('nunca es negativo', () => {
     expect(daysUntil('2026-11-01T00:00:00Z', now)).toBe(0)
+  })
+})
+
+describe('extraLabel', () => {
+  it('sin saldo comprado no dice nada', () => {
+    expect(extraLabel(undefined)).toBeNull()
+    expect(extraLabel({ used: 0, limit: 500, extra: 0 })).toBeNull()
+  })
+  it('muestra el saldo y cuándo vence', () => {
+    expect(extraLabel({ used: 0, limit: 1500, extra: 1000, extra_expires: '2027-02-23T18:00:00Z' }))
+      .toBe('1,000 comprados, vence el 23 feb')
+    expect(extraLabel({ used: 0, limit: 1500, extra: 1000 })).toBe('1,000 comprados')
   })
 })

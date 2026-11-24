@@ -50,6 +50,19 @@ export async function requireActiveCompany(): Promise<CompanyAuth> {
   return { ok: true, supabase, userId: user.id, companyId }
 }
 
+/**
+ * true si la empresa tiene el flag en get_company_entitlements().features
+ * (plan + add-ons activos). Los administradores de plataforma pasan siempre.
+ */
+export async function companyHasFeature(supabase: ServerSupabase, companyId: string, flag: string): Promise<boolean> {
+  const { data: isAdmin } = await supabase.rpc('is_platform_admin')
+  if (isAdmin === true) return true
+  const { data } = await supabase.rpc('get_company_entitlements', { p_company_id: companyId })
+  return (data as { features?: Record<string, unknown> } | null)?.features?.[flag] === true
+}
+
+export const ADDON_REQUIRED_ERROR = 'Esta función es un complemento. Actívalo en Extras para usarla.'
+
 export const INACTIVE_SUBSCRIPTION_ERROR = 'Tu suscripción no está activa. Revisa tu plan en Mi Plan.'
 
 /**

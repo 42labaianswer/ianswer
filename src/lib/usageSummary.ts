@@ -3,7 +3,26 @@
 
 export type UsageMetricKey = 'ai_replies' | 'reminders' | 'campaign_messages'
 
-export type UsageMetric = { used: number; limit: number | null }
+export type UsageMetric = {
+  used: number
+  /** Disponible en el periodo: lo del plan (o lo ya usado) + saldo comprado. */
+  limit: number | null
+  /** Lo que incluye el plan por periodo. */
+  plan_limit?: number | null
+  /** Saldo comprado que queda sin usar (vale 3 meses desde la compra). */
+  extra?: number
+  /** Cuándo vence la primera compra con saldo. */
+  extra_expires?: string | null
+}
+
+/** "1,000 comprados, vence el 23 feb" para el medidor. */
+export function extraLabel(metric: UsageMetric | undefined): string | null {
+  if (!metric?.extra || metric.extra <= 0) return null
+  const amount = metric.extra.toLocaleString('es-MX')
+  if (!metric.extra_expires) return `${amount} comprados`
+  const date = new Date(metric.extra_expires).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+  return `${amount} comprados, vence el ${date}`
+}
 
 export type UsageSummary = {
   period_start: string
