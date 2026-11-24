@@ -14,7 +14,7 @@ import {
   CheckCircle2, Clock, XCircle, Copy, Globe, CheckSquare, Square
 } from 'lucide-react'
 
-import { useAppCapability, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
+import { hasCap, useAppCapability, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
 import { useEntitlements } from '../../../hooks/useEntitlements'
 import PropertyDrawer, { Property } from '../../../components/PropertyDrawer'
 import PropertyImportWizard from '../../../components/PropertyImportWizard'
@@ -216,7 +216,7 @@ function PropertiesContent() {
 
       <PageHeader
         title="Propiedades"
-        description={`${properties.length} ${maxProperties > 0 ? `de ${maxProperties === 9999 ? '∞' : maxProperties}` : ''} · catálogo vivo para tu bot`}
+        description={`${properties.length}${hasCap(maxProperties) ? ` de ${maxProperties}` : ''} · catálogo vivo para tu bot`}
         actions={
           <>
             <button
