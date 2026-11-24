@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { changeOrderStatus, statusChangeToast } from '../lib/orderStatusClient'
 import {
   X, Loader2, Phone, MapPin, Clock, ChevronRight, Truck, Store, UserCheck,
   CheckCircle2, XCircle, DollarSign, CreditCard, Coins, Copy, ExternalLink,
@@ -53,16 +54,11 @@ export default function OrderDrawer({ isOpen, onClose, order, companyId, accentC
   })
 
   // Mutations
+  // Pasa por /api/orders/status, que además le avisa al cliente.
   const advanceMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc('advance_order_status', {
-        p_order_id: order.id,
-        p_changed_by: 'admin'
-      })
-      if (error) throw error
-    },
-    onSuccess: () => {
-      toast.success('Estado avanzado')
+    mutationFn: () => changeOrderStatus({ orderId: order.id, action: 'next' }),
+    onSuccess: (result) => {
+      toast.success(statusChangeToast(result))
       queryClient.invalidateQueries({ queryKey: ['orders-active', companyId] })
       queryClient.invalidateQueries({ queryKey: ['order-history', order?.id] })
       onClose()
@@ -71,16 +67,12 @@ export default function OrderDrawer({ isOpen, onClose, order, companyId, accentC
   })
 
   const cancelMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const reason = prompt('Motivo de cancelación (opcional):')
-      const { error } = await supabase.rpc('cancel_order', {
-        p_order_id: order.id,
-        p_reason: reason || null
-      })
-      if (error) throw error
+      return changeOrderStatus({ orderId: order.id, action: 'cancel', reason: reason || null })
     },
-    onSuccess: () => {
-      toast.success('Orden cancelada')
+    onSuccess: (result) => {
+      toast.success(result.notified ? 'Orden cancelada. Se le avisó al cliente.' : 'Orden cancelada.')
       queryClient.invalidateQueries({ queryKey: ['orders-active', companyId] })
       onClose()
     },
@@ -265,7 +257,7 @@ const trackingUrl = order?.public_token && baseUrl ? `${baseUrl}/tracking/${orde
                   : order.payment_status === 'pending' ? 'bg-amber-100 text-amber-700'
                   : 'bg-slate-100 text-slate-700'
                 }`}>
-                  {order.payment_status === 'paid' ? 'PAGADO' : order.payment_status === 'pending' ? 'PENDIENTE' : order.payment_status.toUpperCase()}
+                  {order.payment_status === 'paid' ? 'PAGADO' : order.payment_status === 'pending' ? 'PENDIENTE' : (order.payment_status || 'pendiente').toUpperCase()}
                 </span>
               </div>
               {order.payment_status !== 'paid' && (

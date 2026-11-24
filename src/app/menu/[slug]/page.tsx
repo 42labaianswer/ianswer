@@ -15,6 +15,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { hasFullBranding, getPlatformName } from '../../../lib/branding'
 import { getPublicCompanyById, companyHasTemplate } from '../../../lib/publicCompany'
+import { publicBrandColors, tint } from '../../../lib/publicBrand'
 
 const supabaseAnon = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +54,21 @@ export default async function MenuPublicPage({ params }: Params) {
 
   if (!hasRestaurant) return notFound()
 
+  // La página pública del menú viene con el add-on Menú digital.
+  const { data: menuEnabled } = await supabaseAnon.rpc('has_menu_public_catalog', { p_company_id: company.id })
+  if (menuEnabled !== true) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-12">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold text-stone-900 sm:text-2xl">Este menú no está disponible</h1>
+          <p className="mt-3 text-sm leading-relaxed text-stone-600">
+            El menú en línea de <span className="font-medium text-stone-900">{company.name}</span> no está disponible en este momento.
+          </p>
+        </div>
+      </main>
+    )
+  }
+
   // Gate full_branding (footer "Powered by")
   const [fullBranding, platformName] = await Promise.all([
     hasFullBranding(company.id),
@@ -71,8 +87,8 @@ export default async function MenuPublicPage({ params }: Params) {
   // companies no tiene columnas brand_*: se usan primary_color/secondary_color.
   // Los valores DEFAULT de la columna cuentan como "sin configurar" para
   // conservar los colores del menú.
-  const primaryColor = company.primary_color && company.primary_color !== '#0f172a' ? company.primary_color : '#ea580c'
-  const accentColor = company.secondary_color && company.secondary_color !== '#64748b' ? company.secondary_color : '#f97316'
+  // Colores del restaurante; si no eligió, los de iAnswer (lib/publicBrand).
+  const { primary: primaryColor, accent: accentColor } = publicBrandColors(company.primary_color, company.secondary_color)
   const logo = company.logo_url
 
   // Agrupar items por categoría
@@ -200,7 +216,7 @@ function FeaturedItem({ item, accentColor, primaryColor }: { item: any, accentCo
       {item.photo_url ? (
         <img src={item.photo_url} alt={item.name} className="h-32 w-full object-cover" />
       ) : (
-        <div className="h-32 w-full flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
+        <div className="h-32 w-full flex items-center justify-center" style={{ backgroundColor: tint(accentColor) }}>
           <span className="text-3xl">⭐</span>
         </div>
       )}

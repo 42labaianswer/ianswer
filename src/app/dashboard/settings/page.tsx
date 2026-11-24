@@ -8,7 +8,7 @@ import { supabase } from '../../../lib/supabase'
 import PageHeader from '../../../components/PageHeader'
 import { useQuery } from '@tanstack/react-query'
 import { 
-  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, CodeXml
+  Settings, CreditCard, ChevronRight, Clock, CalendarDays, Settings2, CodeXml, Palette
 } from 'lucide-react'
 
 // IMPORTAMOS LOS COMPONENTES CREADOS
@@ -16,12 +16,13 @@ import ProfileTab from '../../../components/ProfileTab'
 import WorkingHoursTab from '../../../components/WorkingHoursTab'
 import AgendasTab from '../../../components/AgendaTab'
 import WidgetTab from '../../../components/WidgetTab'
+import BrandTab from '../../../components/BrandTab'
 import SubscriptionSyncOnSuccess from '../../../components/SubscriptionSyncOnSuccess'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'profile' | 'hours' | 'calendars' | 'widget'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'brand' | 'hours' | 'calendars' | 'widget'>('profile')
 
   // 1. TANSTACK QUERY: Obtener toda la data inicial de la empresa
   const { data, isLoading } = useQuery({
@@ -133,6 +134,13 @@ export default function SettingsPage() {
             >
               <Settings2 size={18} /> Perfil y Contacto
             </button>
+            <button
+              onClick={() => setActiveTab('brand')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
+                ${activeTab === 'brand' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              <Palette size={18} /> Marca de tu negocio
+            </button>
             <button 
               onClick={() => setActiveTab('hours')}
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
@@ -160,6 +168,7 @@ export default function SettingsPage() {
         {/* Contenido Dinámico de las Pestañas */}
         <div className="flex-1 w-full min-w-0">
           {activeTab === 'profile' && companyId && <ProfileTab companyId={companyId} />}
+          {activeTab === 'brand' && <BrandTab />}
           {activeTab === 'hours' && companyId && <WorkingHoursTab companyId={companyId} />}
           {activeTab === 'calendars' && companyId && planSlug && <AgendasTab companyId={companyId} planSlug={planSlug} />}
           {activeTab === 'widget' && companyId && <WidgetTab companyId={companyId} />}

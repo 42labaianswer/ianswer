@@ -5,11 +5,12 @@
  * OrderTrackingClient
  * ----------------------------------------------------------------------------
  * Client component del /tracking/<token>.
- * Hace polling cada 30s para actualizar el estado.
+ * Consulta el estado cada 10 s y al volver a la pestaña.
  * Renderiza timeline vertical con animaciones sutiles.
  * ============================================================================
  */
 
+import { publicBrandColors, tint } from '../../../lib/publicBrand'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -46,32 +47,41 @@ export default function OrderTrackingClient({
   const [order, setOrder] = useState<any>(initialOrder)
   const [isPolling, setIsPolling] = useState(false)
 
-  // Polling cada 30s
+  // Se consulta cada 10 s y, además, en cuanto el cliente regresa a la
+  // pestaña (lo normal es que vuelva desde WhatsApp después del aviso).
   useEffect(() => {
     const isFinal = order.status_semantic === 'delivered' || order.status_semantic === 'cancelled'
     if (isFinal) return
 
-    const interval = setInterval(async () => {
+    const refresh = async () => {
+      if (document.visibilityState === 'hidden') return
       setIsPolling(true)
       try {
         const { data } = await supabaseAnon.rpc('get_order_tracking', { p_token: token })
         if (data && data[0]) setOrder(data[0])
-      } catch (e) {
-        // silent fail
+      } catch {
+        // Si falla una consulta, la siguiente lo vuelve a intentar.
       } finally {
         setIsPolling(false)
       }
-    }, 30000)
+    }
 
-    return () => clearInterval(interval)
+    const interval = setInterval(refresh, 10_000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
   }, [token, order.status_semantic])
 
   const statuses: any[] = order.order_statuses || []
   const items: any[] = order.items || []
   const history: any[] = order.history || []
 
-  const primaryColor = order.company_primary_color || '#ea580c'
-  const accentColor  = order.company_accent_color  || '#f97316'
+  // Colores del restaurante; si no eligió, los de iAnswer (lib/publicBrand).
+  const { primary: primaryColor, accent: accentColor } = publicBrandColors(order.company_primary_color, order.company_accent_color)
 
   const isCompleted = order.status_semantic === 'delivered'
   const isCancelled = order.status_semantic === 'cancelled'
@@ -239,7 +249,7 @@ export default function OrderTrackingClient({
 
         {/* Entrega info */}
         <section className="bg-white rounded-3xl shadow-sm p-4 flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
+          <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tint(accentColor) }}>
             <DeliveryIcon size={20} style={{ color: primaryColor }} />
           </div>
           <div className="min-w-0 flex-1">

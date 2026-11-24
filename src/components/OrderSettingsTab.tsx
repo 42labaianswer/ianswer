@@ -69,6 +69,7 @@ type Settings = {
   order_statuses: OrderStatus[]
   order_auto_simulate: boolean
   order_enable_tracking: boolean
+  order_notify_customer: boolean
 }
 
 export default function OrderSettingsTab({ companyId, accentColor }: { companyId: string, accentColor: string }) {
@@ -83,7 +84,7 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('tax_rate, delivery_fee_default, tip_suggestions, min_order_amount, order_statuses, order_auto_simulate, order_enable_tracking')
+        .select('tax_rate, delivery_fee_default, tip_suggestions, min_order_amount, order_statuses, order_auto_simulate, order_enable_tracking, order_notify_customer')
         .eq('id', companyId)
         .single()
       if (error) throw error
@@ -94,7 +95,8 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
         min_order_amount: data.min_order_amount,
         order_statuses: (data.order_statuses as OrderStatus[]) || [],
         order_auto_simulate: data.order_auto_simulate ?? false,
-        order_enable_tracking: data.order_enable_tracking ?? true
+        order_enable_tracking: data.order_enable_tracking ?? true,
+        order_notify_customer: data.order_notify_customer ?? true
       })
       return data
     }
@@ -120,7 +122,8 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
         min_order_amount: next.min_order_amount,
         order_statuses: reordered,
         order_auto_simulate: next.order_auto_simulate,
-        order_enable_tracking: next.order_enable_tracking
+        order_enable_tracking: next.order_enable_tracking,
+        order_notify_customer: next.order_notify_customer
       }).eq('id', companyId)
       if (error) throw error
     },
@@ -383,6 +386,21 @@ export default function OrderSettingsTab({ companyId, accentColor }: { companyId
               <p className="font-bold text-slate-900 text-sm">Mandar link de tracking al cliente</p>
               <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                 Cuando el bot crea una orden, le manda al cliente un <strong>link público whitelabel</strong> para que vea el progreso en tiempo real. Si lo desactivas, solo recibe confirmación de texto.
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 bg-slate-50 rounded-xl p-3 cursor-pointer hover:bg-slate-100 transition-colors">
+            <input
+              type="checkbox"
+              checked={settings.order_notify_customer}
+              onChange={e => setSettings({ ...settings, order_notify_customer: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded text-blue-600 focus:ring-blue-500 shrink-0"
+            />
+            <div className="flex-1">
+              <p className="font-bold text-slate-900 text-sm">Avisar al cliente cada cambio de su pedido</p>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                Cuando mueves un pedido (en preparación, listo, en camino, entregado), el cliente recibe un WhatsApp con el estado nuevo. WhatsApp solo lo permite si el cliente escribió en las últimas 24 horas; si no, ve el avance en su link.
               </p>
             </div>
           </label>

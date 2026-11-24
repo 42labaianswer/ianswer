@@ -16,6 +16,7 @@ import BatchPublishBar, { PublishDot } from '../../../components/BatchPublishBar
 import { hasCap, useAppLimit, useFeature } from '../../../hooks/useAppCapability'
 import MenuItemDrawer, { MenuItem } from '../../../components/MenuItemDrawer'
 import MenuImportWizard from '../../../components/MenuImportWizard'
+import PublicMenuCard from '../../../components/PublicMenuCard'
 import PageHeader from '../../../components/PageHeader'
 import { useConfirm } from '../../../hooks/useConfirm'
 import IAnswerLoader from '../../../components/IAnswerLoader'
@@ -267,6 +268,8 @@ function MenuContent() {
           </>
         }
       />
+
+      <PublicMenuCard companyId={companyId} enabled={canPublicCatalog} />
 
       {/* Filtros + búsqueda */}
       <div className="flex gap-2 mb-6 flex-wrap">
