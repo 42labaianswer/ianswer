@@ -193,8 +193,8 @@ export function useAddonMutations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-addons'] })
       queryClient.invalidateQueries({ queryKey: ['entitlements'] })
-      queryClient.invalidateQueries({ queryKey: ['usage-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['marketing-credits'] })
+      void queryClient.invalidateQueries({ queryKey: ['usage-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['marketing-credits'] })
       toast.success('Addon activado (modo admin · 30 días)')
     },
     onError: (e: any) => toast.error(e?.message || 'Error activando addon')
