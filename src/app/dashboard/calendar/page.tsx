@@ -498,10 +498,10 @@ export default function CalendarPage() {
             <div>
               <p className="text-sm font-bold text-blue-900">Para conectar tu calendario</p>
               <ol className="text-xs text-blue-800 font-medium leading-relaxed list-decimal list-inside space-y-1 mt-1">
-                <li>Ve a <strong>Configuración → Google Calendar</strong> desde el menú lateral.</li>
-                <li>Crea una agenda y pega el ID de tu calendario de Google (ej. <code className="bg-blue-100 px-1 rounded">tucorreo@gmail.com</code>).</li>
-                <li>Comparte tu calendario con la cuenta de servicio que aparece en esa pantalla y dale permisos de <strong>edición</strong>.</li>
-                <li>Guarda la agenda y luego usa el botón <strong>"Forzar Sincronización"</strong> para verificar la conexión.</li>
+                <li>Ve a <strong>Configuración → Google Calendar</strong> y copia el correo de iAnswer que aparece ahí.</li>
+                <li>En Google Calendar abre la configuración de tu calendario y, en <strong>Compartido con</strong>, agrega ese correo con permiso de <strong>Realizar cambios en los eventos</strong>.</li>
+                <li>Copia el <strong>ID de calendario</strong> (sección <strong>Integrar el calendario</strong>; en el calendario principal es tu correo de Gmail).</li>
+                <li>Vuelve a Configuración, presiona <strong>Agregar agenda</strong>, pega el ID y guarda.</li>
               </ol>
             </div>
           </div>
