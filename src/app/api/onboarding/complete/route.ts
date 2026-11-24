@@ -18,8 +18,6 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-const VALID_PLANS = ['start', 'growth', 'scale'] as const
-
 type CompletePayload = {
   template_id: string
   company_name: string
@@ -39,8 +37,8 @@ export async function POST(req: Request) {
     if (!company_name || typeof company_name !== 'string' || !company_name.trim()) {
       return NextResponse.json({ error: 'company_name requerido' }, { status: 400 })
     }
-    if (!plan_slug || !VALID_PLANS.includes(plan_slug as any)) {
-      return NextResponse.json({ error: 'plan_slug inválido (start|growth|scale)' }, { status: 400 })
+    if (!plan_slug || typeof plan_slug !== 'string') {
+      return NextResponse.json({ error: 'plan_slug requerido' }, { status: 400 })
     }
     if (!Array.isArray(addon_ids)) {
       return NextResponse.json({ error: 'addon_ids debe ser array' }, { status: 400 })
@@ -63,6 +61,19 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // Los planes que se pueden contratar salen de la tabla plans (los mismos
+    // que muestra el wizard), no de una lista fija.
+    const { data: plan } = await supabase
+      .from('plans')
+      .select('slug')
+      .eq('slug', plan_slug)
+      .eq('is_active', true)
+      .eq('is_legacy', false)
+      .maybeSingle()
+    if (!plan) {
+      return NextResponse.json({ error: 'Ese plan no está disponible' }, { status: 400 })
     }
 
     const { data: profile, error: profileErr } = await supabase

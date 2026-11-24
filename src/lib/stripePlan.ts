@@ -67,8 +67,11 @@ export async function resolvePlanSlug(
   admin: SupabaseClient,
   sub: Stripe.Subscription
 ): Promise<{ planSlug: string | null, billingCycle: 'monthly' | 'yearly' | null }> {
-  const priceId = sub.items?.data?.[0]?.price?.id
-  if (priceId) {
+  // La suscripción del plan puede traer también add-ons mensuales (los que se
+  // eligen en el onboarding): se busca el item cuyo precio es de un plan.
+  for (const item of sub.items?.data ?? []) {
+    const priceId = item.price?.id
+    if (!priceId) continue
     const { data } = await admin
       .from('plans')
       .select('slug, stripe_price_id, stripe_price_yearly_id')
@@ -129,6 +132,43 @@ export async function applyPlanSubscription(
   }
 
   return { normalized, planSlug }
+}
+
+/**
+ * Activa los add-ons que se pagaron junto con el plan (metadata.addonIds del
+ * checkout). Los mensuales quedan ligados a su item de la suscripción del
+ * plan; los paquetes suman saldo. Idempotente: activate_addon no duplica el
+ * saldo de una misma sesión, así que lo pueden llamar el webhook y
+ * confirm-checkout.
+ */
+export async function activateCheckoutAddons(
+  admin: SupabaseClient,
+  session: { id: string, metadata?: Record<string, string> | null },
+  sub: Stripe.Subscription,
+  companyId: string
+) {
+  const ids = (session.metadata?.addonIds || '').split(',').map(s => s.trim()).filter(Boolean)
+  if (ids.length === 0) return
+
+  const { data: addons } = await admin
+    .from('addons')
+    .select('id, stripe_price_id, is_recurring')
+    .in('id', ids)
+
+  for (const addon of addons || []) {
+    const item = addon.is_recurring
+      ? sub.items?.data?.find(i => i.price?.id === addon.stripe_price_id)
+      : undefined
+    if (addon.is_recurring && !item) continue
+    const { error } = await admin.rpc('activate_addon', {
+      p_company_id: companyId,
+      p_addon_id: addon.id,
+      p_quantity: 1,
+      p_stripe_subscription_item_id: item?.id ?? null,
+      p_stripe_checkout_session_id: session.id,
+    })
+    if (error) console.error(`[checkout addons] No se activó ${addon.id}:`, error)
+  }
 }
 
 /** Correo y nombre del cliente de Stripe, para los avisos por Resend. */

@@ -91,22 +91,28 @@ export function useActiveAddonsDetailed(companyId: string | undefined) {
   })
 }
 
-// ─── Cancelar un addon (usuario final: vía cancel_addon) ────────────────────
+// ─── Cancelar un addon (usuario final: también lo cancela en Stripe) ───────
 export function useCancelAddon() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (params: { companyId: string; addonId: string }) => {
-      const { error } = await supabase.rpc('cancel_addon', {
-        p_company_id: params.companyId,
-        p_addon_id: params.addonId,
+    mutationFn: async (params: { companyId: string; addonId: string }): Promise<string | null> => {
+      const res = await fetch('/api/stripe/cancel-addon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addonId: params.addonId }),
       })
-      if (error) throw error
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || 'No se pudo cancelar')
+      return (body.endsAt as string | null) ?? null
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-addons-detailed'] })
-      queryClient.invalidateQueries({ queryKey: ['active-addons'] })
-      queryClient.invalidateQueries({ queryKey: ['entitlements'] })
-      toast.success('Addon cancelado. El acceso continúa hasta el fin del periodo.')
+    onSuccess: (endsAt) => {
+      void queryClient.invalidateQueries({ queryKey: ['active-addons-detailed'] })
+      void queryClient.invalidateQueries({ queryKey: ['active-addons'] })
+      void queryClient.invalidateQueries({ queryKey: ['entitlements'] })
+      const later = endsAt && new Date(endsAt).getTime() > Date.now() + 60_000
+      toast.success(later
+        ? `Complemento cancelado. Lo sigues teniendo hasta el ${new Date(endsAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}.`
+        : 'Complemento cancelado.')
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : 'Error al cancelar'),
   })

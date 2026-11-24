@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { getAppBaseUrl } from '../../../../lib/appUrl'
+import { addonsForPlanCheckout, type CheckoutAddon } from '../../../../lib/checkoutAddons'
 
 // ============================================================================
 // POST /api/stripe/checkout
@@ -29,7 +30,7 @@ const LIVE_STATUSES = ['trialing', 'active', 'past_due']
 
 export async function POST(req: Request) {
   try {
-    const { priceId, companyId, planSlug, billingMode, returnTo } = await req.json()
+    const { priceId, companyId, planSlug, billingMode, returnTo, addonIds } = await req.json()
     const origin = req.headers.get('origin') || getAppBaseUrl()
 
     const cookieStore = await cookies()
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
     // ── Plan: días de prueba ────────────────────────────────────────────────
     const { data: plan } = await supabase
       .from('plans')
-      .select('slug, trial_days')
+      .select('slug, trial_days, feature_flags')
       .eq('slug', planSlug)
       .maybeSingle()
 
@@ -89,6 +90,31 @@ export async function POST(req: Request) {
     // Prueba solo si la empresa nunca tuvo una suscripción de Stripe.
     const neverSubscribed = !company.stripe_subscription_id && !company.subscription_started_at
     const trialDays = neverSubscribed ? (plan.trial_days ?? 7) : 0
+
+    // Add-ons elegidos en el onboarding: se cobran en este mismo checkout.
+    const requestedAddonIds = Array.isArray(addonIds)
+      ? addonIds.filter((a: unknown): a is string => typeof a === 'string').slice(0, 20)
+      : []
+    let addonLineItems: { price: string, quantity: number, tax_rates?: string[] }[] = []
+    let chargedAddonIds: string[] = []
+    if (requestedAddonIds.length > 0) {
+      const { data: addonRows } = await supabase
+        .from('addons')
+        .select('id, stripe_price_id, is_recurring, is_active, requires_plan_min, feature_flags, credit_grants')
+        .in('id', requestedAddonIds)
+      const chargeable = addonsForPlanCheckout(
+        (addonRows || []) as CheckoutAddon[],
+        planSlug,
+        plan.feature_flags as Record<string, unknown> | null,
+        billingMode === 'yearly' ? 'yearly' : 'monthly',
+      )
+      chargedAddonIds = chargeable.map(a => a.id)
+      // Los mensuales toman el IVA de default_tax_rates de la suscripción;
+      // los de pago único lo llevan en su línea.
+      addonLineItems = chargeable.map(a => a.is_recurring
+        ? { price: a.stripe_price_id!, quantity: 1 }
+        : { price: a.stripe_price_id!, quantity: 1, tax_rates: ivaTaxRates() })
+    }
 
     const fromWizard = returnTo === 'wizard'
     const successUrl = fromWizard
@@ -126,7 +152,7 @@ export async function POST(req: Request) {
         mode: 'subscription',
         locale: 'es-419',
         payment_method_types: ['card'],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }, ...addonLineItems],
         // Campo "Agregar código promocional": los cupones y sus códigos se
         // crean en el dashboard de Stripe.
         allow_promotion_codes: true,
@@ -134,7 +160,8 @@ export async function POST(req: Request) {
           companyId,
           planSlug,
           billingMode: billingMode || 'monthly',
-          checkoutType: 'plan'
+          checkoutType: 'plan',
+          ...(chargedAddonIds.length > 0 ? { addonIds: chargedAddonIds.join(',') } : {})
         },
         subscription_data: {
           metadata: {

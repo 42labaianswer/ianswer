@@ -26,6 +26,7 @@ import {
 import IAnswerLoader from './IAnswerLoader'
 import { hasDashboardAccess } from '../lib/subscription'
 import { aiRepliesOf } from '../lib/planCompare'
+import { addonsForPlanCheckout, type CheckoutAddon } from '../lib/checkoutAddons'
 
 // ============================================================================
 // OnboardingWizard — Stripe obligatorio
@@ -115,6 +116,8 @@ type AddonRow = {
   is_featured: boolean
   available_for_templates: string[]
   is_template_specific?: boolean
+  /** Paquetes con selector de cantidad (marketing): se muestra uno por grupo. */
+  pack_group?: string | null
 }
 
 function centsToMxn(cents: number): string {
@@ -145,6 +148,12 @@ export default function OnboardingWizard() {
   // Error del nombre: se muestra al intentar continuar sin él, y se quita al escribir.
   const [nameError, setNameError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  // Cada paso empieza arriba: si no, el siguiente se abre a media altura y en
+  // el último es fácil no ver el campo del nombre.
+  const stepBodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    stepBodyRef.current?.scrollTo({ top: 0 })
+  }, [step])
   const [isSaving, setIsSaving] = useState(false)
   // Estado aparte para "Salir por ahora": si usara isSaving, el botón principal
   // del P5 mostraría "Abriendo Stripe..." aunque no se va a Stripe.
@@ -217,10 +226,16 @@ export default function OnboardingWizard() {
         .eq('is_active', true)
         .order('display_order')
       if (!data) return []
+      const seenGroups = new Set<string>()
       return (data as AddonRow[]).filter(a => {
         const isUniversal = !a.available_for_templates || a.available_for_templates.length === 0
         const matches = a.available_for_templates?.includes(selectedTemplate || '')
-        return isUniversal || matches
+        if (!isUniversal && !matches) return false
+        if (a.pack_group) {
+          if (seenGroups.has(a.pack_group)) return false
+          seenGroups.add(a.pack_group)
+        }
+        return true
       })
     }
   })
@@ -426,7 +441,8 @@ export default function OnboardingWizard() {
           companyId,
           planSlug: planToBuy,
           billingMode: 'monthly',
-          returnTo: 'wizard'
+          returnTo: 'wizard',
+          addonIds: chargedAddons.map(a => a.id)
         })
       })
       const result = await res.json().catch(() => ({}))
@@ -468,16 +484,27 @@ export default function OnboardingWizard() {
     )
   }
 
-  const monthlyAddonCost = (availableAddons as AddonRow[])
-    .filter(a => selectedAddons.includes(a.id) && a.is_recurring)
-    .reduce((sum, a) => sum + a.price_monthly_cents, 0)
-
-  const oneTimeAddonCost = (availableAddons as AddonRow[])
-    .filter(a => selectedAddons.includes(a.id) && a.is_one_time)
-    .reduce((sum, a) => sum + a.price_one_time_cents, 0)
-
   const selectedTemplateData = templates.find(t => t.id === selectedTemplate)
   const chosenPlanRow = plans.find(p => p.slug === planToBuy)
+
+  // Lo marcado en el paso 4 se cobra con el plan. Mismo filtro que el
+  // checkout: fuera lo que el plan no alcanza o ya incluye.
+  const selectedAddonRows = (availableAddons as AddonRow[]).filter(a => selectedAddons.includes(a.id))
+  const chargedAddons = addonsForPlanCheckout(
+    selectedAddonRows as unknown as CheckoutAddon[],
+    planToBuy,
+    (chosenPlanRow as { feature_flags?: Record<string, unknown> } | undefined)?.feature_flags,
+    'monthly',
+  ) as unknown as AddonRow[]
+  const skippedAddons = selectedAddonRows.filter(a => !chargedAddons.some(c => c.id === a.id))
+
+  const monthlyAddonCost = chargedAddons
+    .filter(a => a.is_recurring)
+    .reduce((sum, a) => sum + a.price_monthly_cents, 0)
+
+  const oneTimeAddonCost = chargedAddons
+    .filter(a => !a.is_recurring)
+    .reduce((sum, a) => sum + a.price_one_time_cents, 0)
   const firstChargeDate = new Date(openedAt + trialDays * 86_400_000)
     .toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
 
@@ -521,7 +548,7 @@ export default function OnboardingWizard() {
         </div>
 
         {/* Contenido del paso */}
-        <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div ref={stepBodyRef} className="flex-1 overflow-y-auto px-8 py-8">
 
           {/* ─── P1: Template (cargado desde la DB) ─── */}
           {step === 1 && (
@@ -675,7 +702,7 @@ export default function OnboardingWizard() {
                 </span>
               </div>
               <p className="text-sm text-slate-500 font-medium mb-6">
-                Marca los que te interesen: te los recordaremos para que los actives desde Extras cuando quieras. No se cobran ni se activan ahora.
+                Los que marques se contratan junto con tu plan en el mismo pago. Los mensuales también tienen tu prueba gratis; los paquetes se cobran al pagar. Puedes agregar más después desde Extras.
               </p>
 
               {loadingAddons ? (
@@ -716,18 +743,18 @@ export default function OnboardingWizard() {
                     </div>
                   )}
 
-                  {/* Universales (solo los featured para no abrumar) */}
-                  {(availableAddons as AddonRow[]).some(a => !a.available_for_templates?.length && a.is_featured) && (
+                  {/* Universales */}
+                  {(availableAddons as AddonRow[]).some(a => !a.available_for_templates?.length) && (
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <Sparkles size={14} className="text-slate-700" />
                         <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">
-                          Recomendados (universales)
+                          Para cualquier negocio
                         </h3>
                       </div>
                       <div className="space-y-2">
                         {(availableAddons as AddonRow[])
-                          .filter(a => !a.available_for_templates?.length && a.is_featured)
+                          .filter(a => !a.available_for_templates?.length)
                           .map(addon => (
                             <AddonRowSelect
                               key={addon.id}
@@ -748,10 +775,10 @@ export default function OnboardingWizard() {
                         <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                           {selectedAddons.length} complemento{selectedAddons.length !== 1 ? 's' : ''} seleccionado{selectedAddons.length !== 1 ? 's' : ''}
                         </span>
-                        <span className="text-[10px] font-bold uppercase opacity-70 bg-white/10 px-2 py-0.5 rounded">De interés</span>
+                        <span className="text-[10px] font-bold uppercase opacity-70 bg-white/10 px-2 py-0.5 rounded">Con tu plan</span>
                       </div>
                       {monthlyAddonCost > 0 && (
-                        <p className="text-lg font-black">+ {centsToMxn(monthlyAddonCost)}/mes <span className="text-xs font-medium opacity-60">si los activas después</span></p>
+                        <p className="text-lg font-black">+ {centsToMxn(monthlyAddonCost)}/mes <span className="text-xs font-medium opacity-60">después de la prueba</span></p>
                       )}
                       {oneTimeAddonCost > 0 && (
                         <p className="text-sm font-bold">{centsToMxn(oneTimeAddonCost)} <span className="text-xs font-medium opacity-60">pago único</span></p>
@@ -877,19 +904,25 @@ export default function OnboardingWizard() {
                           <PackageOpen size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complementos de interés</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Complementos</p>
                           <p className="text-sm font-bold text-slate-700">
-                            {selectedAddons.length} marcado{selectedAddons.length !== 1 ? 's' : ''} · los activas después desde Extras
+                            {chargedAddons.length > 0
+                              ? chargedAddons.map(a => a.pack_group ? a.name : (a.short_name || a.name)).join(', ')
+                              : 'Ninguno para este plan'}
                           </p>
+                          {skippedAddons.length > 0 && (
+                            <p className="text-xs text-amber-700 font-medium mt-0.5">
+                              {skippedAddons.map(a => a.short_name || a.name).join(', ')}: no disponible en el plan {chosenPlanRow?.name ?? ''} o ya viene incluido.
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Cuánto se paga: hoy nada (prueba); al terminar, el plan. Los
-                    complementos de interés se muestran aparte porque todavía no
-                    se cobran en el checkout. */}
+                {/* Cuánto se paga: hoy solo los paquetes de pago único; al
+                    terminar la prueba, el plan y los complementos mensuales. */}
                 {chosenPlanRow && (
                   <div className="max-w-xl mx-auto rounded-2xl border-2 border-slate-900 bg-slate-50 p-5">
                     <div className="flex items-center justify-between text-sm">
@@ -898,21 +931,21 @@ export default function OnboardingWizard() {
                     </div>
                     {(monthlyAddonCost > 0 || oneTimeAddonCost > 0) && (
                       <div className="flex items-start justify-between gap-4 text-sm mt-2">
-                        <span className="font-medium text-slate-500">Complementos de interés <span className="text-xs">(se activan después, desde Extras)</span></span>
+                        <span className="font-medium text-slate-500">Complementos</span>
                         <span className="font-bold text-slate-500 text-right whitespace-nowrap">
                           {monthlyAddonCost > 0 && <>+ {centsToMxn(monthlyAddonCost)}/mes</>}
                           {monthlyAddonCost > 0 && oneTimeAddonCost > 0 && <br />}
-                          {oneTimeAddonCost > 0 && <>+ {centsToMxn(oneTimeAddonCost)} único</>}
+                          {oneTimeAddonCost > 0 && <>+ {centsToMxn(oneTimeAddonCost)} pago único</>}
                         </span>
                       </div>
                     )}
                     <div className="border-t border-slate-200 mt-4 pt-4 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-slate-700">Hoy pagas</span>
-                        <span className="text-xl font-black text-slate-900">{centsToMxn(0)}</span>
+                        <span className="text-xl font-black text-slate-900">{centsToMxn(oneTimeAddonCost)}{oneTimeAddonCost > 0 && <span className="text-xs font-bold text-slate-500"> + IVA</span>}</span>
                       </div>
                       <p className="text-xs text-slate-500 font-medium">
-                        Prueba gratuita de {trialDays} días. El {firstChargeDate} se cobran {centsToMxn(chosenPlanRow.price_monthly_cents)} + IVA de tu plan, a menos que canceles antes.
+                        Prueba gratuita de {trialDays} días. El {firstChargeDate} se cobran {centsToMxn(chosenPlanRow.price_monthly_cents + monthlyAddonCost)} + IVA {monthlyAddonCost > 0 ? 'de tu plan y complementos' : 'de tu plan'}, a menos que canceles antes.{oneTimeAddonCost > 0 ? ' Los paquetes se cobran hoy.' : ''}
                       </p>
                     </div>
                   </div>
@@ -1029,7 +1062,9 @@ function AddonRowSelect({
         <p className="text-sm font-black text-slate-900 whitespace-nowrap">
           {addon.is_recurring
             ? `${centsToMxn(addon.price_monthly_cents)}/mes`
-            : centsToMxn(addon.price_one_time_cents)}
+            : addon.pack_group
+              ? `Desde ${centsToMxn(addon.price_one_time_cents)}`
+              : `${centsToMxn(addon.price_one_time_cents)} pago único`}
         </p>
       </div>
       <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
