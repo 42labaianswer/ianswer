@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
+import { CloudOff, Loader2, RefreshCw } from 'lucide-react'
 import type { CalendarEvent } from '../lib/calendarCache'
 
 type Props = {
@@ -25,8 +25,8 @@ export default function GoogleSyncBadge({ event, onRetried }: Props) {
 
   if (event.googleSync === 'pending') {
     return (
-      <p className="text-[10px] font-bold text-slate-500 mt-1.5 flex items-center gap-1">
-        <Loader2 size={11} className="animate-spin" /> Sincronizando con Google Calendar
+      <p className="text-[10px] font-medium text-slate-500 mt-1.5 flex items-center gap-1">
+        <Loader2 size={11} className="animate-spin" /> Pasando a Google Calendar...
       </p>
     )
   }
@@ -46,13 +46,13 @@ export default function GoogleSyncBadge({ event, onRetried }: Props) {
       }
     }
     return (
-      <p className="text-[10px] font-bold text-amber-700 mt-1.5 flex items-center gap-1 flex-wrap">
-        <AlertTriangle size={11} /> No se pudo pasar a Google Calendar.
+      <p className="text-[10px] font-medium text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+        <CloudOff size={11} className="text-amber-500 shrink-0" /> Cita guardada; falta pasarla a Google Calendar.
         <button
           type="button"
           onClick={retry}
           disabled={retrying}
-          className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-amber-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
         >
           <RefreshCw size={10} className={retrying ? 'animate-spin' : ''} /> Reintentar
         </button>

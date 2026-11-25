@@ -767,9 +767,9 @@ export default function CalendarPage() {
                               const hasEvents = eventsInThisSlot.length > 0
 
                               return (
-                                <div key={slotTime} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl border-2 transition-all gap-4 ${isBreak ? 'bg-orange-50/50 border-orange-100 opacity-80' : hasEvents ? 'bg-rose-50 border-rose-200 shadow-sm' : isDisabled ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-white border-slate-100 hover:border-blue-300 shadow-sm'}`}>
+                                <div key={slotTime} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl border-2 transition-all gap-4 ${isBreak ? 'bg-orange-50/50 border-orange-100 opacity-80' : hasEvents ? 'bg-indigo-50/60 border-indigo-100 shadow-sm' : isDisabled ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-white border-slate-100 hover:border-blue-300 shadow-sm'}`}>
                                   <div className="flex items-start gap-5 flex-1 w-full">
-                                    <div className={`px-4 py-2 rounded-xl text-sm font-black tracking-wider shrink-0 mt-0.5 ${isBreak ? 'bg-orange-100 text-orange-800' : hasEvents ? 'bg-rose-100 text-rose-700' : isDisabled ? 'bg-slate-200 text-slate-500' : 'bg-blue-50 text-blue-700 shadow-inner'}`}>{slotTime}</div>
+                                    <div className={`px-4 py-2 rounded-xl text-sm font-black tracking-wider shrink-0 mt-0.5 ${isBreak ? 'bg-orange-100 text-orange-800' : hasEvents ? 'bg-indigo-100 text-indigo-700' : isDisabled ? 'bg-slate-200 text-slate-500' : 'bg-blue-50 text-blue-700 shadow-inner'}`}>{slotTime}</div>
                                     {isBreak ? (
                                       <p className="font-bold text-orange-600 text-sm italic flex items-center gap-2 mt-1.5"><Coffee size={16}/> Horario de Descanso</p>
                                     ) : hasEvents ? (
@@ -780,12 +780,12 @@ export default function CalendarPage() {
                                           const endHH = Math.floor(ev.endMins / 60).toString().padStart(2, '0')
                                           const endMM = (ev.endMins % 60).toString().padStart(2, '0')
                                           return (
-                                            <div key={ev.id || idx} className={`bg-white/80 p-3 rounded-xl border border-rose-100 shadow-sm ${ev.optimistic ? 'opacity-70' : ''}`}>
+                                            <div key={ev.id || idx} className={`bg-white p-3 rounded-xl border border-indigo-100 shadow-sm ${ev.optimistic ? 'opacity-70' : ''}`}>
                                               <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0 flex-1">
-                                                  <p className="font-black text-rose-900 text-sm flex items-center gap-2 truncate"><User size={14}/> {paciente}</p>
-                                                  <p className="text-xs text-rose-600 font-bold flex items-center gap-1 mt-1.5 opacity-80"><Clock size={12}/> {ev.time} a {endHH}:{endMM} ({ev.duration || 30} min)</p>
-                                                  {motivo && <p className="text-xs text-rose-500/90 mt-1.5 flex items-start gap-1"><MessageSquare size={11} className="mt-0.5 shrink-0"/> {motivo}</p>}
+                                                  <p className="font-black text-slate-900 text-sm flex items-center gap-2 truncate"><User size={14} className="text-indigo-500"/> {paciente}</p>
+                                                  <p className="text-xs text-indigo-700 font-bold flex items-center gap-1 mt-1.5"><Clock size={12}/> {ev.time} a {endHH}:{endMM} ({ev.duration || 30} min)</p>
+                                                  {motivo && <p className="text-xs text-slate-500 mt-1.5 flex items-start gap-1"><MessageSquare size={11} className="mt-0.5 shrink-0"/> {motivo}</p>}
                                                   {ev.source === 'google_only' && (
                                                     <p className="text-[10px] text-amber-700 font-bold mt-1.5 italic">⚠ Solo en Google Calendar (no en el sistema)</p>
                                                   )}
@@ -894,10 +894,10 @@ export default function CalendarPage() {
                                   <div
                                     key={app.id || idx}
                                     title={`${app.time} · ${paciente}${motivo ? ' · ' + motivo : ''}`}
-                                    className="bg-rose-50 text-rose-700 text-[10px] px-1.5 py-0.5 rounded border border-rose-100 flex items-center gap-1.5 overflow-hidden min-w-0"
+                                    className="bg-indigo-50 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1.5 overflow-hidden min-w-0"
                                   >
                                     <span className="tabular-nums font-black shrink-0">{app.time}</span>
-                                    {paciente && <span className="truncate font-medium text-rose-600/90 min-w-0">{paciente}</span>}
+                                    {paciente && <span className="truncate font-medium text-indigo-600/90 min-w-0">{paciente}</span>}
                                   </div>
                                 )
                               })}
