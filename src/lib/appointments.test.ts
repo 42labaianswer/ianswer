@@ -81,6 +81,18 @@ describe('parseCreateAppointment', () => {
     expect(r).toEqual({ ok: false, error: 'El WhatsApp del nuevo cliente debe tener 10 dígitos' })
   })
 
+  it('trata como cliente nuevo vacío si no hay contactId ni newClient', () => {
+    expect(parseCreateAppointment({ ...base })).toEqual({ ok: false, error: 'Escribe el nombre del nuevo cliente' })
+    expect(parseCreateAppointment({ ...base, newClient: { name: 123, phone: 9991234567 } }).ok).toBe(false)
+    expect(parseCreateAppointment({ ...base, newClient: { name: 'Ana', phone: 9991234567 } }))
+      .toEqual({ ok: false, error: 'El WhatsApp del nuevo cliente debe tener 10 dígitos' })
+  })
+
+  it('ignora notas que no son texto', () => {
+    const r = parseCreateAppointment({ ...base, contactId: 'c1', notes: 42 })
+    expect(r.ok && r.value.notes).toBe('')
+  })
+
   it('pide nombre al cliente nuevo', () => {
     const r = parseCreateAppointment({ ...base, newClient: { name: ' ', phone: '9991234567' } })
     expect(r.ok).toBe(false)
@@ -97,6 +109,11 @@ describe('parseCreateAppointment', () => {
 })
 
 describe('parseRescheduleAppointment', () => {
+  it('rechaza cuerpos vacíos o sin horario válido', () => {
+    expect(parseRescheduleAppointment(null).ok).toBe(false)
+    expect(parseRescheduleAppointment({ date: '2026-12-01', time: '11:00', duration: 'x' }).ok).toBe(false)
+  })
+
   it('solo avisa al cliente si se pide explícitamente', () => {
     const r = parseRescheduleAppointment({ date: '2026-12-01', time: '11:00', duration: 45, notifyPatient: 'yes' })
     expect(r).toEqual({ ok: true, value: { date: '2026-12-01', time: '11:00', duration: 45, notifyPatient: false } })

@@ -195,7 +195,7 @@ export default function CalendarPage() {
   // Citas recién guardadas cuyo evento de Google se está creando en segundo
   // plano: se consulta solo su estado hasta que n8n termine.
   const pendingSyncIds = useMemo(
-    () => events.filter(e => e.googleSync === 'pending' && e.appointmentId && !e.optimistic).map(e => e.appointmentId!).sort(),
+    () => events.filter(e => e.googleSync === 'pending' && e.appointmentId && !e.optimistic).map(e => e.appointmentId!).sort((a, b) => a.localeCompare(b)),
     [events]
   )
   const { data: syncStatuses } = useQuery({
@@ -217,8 +217,8 @@ export default function CalendarPage() {
   }, [syncStatuses, selectedAgendaId, queryClient])
 
   const refreshCalendar = () => {
-    queryClient.invalidateQueries({ queryKey: ['calendarSpecifics'] })
-    queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] })
+    void queryClient.invalidateQueries({ queryKey: ['calendarSpecifics'] })
+    void queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] })
   }
 
   // ============================================================================

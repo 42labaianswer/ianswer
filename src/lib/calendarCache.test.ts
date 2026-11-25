@@ -40,6 +40,18 @@ describe('eventFromAppointment', () => {
   })
 })
 
+describe('eventFromAppointment con filas incompletas', () => {
+  it('usa medianoche, confirmed y sin teléfono cuando faltan', () => {
+    const ev = eventFromAppointment(
+      { ...row, appointment_time: null, status: null, patient_id: null, google_sync: undefined },
+      { name: null, phone: null }
+    )
+    expect(ev).toMatchObject({ time: '00:00', startMins: 0, status: 'confirmed', title: 'Paciente', googleSync: null })
+    expect(ev.patientId).toBeUndefined()
+    expect(ev.patientPhone).toBeUndefined()
+  })
+})
+
 describe('withEvent / mapEvents / rescheduledEvent', () => {
   const temp: CalendarEvent = { ...eventFromAppointment(row, null), id: 'temp-1', appointmentId: undefined, optimistic: true }
 
@@ -69,6 +81,10 @@ describe('caché de calendarSpecifics', () => {
 
     expect(qc.getQueryData<CalendarCache>(['calendarSpecifics', 'ag1', 2026, 11])?.events).toHaveLength(1)
     expect(qc.getQueryData<CalendarCache>(['calendarSpecifics', 'ag2', 2026, 11])?.events).toHaveLength(0)
+
+    updateCalendarEvents(qc, 'ag3', evs => withEvent(evs, eventFromAppointment(row, null)))
+    expect(qc.getQueryData(['calendarSpecifics', 'ag3', 2026, 11])).toBeUndefined()
+    restoreCalendar(qc, undefined)
 
     restoreCalendar(qc, snapshot)
     expect(qc.getQueryData<CalendarCache>(['calendarSpecifics', 'ag1', 2026, 11])?.events).toHaveLength(0)
