@@ -2,15 +2,18 @@
 
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { useEntitlements } from '../hooks/useEntitlements'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock, ExternalLink } from 'lucide-react'
+import { Save, Calendar, CalendarPlus, CheckCircle2, ShieldAlert, ShieldCheck, Copy, Trash2, Loader2, MapPin, User, DoorOpen, Lock, ExternalLink, X, ChevronDown, Clock } from 'lucide-react'
 import { useConfirm } from '../hooks/useConfirm'
 import { calendarVerifyUrl, defaultWeek, parseVerifyResponse, type VerifyResult } from '../lib/agendaSetup'
+import IAnswerLoader from './IAnswerLoader'
+import WorkingHoursEditor, { type WorkingHour } from './WorkingHoursEditor'
 
 const NEW_LOCATION = '__new__'
 
@@ -34,6 +37,8 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
   const { data: entitlements } = useEntitlements()
   
   const [isAdding, setIsAdding] = useState(false)
+  // El alta va en dos pasos: datos de la agenda y luego su horario. Nada se guarda hasta el segundo.
+  const [addStep, setAddStep] = useState<'agenda' | 'hours'>('agenda')
   const [newAgenda, setNewAgenda] = useState({
     type: 'location' as 'location' | 'doctor' | 'room',
     google_calendar_id: '',
@@ -43,6 +48,9 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     room_name: ''
   })
   const [newLocationName, setNewLocationName] = useState('')
+  const [newHours, setNewHours] = useState<WorkingHour[]>(defaultWeek)
+  // null = el usuario no lo ha tocado: se abre solo si aún no hay agendas.
+  const [guideToggled, setGuideToggled] = useState<boolean | null>(null)
 
   // maxAgendas viene de entitlements (mergea plan + addons). Fallback a 1.
   const maxAgendas = (entitlements as any)?.capacity?.max_agendas ?? 1
@@ -74,6 +82,8 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
   const { serviceAccount, verifyUrl, agendas, locations, team } = data || { serviceAccount: '', verifyUrl: '', agendas: [], locations: [], team: [] }
 
+  const guideOpen = guideToggled ?? agendas.length === 0
+
   const maxLocations = entitlements?.capacity?.max_locations ?? 1
   const canAddLocation = locations.length < maxLocations
   // Sin sedes no hay nada que elegir: se pide el nombre de la primera.
@@ -87,6 +97,13 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
     } catch {
       return { ok: false, message: 'No se pudo contactar al servicio de verificación. Revisa tu conexión e intenta de nuevo.' }
     }
+  }
+
+  // Las agendas también se listan en Horarios y en el Calendario.
+  const invalidateAgendaLists = () => {
+    void queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+    void queryClient.invalidateQueries({ queryKey: ['agendasList', companyId] })
+    void queryClient.invalidateQueries({ queryKey: ['calendarBaseData'] })
   }
 
   // 2. TANSTACK MUTATION: Crear y verificar agenda
@@ -131,7 +148,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
       // Sin filas en working_hours el calendario marca todos los días como no laborables.
       const { error: hoursError } = await supabase.from('working_hours').insert(
-        defaultWeek().map(d => ({ ...d, company_id: companyId, agenda_id: insertedAgenda.id }))
+        newHours.map(d => ({ ...d, company_id: companyId, agenda_id: insertedAgenda.id }))
       )
 
       const verification = await verifyCalendarWithN8N(insertedAgenda.google_calendar_id)
@@ -140,14 +157,16 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
       return { verification, hoursSaved: !hoursError }
     },
     onSuccess: ({ verification, hoursSaved }) => {
-      void queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+      invalidateAgendaLists()
       void queryClient.invalidateQueries({ queryKey: ['workingHours'] })
       setIsAdding(false)
+      setAddStep('agenda')
+      setNewHours(defaultWeek())
       setNewAgenda({ type: 'location', google_calendar_id: '', schedule_rules: '', location_id: '', staff_id: '', room_name: '' })
       setNewLocationName('')
       if (verification.ok) toast.success('Agenda guardada y verificada')
       else toast.error(`Agenda guardada, pero sin acceso todavía. ${verification.message}`, { duration: 8000 })
-      if (hoursSaved) toast.success('Le pusimos horario de lunes a viernes de 9 a 6. Puedes cambiarlo en Horarios de Atención.', { duration: 6000 })
+      if (!hoursSaved) toast.error('No se pudo guardar el horario. Configúralo en Horarios de Atención.', { duration: 6000 })
     },
     onError: (error) => toast.error(error.message)
   })
@@ -173,20 +192,39 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendasContextData', companyId] })
+      invalidateAgendaLists()
       toast.success("Calendario eliminado")
     }
   })
+
+  const closeAddModal = () => {
+    if (createAgendaMutation.isPending) return
+    setIsAdding(false)
+    setAddStep('agenda')
+  }
+
+  const isCreating = createAgendaMutation.isPending
+  useEffect(() => {
+    if (!isAdding) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !isCreating) { setIsAdding(false); setAddStep('agenda') } }
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = originalOverflow
+    }
+  }, [isAdding, isCreating])
 
   const handleDelete = async (id: string) => {
     if (!(await confirm('¿Seguro que deseas eliminar este calendario?', { title: 'Eliminar calendario', danger: true, confirmText: 'Eliminar' }))) return
     deleteAgendaMutation.mutate(id)
   }
 
-  if (isLoading) return <div className="animate-pulse h-64 bg-slate-50 rounded-3xl border border-slate-100"></div>
+  if (isLoading) return <div className="h-64 flex items-center justify-center"><IAnswerLoader size={32} /></div>
 
   return (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
         
         <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
@@ -197,17 +235,28 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
               <p className="text-xs text-slate-500 font-medium">Plan permite ({agendas.length}/{maxAgendas}) agendas</p>
             </div>
           </div>
-          <button onClick={() => setIsAdding(!isAdding)} disabled={agendas.length >= maxAgendas} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm disabled:opacity-50">
-            <CalendarPlus size={16}/> {isAdding ? 'Cancelar' : `Agregar Agenda`}
+          <button onClick={() => setIsAdding(true)} disabled={agendas.length >= maxAgendas} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm disabled:opacity-50">
+            <CalendarPlus size={16}/> Agregar Agenda
           </button>
         </div>
 
         <div className="p-8">
-          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8">
-            <h3 className="text-indigo-900 font-bold mb-1 flex items-center gap-2"><ShieldCheck size={18}/> ¿Cómo conectar tu calendario?</h3>
-            <p className="text-sm text-indigo-700 mb-5">Son dos partes: compartir tu calendario con iAnswer desde Google y después agregarlo aquí.</p>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl mb-8">
+            <button
+              type="button"
+              onClick={() => setGuideToggled(!guideOpen)}
+              aria-expanded={guideOpen}
+              className="w-full p-6 flex items-center justify-between gap-4 text-left"
+            >
+              <div>
+                <h3 className="text-indigo-900 font-bold mb-1 flex items-center gap-2"><ShieldCheck size={18}/> ¿Cómo conectar tu calendario?</h3>
+                <p className="text-sm text-indigo-700">Son dos partes: compartir tu calendario con iAnswer desde Google y después agregarlo aquí.</p>
+              </div>
+              <ChevronDown size={20} className={`text-indigo-500 shrink-0 transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-            <ol className="space-y-5">
+            {guideOpen && (
+            <ol className="space-y-5 px-6 pb-6 animate-in fade-in duration-200">
               <GuideStep n={1} title="Abre Google Calendar">
                 <p>
                   Entra a{' '}
@@ -240,18 +289,57 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
 
               <GuideStep n={4} title="Agrégalo aquí">
                 <p>Vuelve a esta página, presiona <strong>Agregar agenda</strong>, pega el ID y guarda. iAnswer revisa que tenga acceso al momento.</p>
-                {!isAdding && agendas.length < maxAgendas && (
+                {agendas.length < maxAgendas && (
                   <button type="button" onClick={() => setIsAdding(true)} className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
                     <CalendarPlus size={16}/> Agregar agenda
                   </button>
                 )}
               </GuideStep>
             </ol>
+            )}
           </div>
 
-          {isAdding && (
-            <form onSubmit={(e) => { e.preventDefault(); createAgendaMutation.mutate() }} className="mb-8 p-8 bg-slate-50 border border-slate-200 rounded-3xl space-y-6 animate-in slide-in-from-top-4">
-              
+          {isAdding && createPortal(
+            <div
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+            >
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Cerrar"
+              onClick={closeAddModal}
+              className="absolute inset-0 w-full h-full cursor-default"
+            />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (addStep === 'agenda') setAddStep('hours')
+                else createAgendaMutation.mutate()
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-agenda-title"
+              className="relative bg-white text-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            >
+              <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 id="add-agenda-title" className="text-xl font-black text-slate-900">{addStep === 'agenda' ? 'Agregar agenda' : 'Horario de atención'}</h2>
+                  <p className="text-sm text-slate-500 mt-1 font-medium">
+                    {addStep === 'agenda'
+                      ? 'Pega el ID del calendario que compartiste con iAnswer.'
+                      : 'Los días y horas en que la IA puede agendar citas. Después lo puedes cambiar en Horarios de Atención.'}
+                  </p>
+                </div>
+                <button type="button" onClick={closeAddModal} disabled={createAgendaMutation.isPending} aria-label="Cerrar" className="text-slate-400 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors shrink-0 disabled:opacity-30">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {addStep === 'hours' ? (
+                <WorkingHoursEditor hours={newHours} onChange={setNewHours} />
+              ) : (<>
+
               {/* LÓGICA DE PLANES: Selector de Arquitectura */}
               {showAdvancedTypes && (
                 <div className="space-y-4 border-b border-slate-200 pb-6">
@@ -292,7 +380,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
                               value={newLocationName}
                               onChange={e => setNewLocationName(e.target.value)}
                               placeholder="Ej. Sucursal Centro"
-                              className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700"
+                              className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700 placeholder:text-slate-400"
                             />
                             <p className="text-xs text-slate-500">
                               {locations.length === 0
@@ -311,7 +399,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
                       </select>
                     )}
                     {newAgenda.type === 'room' && (
-                      <input type="text" required placeholder="Ej. Sala 1" value={newAgenda.room_name} onChange={e => setNewAgenda({...newAgenda, room_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700" />
+                      <input type="text" required placeholder="Ej. Sala 1" value={newAgenda.room_name} onChange={e => setNewAgenda({...newAgenda, room_name: e.target.value})} className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-slate-700 placeholder:text-slate-400" />
                     )}
                   </div>
                 </div>
@@ -320,22 +408,30 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-bold text-slate-700">ID de Google Calendar</label>
-                  <input type="text" required value={newAgenda.google_calendar_id} onChange={e => setNewAgenda({...newAgenda, google_calendar_id: e.target.value.trim()})} placeholder="tunegocio@gmail.com" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium" />
+                  <input type="text" required value={newAgenda.google_calendar_id} onChange={e => setNewAgenda({...newAgenda, google_calendar_id: e.target.value.trim()})} placeholder="tunegocio@gmail.com" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder:text-slate-400" />
                   <p className="text-xs text-slate-500">Está en Google Calendar, en la configuración del calendario, sección <strong>Integrar el calendario</strong> (paso 3).</p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-bold text-slate-700">Instrucciones extra para la IA (Reglas de esta agenda)</label>
-                  <textarea required value={newAgenda.schedule_rules} onChange={e => setNewAgenda({...newAgenda, schedule_rules: e.target.value})} placeholder="Ej. Solo se agendan citas por las mañanas y los sábados hasta las 2 pm." className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[100px] resize-none" />
+                  <textarea required value={newAgenda.schedule_rules} onChange={e => setNewAgenda({...newAgenda, schedule_rules: e.target.value})} placeholder="Ej. Pide el motivo de la cita antes de confirmar y no agendes a menores sin un adulto." className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 min-h-[100px] resize-none" />
                 </div>
               </div>
-              
-              <div className="flex justify-end pt-4">
-                <button type="submit" disabled={createAgendaMutation.isPending} className="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-black shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                  {createAgendaMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Guardar Calendario y Verificar
+              </>)}
+              </div>
+
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+                <button type="button" onClick={addStep === 'hours' ? () => setAddStep('agenda') : closeAddModal} disabled={createAgendaMutation.isPending} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-40">
+                  {addStep === 'hours' ? 'Atrás' : 'Cancelar'}
+                </button>
+                <button type="submit" disabled={createAgendaMutation.isPending} className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-sm font-black shadow-md hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
+                  {addStep === 'agenda'
+                    ? <><Clock size={16} /> Agregar horario</>
+                    : <>{createAgendaMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Guardar y verificar</>}
                 </button>
               </div>
             </form>
+            </div>,
+            document.body
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

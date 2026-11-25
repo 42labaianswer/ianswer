@@ -4,8 +4,9 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { formatWhatsAppPhone } from '../lib/phone'
 import { X, Search, UserPlus, User, Phone, MessageSquare, Loader2, CheckCircle2, Clock, CalendarClock, Calendar as CalendarIcon, AlertTriangle, MessageCircle } from 'lucide-react'
 
 type Contact = {
@@ -48,6 +49,7 @@ export default function BookingModal({
   date: initialDate, time: initialTime, defaultDuration, allowEditDateTime = false,
   appointmentId, patientName, patientPhone, busyEvents = [], onSuccess
 }: BookingModalProps) {
+  const queryClient = useQueryClient()
 
   const [date, setDate] = useState(initialDate)
   const [time, setTime] = useState(initialTime)
@@ -123,11 +125,11 @@ export default function BookingModal({
 
       if (mode === 'create') {
         if (tab === 'search' && !selectedContact) {
-          throw new Error('Selecciona un paciente buscando arriba, o cambia a "Nuevo paciente"')
+          throw new Error('Selecciona un cliente buscando arriba, o cambia a "Nuevo cliente"')
         }
         if (tab === 'new') {
-          if (!newPatient.name.trim()) throw new Error('Escribe el nombre del nuevo paciente')
-          if (!newPatient.phone.trim()) throw new Error('Escribe el WhatsApp del nuevo paciente')
+          if (!newPatient.name.trim()) throw new Error('Escribe el nombre del nuevo cliente')
+          if (newPatient.phone.length !== 10) throw new Error('El WhatsApp del nuevo cliente debe tener 10 dígitos')
         }
       }
 
@@ -150,11 +152,12 @@ export default function BookingModal({
       if (mode === 'create') {
         let patientName = '', patientPhone = ''
         if (tab === 'search') {
-          patientName = selectedContact!.name || 'Paciente'
+          patientName = selectedContact!.name || 'Cliente'
           patientPhone = selectedContact!.phone || selectedContact!.external_id
         } else {
-          patientName = newPatient.name.trim()
-          patientPhone = newPatient.phone.trim()
+          const contact = await ensureContact(companyId, newPatient.name.trim(), formatWhatsAppPhone(newPatient.phone))
+          patientName = contact.name || newPatient.name.trim()
+          patientPhone = contact.external_id
         }
         body = {
           agendaId, companyId,
@@ -175,18 +178,31 @@ export default function BookingModal({
         }
       }
 
+      const requestedAt = new Date(Date.now() - 60_000).toISOString()
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
+      const responseText = await response.text().catch(() => '')
       if (!response.ok) {
-        const txt = await response.text().catch(() => '')
-        throw new Error(`Error del servidor (${response.status}). ${txt.slice(0, 200)}`)
+        throw new Error(`Error del servidor (${response.status}). ${responseText.slice(0, 200)}`)
+      }
+
+      // n8n puede contestar 200 aunque el flujo se detenga después, así que
+      // solo se da por agendada si la cita aparece en la base.
+      if (mode === 'create' && !(await appointmentSaved(agendaId, date, time, requestedAt))) {
+        console.error('[BookingModal] n8n respondió 200 pero la cita no aparece en appointments', { body, responseText })
+        const detail = responseText.trim() ? ` Respuesta del servidor: ${responseText.trim().slice(0, 160)}` : ''
+        throw new Error(`El servidor recibió la cita pero no se guardó en tu agenda.${detail}`)
       }
       return true
     },
     onSuccess: () => {
+      if (mode === 'create') {
+        void queryClient.invalidateQueries({ queryKey: ['contactsData'] })
+        void queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      }
       toast.success(mode === 'create' ? 'Cita agendada correctamente' : 'Cita reagendada correctamente')
       onSuccess()
       onClose()
@@ -282,10 +298,10 @@ export default function BookingModal({
             <>
               <div className="flex gap-2 mb-5 p-1 bg-slate-100 rounded-xl">
                 <button onClick={() => setTab('search')} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === 'search' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <Search size={14} /> Buscar paciente
+                  <Search size={14} /> Buscar cliente
                 </button>
                 <button onClick={() => setTab('new')} className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === 'new' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                  <UserPlus size={14} /> Nuevo paciente
+                  <UserPlus size={14} /> Nuevo cliente
                 </button>
               </div>
 
@@ -319,7 +335,7 @@ export default function BookingModal({
                             onClick={() => { setNewPatient({ name: searchQuery, phone: '' }); setTab('new') }}
                             className="text-xs text-blue-600 font-bold hover:underline mt-1"
                           >
-                            + Crear nuevo paciente con "{searchQuery}"
+                            + Crear nuevo cliente con "{searchQuery}"
                           </button>
                         </div>
                       ) : (
@@ -360,12 +376,14 @@ export default function BookingModal({
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><Phone size={12} /> WhatsApp / Teléfono</label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={newPatient.phone}
-                      onChange={e => setNewPatient({ ...newPatient, phone: e.target.value })}
-                      placeholder="5219991234567"
+                      onChange={e => setNewPatient({ ...newPatient, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="9991234567"
                       className="w-full mt-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
-                    <p className="text-[11px] text-slate-400 mt-1.5">Con código de país, sin <code>+</code> ni espacios.</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">Los 10 dígitos del celular, sin el 52.</p>
                   </div>
                 </div>
               )}
@@ -376,7 +394,7 @@ export default function BookingModal({
                   rows={3}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="Breve descripción de la consulta..."
+                  placeholder="Ej. Motivo de la cita o detalles a tener en cuenta"
                   className="w-full mt-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
                 />
               </div>
@@ -401,12 +419,12 @@ export default function BookingModal({
                 <MessageCircle size={16} className={notifyPatient ? 'text-emerald-600' : 'text-slate-400'} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-bold ${notifyPatient ? 'text-emerald-900' : 'text-slate-700'}`}>
-                    Avisar al paciente por WhatsApp
+                    Avisar al cliente por WhatsApp
                   </p>
                   <p className="text-[11px] text-slate-500 font-medium">
                     {patientPhone
                       ? `Se enviará a ${patientPhone}`
-                      : 'No hay teléfono registrado para este paciente.'}
+                      : 'No hay teléfono registrado para este cliente.'}
                   </p>
                 </div>
               </label>
@@ -432,4 +450,42 @@ export default function BookingModal({
       </div>
     </div>
   )
+}
+
+/** Busca al cliente por su WhatsApp y, si no existe, lo crea en el Gestor de clientes. */
+async function ensureContact(companyId: string, name: string, phone: string): Promise<Contact> {
+  const { data: existing, error: findError } = await supabase
+    .from('contacts')
+    .select('id, name, phone, external_id')
+    .eq('company_id', companyId)
+    .eq('external_id', phone)
+    .maybeSingle()
+  if (findError) throw new Error('No se pudo revisar si el cliente ya existe. Intenta de nuevo.')
+  if (existing) return existing as Contact
+
+  const { data: created, error: insertError } = await supabase
+    .from('contacts')
+    .insert([{ id: crypto.randomUUID(), company_id: companyId, name, phone, external_id: phone, platform: 'whatsapp', status: 'lead' }])
+    .select('id, name, phone, external_id')
+    .single()
+  if (insertError || !created) throw new Error('No se pudo registrar al cliente. Revisa el número e intenta de nuevo.')
+  return created as Contact
+}
+
+/** Espera unos segundos a que la cita creada por n8n aparezca en appointments. */
+async function appointmentSaved(agendaId: string, date: string, time: string, since: string) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('agenda_id', agendaId)
+      .eq('appointment_date', date)
+      .eq('appointment_time', `${time}:00`)
+      .neq('status', 'cancelled')
+      .gte('created_at', since)
+      .limit(1)
+    if (data && data.length > 0) return true
+    await new Promise(resolve => setTimeout(resolve, 1500))
+  }
+  return false
 }

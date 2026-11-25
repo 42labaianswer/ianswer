@@ -2,24 +2,16 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Clock, Save, Coffee, Loader2, LayoutGrid, Calendar } from 'lucide-react'
-import { DAYS_OF_WEEK, defaultWeek } from '../lib/agendaSetup'
+import { Clock, Save, Loader2, LayoutGrid, Calendar } from 'lucide-react'
+import { defaultWeek } from '../lib/agendaSetup'
+import IAnswerLoader from './IAnswerLoader'
+import WorkingHoursEditor, { type WorkingHour } from './WorkingHoursEditor'
 
-type WorkingHour = {
-  day_of_week: number
-  start_time: string
-  end_time: string
-  has_break: boolean
-  break_start_time: string
-  break_end_time: string
-  slot_duration: number
-  is_active: boolean
-  agenda_id?: string
-}
 
 type Agenda = {
   id: string
@@ -31,9 +23,11 @@ type Agenda = {
 export default function WorkingHoursTab({ companyId }: { companyId: string }) {
   const queryClient = useQueryClient()
   
-  const [agendas, setAgendas] = useState<Agenda[]>([])
-  const [selectedAgendaId, setSelectedAgendaId] = useState<string>('')
-  const [hours, setHours] = useState<WorkingHour[]>([])
+  // ?agenda= lo manda el Calendario para abrir directo la agenda sin horario.
+  const agendaParam = useSearchParams()?.get('agenda') ?? ''
+  const [pickedAgendaId, setSelectedAgendaId] = useState<string>(agendaParam)
+  // Cambios sin guardar de la agenda en pantalla; al cambiar de agenda se descartan.
+  const [draft, setDraft] = useState<{ agendaId: string, hours: WorkingHour[] } | null>(null)
 
   // 1. TANSTACK QUERY: Obtener Agendas Disponibles
   const { data: fetchedAgendas, isLoading: isLoadingAgendas } = useQuery({
@@ -46,15 +40,10 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
     }
   })
 
-  // Setear agenda por defecto
-  useEffect(() => {
-    if (fetchedAgendas) {
-      setAgendas(fetchedAgendas)
-      if (fetchedAgendas.length > 0 && !selectedAgendaId) {
-        setSelectedAgendaId(fetchedAgendas[0].id)
-      }
-    }
-  }, [fetchedAgendas, selectedAgendaId])
+  // Se deriva en el render (no en un useEffect) para que el primer cuadro ya
+  // tenga las agendas y no parpadee el aviso de "sin agendas".
+  const agendas = fetchedAgendas ?? []
+  const selectedAgendaId = agendas.some(a => a.id === pickedAgendaId) ? pickedAgendaId : (agendas[0]?.id ?? '')
 
   // 2. TANSTACK QUERY: Obtener horarios de LA AGENDA SELECCIONADA
   const { data: fetchedHours, isLoading: isLoadingHours } = useQuery({
@@ -78,9 +67,8 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
     }
   })
 
-  useEffect(() => {
-    if (fetchedHours) setHours(fetchedHours)
-  }, [fetchedHours])
+  const hours = draft?.agendaId === selectedAgendaId ? draft.hours : (fetchedHours ?? [])
+  const setHours = (next: WorkingHour[]) => setDraft({ agendaId: selectedAgendaId, hours: next })
 
   // 3. TANSTACK MUTATION: Guardar horarios
   const saveHoursMutation = useMutation({
@@ -92,10 +80,17 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
       if (deleteError) throw deleteError
       
       // Insertamos los nuevos ligándolos a ESTA AGENDA
-      const insertData = hours.map(h => ({ 
-        ...h, 
+      const insertData = hours.map(h => ({
+        day_of_week: h.day_of_week,
+        start_time: h.start_time,
+        end_time: h.end_time,
+        has_break: h.has_break,
+        break_start_time: h.break_start_time,
+        break_end_time: h.break_end_time,
+        slot_duration: h.slot_duration,
+        is_active: h.is_active,
         company_id: companyId,
-        agenda_id: selectedAgendaId 
+        agenda_id: selectedAgendaId
       }))
       const { error: insertError } = await supabase.from('working_hours').insert(insertData)
       if (insertError) throw insertError
@@ -113,31 +108,23 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
     }
   })
 
-  const updateDay = (dayIndex: number, field: keyof WorkingHour, value: any) => {
-    setHours(prev => prev.map(h => h.day_of_week === dayIndex ? { ...h, [field]: value } : h))
-  }
-
-  const updateAllDurations = (duration: number) => {
-    setHours(prev => prev.map(h => ({ ...h, slot_duration: duration })))
-  }
-
   if (isLoadingAgendas || (isLoadingHours && selectedAgendaId)) {
-    return <div className="animate-pulse h-64 bg-slate-50 rounded-3xl border border-slate-100"></div>
+    return <div className="h-64 flex items-center justify-center"><IAnswerLoader size={32} /></div>
   }
 
   if (agendas.length === 0) {
     return (
-      <div className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center animate-in fade-in">
+      <div className="bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center">
         <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
         <h3 className="text-xl font-bold text-slate-700 mb-2">Aún no hay agendas creadas</h3>
-        <p className="text-slate-500">Primero ve a la pestaña "Agendas (Calendar)" para crear un calendario. Luego podrás configurarle sus horarios aquí.</p>
+        <p className="text-slate-500">Primero ve a la pestaña "Google Calendar" para conectar un calendario. Luego podrás configurarle sus horarios aquí.</p>
       </div>
     )
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-      
+    <div className="animate-in fade-in duration-200">
+
       {agendas.length > 1 && (
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
           <div className="flex items-center gap-3">
@@ -180,78 +167,7 @@ export default function WorkingHoursTab({ companyId }: { companyId: string }) {
         </div>
 
         <div className="p-8">
-          <div className="mb-6 pb-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <p className="text-sm font-bold text-slate-700">Duración de cada cita (aplica para todos los días)</p>
-            <select 
-              value={hours[1]?.slot_duration || 30} 
-              onChange={(e) => updateAllDurations(Number(e.target.value))}
-              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={15}>15 Minutos</option>
-              <option value={20}>20 Minutos</option>
-              <option value={30}>30 Minutos</option>
-              <option value={45}>45 Minutos</option>
-              <option value={60}>1 Hora</option>
-            </select>
-          </div>
-
-          <div className="space-y-3">
-            {hours.map((day) => (
-              <div key={day.day_of_week} className={`flex flex-col p-4 rounded-xl border transition-all ${day.is_active ? 'bg-white border-blue-100 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-48">
-                    <input 
-                      type="checkbox" 
-                      checked={day.is_active} 
-                      onChange={(e) => updateDay(day.day_of_week, 'is_active', e.target.checked)}
-                      className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <span className="font-bold text-sm text-slate-700 uppercase tracking-wide">{DAYS_OF_WEEK[day.day_of_week]}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 opacity-100 transition-opacity flex-wrap" style={{ opacity: day.is_active ? 1 : 0.5 }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400">DE</span>
-                      <input type="time" disabled={!day.is_active} value={day.start_time} onChange={(e) => updateDay(day.day_of_week, 'start_time', e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400">A</span>
-                      <input type="time" disabled={!day.is_active} value={day.end_time} onChange={(e) => updateDay(day.day_of_week, 'end_time', e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold" />
-                    </div>
-                  </div>
-                </div>
-
-                {day.is_active && (
-                  <div className="mt-3 pt-3 border-t border-slate-50 flex flex-col md:flex-row md:items-center gap-4 md:pl-[3.25rem]">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={day.has_break} 
-                        onChange={(e) => updateDay(day.day_of_week, 'has_break', e.target.checked)}
-                        className="rounded border-slate-300 text-orange-500 focus:ring-orange-500"
-                      />
-                      <Coffee size={14} className={day.has_break ? "text-orange-500" : "text-slate-400"} />
-                      Añadir Descanso / Comida
-                    </label>
-                    
-                    {day.has_break && (
-                      <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-slate-400">INICIA</span>
-                          <input type="time" value={day.break_start_time} onChange={(e) => updateDay(day.day_of_week, 'break_start_time', e.target.value)} className="px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs outline-none focus:ring-1 focus:ring-orange-500 font-bold text-orange-800" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-slate-400">TERMINA</span>
-                          <input type="time" value={day.break_end_time} onChange={(e) => updateDay(day.day_of_week, 'break_end_time', e.target.value)} className="px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs outline-none focus:ring-1 focus:ring-orange-500 font-bold text-orange-800" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <WorkingHoursEditor hours={hours} onChange={setHours} />
         </div>
       </div>
     </div>
