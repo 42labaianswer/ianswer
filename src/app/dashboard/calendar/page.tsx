@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Calendar as CalendarIcon, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Clock,
   RefreshCw, ArrowLeft, Lock, Unlock, CalendarSync, LayoutGrid, Coffee, User,
@@ -78,7 +79,7 @@ export default function CalendarPage() {
   const formatYMD = (d: Date) => `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
 
   // 1. TANSTACK QUERY: Datos Base (agendas, webhook, company)
-  const { data: baseData } = useQuery({
+  const { data: baseData, isError: baseDataFailed } = useQuery({
     queryKey: ['calendarBaseData'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -101,7 +102,7 @@ export default function CalendarPage() {
     if (baseData) {
       setCompanyId(baseData.companyId)
       setAgendas(baseData.agendas)
-      if (baseData.agendas.length > 0 && !selectedAgendaId) {
+      if (baseData.agendas.length > 0 && !baseData.agendas.some(a => a.id === selectedAgendaId)) {
         setSelectedAgendaId(baseData.agendas[0].id)
       }
     }
@@ -422,6 +423,18 @@ export default function CalendarPage() {
   const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   const activeAgenda = agendas.find(a => a.id === selectedAgendaId)
   const hasCalendarId = !!activeAgenda?.google_calendar_id
+  const hoursSettingsHref = `/dashboard/settings?tab=hours&agenda=${selectedAgendaId}`
+
+  // Hasta saber qué agendas hay (y tener una elegida) no se pinta nada: si no,
+  // primero se ve el aviso de "No hay agendas" y luego salta la agenda real.
+  const resolvingAgendas = !baseDataFailed && (!baseData || (baseData.agendas.length > 0 && !activeAgenda))
+  if (resolvingAgendas) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <IAnswerLoader size={40} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -510,24 +523,6 @@ export default function CalendarPage() {
             className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1"
           >
             Ir a Configuración <ExternalLink size={14} />
-          </a>
-        </div>
-      )}
-
-      {activeAgenda && specificData && specificData.workingHours.length === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Clock className="text-amber-600 shrink-0 mt-0.5" size={20} />
-            <div>
-              <p className="text-sm font-bold text-amber-900">Esta agenda todavía no tiene horario</p>
-              <p className="text-xs text-amber-800 mt-0.5">Por eso todos los días aparecen como no laborables y tu asistente no puede ofrecer horarios. Guarda los días y horas en que atiendes.</p>
-            </div>
-          </div>
-          <a
-            href="/dashboard/settings?tab=hours"
-            className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1"
-          >
-            Configurar horario <ExternalLink size={14} />
           </a>
         </div>
       )}
@@ -732,6 +727,26 @@ export default function CalendarPage() {
                         const dayOfWeek = selectedDay.getDay()
                         const workDay = workingHours.find(w => w.day_of_week === dayOfWeek)
                         const dateStr = formatYMD(selectedDay)
+
+                        if (!specificData) {
+                          return <div className="py-16 flex justify-center"><IAnswerLoader size={28} /></div>
+                        }
+
+                        if (specificData.workingHours.length === 0) {
+                          return (
+                            <div className="text-center py-14 px-6 bg-indigo-50/60 rounded-[2rem] border-2 border-dashed border-indigo-200">
+                              <Clock size={44} className="mx-auto text-indigo-300 mb-4" />
+                              <p className="text-slate-800 font-black text-lg">Esta agenda todavía no tiene horario</p>
+                              <p className="text-sm text-slate-500 font-medium mt-1 max-w-md mx-auto">Define los días y horas en que atiendes para ver aquí los bloques disponibles y que tu asistente pueda agendar citas.</p>
+                              <Link
+                                href={hoursSettingsHref}
+                                className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-black shadow-md transition-colors"
+                              >
+                                <Clock size={16} /> Configurar horario
+                              </Link>
+                            </div>
+                          )
+                        }
 
                         if (!workDay || !workDay.is_active) {
                           return <div className="text-center py-16 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200"><p className="text-slate-500 font-bold text-lg">Día configurado como NO laborable.</p></div>

@@ -154,18 +154,18 @@ function SettingsContent() {
               <Palette size={18} /> Marca de tu negocio
             </button>
             <button 
-              onClick={() => setActiveTab('hours')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
-                ${activeTab === 'hours' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Clock size={18} /> Horarios de Atención
-            </button>
-            <button 
               onClick={() => setActiveTab('calendars')}
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
                 ${activeTab === 'calendars' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <CalendarDays size={18} /> Google Calendar
+            </button>
+            <button 
+              onClick={() => setActiveTab('hours')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
+                ${activeTab === 'hours' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              <Clock size={18} /> Horarios de Atención
             </button>
             <button 
               onClick={() => setActiveTab('widget')}

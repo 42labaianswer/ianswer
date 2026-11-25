@@ -24,6 +24,7 @@ import TasksTab from '../../../components/TasksTab'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
 import { useConfirm } from '../../../hooks/useConfirm'
 import IAnswerLoader from '../../../components/IAnswerLoader'
+import { formatWhatsAppPhone } from '../../../lib/phone'
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer'
 
@@ -78,12 +79,6 @@ type TeamMember = { id: string, name: string, company_id: string }
 type Agenda = { id: string, name: string }
 type SortKey = 'name' | 'created_at' | 'last_inbound_at' | 'next_appointment' | 'total_appointments'
 type Temperature = 'activo' | 'reciente' | 'pausado' | 'inactivo' | 'sin_datos'
-
-const formatWhatsAppPhone = (rawPhone: string) => {
-  let clean = rawPhone.replace(/\D/g, '')
-  if (clean.length === 10) clean = '521' + clean
-  return clean
-}
 
 const calculateAge = (dateString?: string | null) => {
   if (!dateString) return null
