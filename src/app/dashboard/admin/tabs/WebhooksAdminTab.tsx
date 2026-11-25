@@ -84,6 +84,7 @@ export default function WebhooksAdminTab() {
     n8n_webhook_widget: '',
     n8n_webhook_cancel_appointment: '',
     n8n_webhook_reschedule_appointment: '',
+    n8n_webhook_sync_appointment: '',
     // Rutas de respaldo .json en bucket "branding"
     n8n_workflow_calendar_json: '',
     n8n_workflow_calendar_verify_json: '',
@@ -115,6 +116,7 @@ export default function WebhooksAdminTab() {
         n8n_webhook_widget:                 data.n8n_webhook_widget                 || '',
         n8n_webhook_cancel_appointment:     data.n8n_webhook_cancel_appointment     || '',
         n8n_webhook_reschedule_appointment: data.n8n_webhook_reschedule_appointment || '',
+        n8n_webhook_sync_appointment:       data.n8n_webhook_sync_appointment       || '',
         n8n_workflow_calendar_json:         data.n8n_workflow_calendar_json         || '',
         n8n_workflow_calendar_verify_json:  data.n8n_workflow_calendar_verify_json  || '',
         n8n_workflow_whatsapp_json:         data.n8n_workflow_whatsapp_json         || '',
@@ -330,6 +332,15 @@ export default function WebhooksAdminTab() {
               isUploading={uploadingKey === 'reschedule_appointment'}
               onUpload={handleUpload}
             />
+          </div>
+
+          {/* 9. Sincronizar Cita con Google */}
+          <div className="p-6 bg-indigo-50/50 rounded-2xl border border-indigo-200">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+              Sincronizar Cita Google
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">URL del workflow que crea o mueve en Google Calendar las citas que se agendan o reagendan desde el calendario del dashboard. La cita ya está guardada; este flujo corre en segundo plano y marca appointments.google_sync.</p>
+            <input value={platform.n8n_webhook_sync_appointment} onChange={e => setPlatform({...platform, n8n_webhook_sync_appointment: e.target.value})} placeholder="https://.../sincronizar-cita-google" className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs text-slate-700" />
           </div>
 
         </div>

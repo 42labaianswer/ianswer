@@ -6,7 +6,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { formatWhatsAppPhone } from '../lib/phone'
+import { fromMinutes, toMinutes } from '../lib/appointments'
+import {
+  eventFromAppointment, mapEvents, rescheduledEvent, restoreCalendar, snapshotCalendar, updateCalendarEvents, withEvent,
+  type AppointmentRow, type CalendarEvent,
+} from '../lib/calendarCache'
 import { X, Search, UserPlus, User, Phone, MessageSquare, Loader2, CheckCircle2, Clock, CalendarClock, Calendar as CalendarIcon, AlertTriangle, MessageCircle } from 'lucide-react'
 
 type Contact = {
@@ -47,7 +51,7 @@ type BookingModalProps = {
 export default function BookingModal({
   isOpen, onClose, mode, companyId, agendaId, agendaName,
   date: initialDate, time: initialTime, defaultDuration, allowEditDateTime = false,
-  appointmentId, patientName, patientPhone, busyEvents = [], onSuccess
+  appointmentId, patientPhone, busyEvents = [], onSuccess
 }: BookingModalProps) {
   const queryClient = useQueryClient()
 
@@ -115,103 +119,100 @@ export default function BookingModal({
     return dayBusy.find(e => e.startMins < endMins && e.endMins > startMins) || null
   }, [date, time, duration, busyEvents, mode, appointmentId])
 
-  // MUTATION
+  type SubmitVars =
+    | { kind: 'create'; tempId: string; patientName: string; patientPhone: string; payload: Record<string, unknown> }
+    | { kind: 'reschedule'; appointmentId: string; payload: Record<string, unknown> }
+
+  /** Valida en el navegador antes de cerrar el modal; el servidor vuelve a validar. */
+  const buildSubmit = (): SubmitVars => {
+    if (!date) throw new Error('Selecciona una fecha')
+    if (!time) throw new Error('Selecciona una hora')
+
+    if (conflict) {
+      throw new Error(`El bloque elegido choca con la cita de las ${fromMinutes(conflict.startMins)}. Cambia la hora o reduce la duración.`)
+    }
+
+    if (mode === 'reschedule') {
+      if (!appointmentId) throw new Error('Falta la cita a reagendar')
+      return { kind: 'reschedule', appointmentId, payload: { date, time, duration, notifyPatient } }
+    }
+
+    const base = { agendaId, date, time, duration, notes: notes.trim() }
+    if (tab === 'search') {
+      if (!selectedContact) throw new Error('Selecciona un cliente buscando arriba, o cambia a "Nuevo cliente"')
+      return {
+        kind: 'create',
+        tempId: `temp-${crypto.randomUUID()}`,
+        patientName: selectedContact.name || 'Cliente',
+        patientPhone: selectedContact.phone || selectedContact.external_id,
+        payload: { ...base, contactId: selectedContact.id },
+      }
+    }
+    if (!newPatient.name.trim()) throw new Error('Escribe el nombre del nuevo cliente')
+    if (newPatient.phone.length !== 10) throw new Error('El WhatsApp del nuevo cliente debe tener 10 dígitos')
+    return {
+      kind: 'create',
+      tempId: `temp-${crypto.randomUUID()}`,
+      patientName: newPatient.name.trim(),
+      patientPhone: newPatient.phone,
+      payload: { ...base, newClient: { name: newPatient.name.trim(), phone: newPatient.phone } },
+    }
+  }
+
+  // La cita aparece en el calendario y el modal se cierra en cuanto se envía;
+  // si el servidor la rechaza, se quita del calendario y se avisa con el motivo.
   const submitMutation = useMutation({
-    mutationFn: async () => {
-
-      // Validaciones: lanzan errores descriptivos en vez de bloquear el botón
-      if (!date) throw new Error('Selecciona una fecha')
-      if (!time) throw new Error('Selecciona una hora')
-
-      if (mode === 'create') {
-        if (tab === 'search' && !selectedContact) {
-          throw new Error('Selecciona un cliente buscando arriba, o cambia a "Nuevo cliente"')
+    mutationFn: (vars: SubmitVars) =>
+      vars.kind === 'create'
+        ? callAppointmentsApi<CreateResponse>('/api/appointments', 'POST', vars.payload)
+        : callAppointmentsApi<CreateResponse>(`/api/appointments/${vars.appointmentId}`, 'PATCH', vars.payload),
+    onMutate: async (vars) => {
+      const snapshot = await snapshotCalendar(queryClient, agendaId)
+      if (vars.kind === 'create') {
+        const startMins = toMinutes(time)
+        const optimistic: CalendarEvent = {
+          id: vars.tempId, date, time, rawTime: time, startMins, endMins: startMins + duration,
+          title: vars.patientName, status: 'confirmed', motivo: notes.trim(),
+          patientPhone: vars.patientPhone, duration, source: 'supabase', optimistic: true,
         }
-        if (tab === 'new') {
-          if (!newPatient.name.trim()) throw new Error('Escribe el nombre del nuevo cliente')
-          if (newPatient.phone.length !== 10) throw new Error('El WhatsApp del nuevo cliente debe tener 10 dígitos')
-        }
-      }
-
-      if (conflict) {
-        const ch = Math.floor(conflict.startMins / 60).toString().padStart(2, '0')
-        const cm = (conflict.startMins % 60).toString().padStart(2, '0')
-        throw new Error(`El bloque elegido choca con la cita de las ${ch}:${cm}. Cambia la hora o reduce la duración.`)
-      }
-
-      const wField = mode === 'create' ? 'n8n_webhook_widget' : 'n8n_webhook_reschedule_appointment'
-      const { data: psData, error: psErr } = await supabase.from('platform_settings').select(wField).single()
-      if (psErr) {
-        console.error('[BookingModal] error leyendo platform_settings', psErr)
-        throw new Error(`No se pudo leer la configuración: ${psErr.message}`)
-      }
-      const webhookUrl = (psData as any)?.[wField]
-      if (!webhookUrl) throw new Error(`Falta configurar la URL del webhook "${wField}" en Admin > Desarrollador.`)
-
-      let body: any
-      if (mode === 'create') {
-        let patientName = '', patientPhone = ''
-        if (tab === 'search') {
-          patientName = selectedContact!.name || 'Cliente'
-          patientPhone = selectedContact!.phone || selectedContact!.external_id
-        } else {
-          const contact = await ensureContact(companyId, newPatient.name.trim(), formatWhatsAppPhone(newPatient.phone))
-          patientName = contact.name || newPatient.name.trim()
-          patientPhone = contact.external_id
-        }
-        body = {
-          agendaId, companyId,
-          name: patientName, phone: patientPhone,
-          notes: notes.trim(),
-          date, time,
-          duration_minutes: duration,
-          source: 'manual_dashboard'
-        }
+        updateCalendarEvents(queryClient, agendaId, events => withEvent(events, optimistic))
       } else {
-        if (!appointmentId) throw new Error('Falta el appointmentId')
-        body = {
-          appointmentId, newDate: date, newTime: time, newDuration: duration,
-          notify_patient: notifyPatient,
-          patient_phone: patientPhone || null,
-          patient_name: patientName || null,
-          old_date_label: null
-        }
+        updateCalendarEvents(queryClient, agendaId, events =>
+          mapEvents(events, vars.appointmentId, ev => ({ ...rescheduledEvent(ev, date, time, duration), optimistic: true })))
       }
-
-      const requestedAt = new Date(Date.now() - 60_000).toISOString()
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      const responseText = await response.text().catch(() => '')
-      if (!response.ok) {
-        throw new Error(`Error del servidor (${response.status}). ${responseText.slice(0, 200)}`)
-      }
-
-      // n8n puede contestar 200 aunque el flujo se detenga después, así que
-      // solo se da por agendada si la cita aparece en la base.
-      if (mode === 'create' && !(await appointmentSaved(agendaId, date, time, requestedAt))) {
-        console.error('[BookingModal] n8n respondió 200 pero la cita no aparece en appointments', { body, responseText })
-        const detail = responseText.trim() ? ` Respuesta del servidor: ${responseText.trim().slice(0, 160)}` : ''
-        throw new Error(`El servidor recibió la cita pero no se guardó en tu agenda.${detail}`)
-      }
-      return true
+      const toastId = toast.loading(vars.kind === 'create' ? 'Guardando cita...' : 'Reagendando cita...')
+      onClose()
+      return { snapshot, toastId }
     },
-    onSuccess: () => {
-      if (mode === 'create') {
+    onSuccess: (result, vars, ctx) => {
+      if (vars.kind === 'create') {
+        const saved = eventFromAppointment(result.appointment, result.contact ?? null)
+        updateCalendarEvents(queryClient, agendaId, events => withEvent(events, saved, vars.tempId))
         void queryClient.invalidateQueries({ queryKey: ['contactsData'] })
         void queryClient.invalidateQueries({ queryKey: ['contactsEnriched'] })
+      } else {
+        updateCalendarEvents(queryClient, agendaId, events =>
+          mapEvents(events, vars.appointmentId, ev => ({
+            ...eventFromAppointment(result.appointment, { name: ev.title, phone: ev.patientPhone ?? null }),
+          })))
       }
-      toast.success(mode === 'create' ? 'Cita agendada correctamente' : 'Cita reagendada correctamente')
+      toast.success(vars.kind === 'create' ? 'Cita agendada' : 'Cita reagendada', { id: ctx.toastId })
       onSuccess()
-      onClose()
     },
-    onError: (err: any) => {
-      console.error('[BookingModal] error en submit:', err)
-      toast.error(err.message || 'Error desconocido al agendar', { duration: 6000 })
+    onError: (err, _vars, ctx) => {
+      console.error('[BookingModal] error al guardar la cita:', err)
+      restoreCalendar(queryClient, ctx?.snapshot)
+      toast.error(err instanceof Error ? err.message : 'No se pudo guardar la cita', { id: ctx?.toastId, duration: 6000 })
     }
   })
+
+  const handleSubmit = () => {
+    try {
+      submitMutation.mutate(buildSubmit())
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Revisa los datos de la cita')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -222,7 +223,7 @@ export default function BookingModal({
   return (
     <div
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={(e) => { if (e.target === e.currentTarget && !submitMutation.isPending) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
 
@@ -231,7 +232,7 @@ export default function BookingModal({
             <h2 className="text-xl font-black text-slate-900">{title}</h2>
             <p className="text-sm text-slate-500 mt-1 font-medium truncate">{agendaName}</p>
           </div>
-          <button onClick={onClose} disabled={submitMutation.isPending} className="text-slate-400 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors shrink-0 disabled:opacity-30">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 hover:bg-slate-100 rounded-lg transition-colors shrink-0 disabled:opacity-30">
             <X size={20} />
           </button>
         </div>
@@ -433,18 +434,14 @@ export default function BookingModal({
         </div>
 
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
-          <button onClick={onClose} disabled={submitMutation.isPending} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-40">
+          <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-40">
             Cancelar
           </button>
           <button
-            onClick={() => submitMutation.mutate()}
-            disabled={submitMutation.isPending}
+            onClick={handleSubmit}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
           >
-            {submitMutation.isPending
-              ? <><Loader2 size={16} className="animate-spin" /> Guardando...</>
-              : <>{submitIcon} {submitLabel}</>
-            }
+            {submitIcon} {submitLabel}
           </button>
         </div>
       </div>
@@ -452,40 +449,14 @@ export default function BookingModal({
   )
 }
 
-/** Busca al cliente por su WhatsApp y, si no existe, lo crea en el Gestor de clientes. */
-async function ensureContact(companyId: string, name: string, phone: string): Promise<Contact> {
-  const { data: existing, error: findError } = await supabase
-    .from('contacts')
-    .select('id, name, phone, external_id')
-    .eq('company_id', companyId)
-    .eq('external_id', phone)
-    .maybeSingle()
-  if (findError) throw new Error('No se pudo revisar si el cliente ya existe. Intenta de nuevo.')
-  if (existing) return existing as Contact
-
-  const { data: created, error: insertError } = await supabase
-    .from('contacts')
-    .insert([{ id: crypto.randomUUID(), company_id: companyId, name, phone, external_id: phone, platform: 'whatsapp', status: 'lead' }])
-    .select('id, name, phone, external_id')
-    .single()
-  if (insertError || !created) throw new Error('No se pudo registrar al cliente. Revisa el número e intenta de nuevo.')
-  return created as Contact
+type CreateResponse = {
+  appointment: AppointmentRow
+  contact?: { name: string | null; phone: string | null }
 }
 
-/** Espera unos segundos a que la cita creada por n8n aparezca en appointments. */
-async function appointmentSaved(agendaId: string, date: string, time: string, since: string) {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const { data } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('agenda_id', agendaId)
-      .eq('appointment_date', date)
-      .eq('appointment_time', `${time}:00`)
-      .neq('status', 'cancelled')
-      .gte('created_at', since)
-      .limit(1)
-    if (data && data.length > 0) return true
-    await new Promise(resolve => setTimeout(resolve, 1500))
-  }
-  return false
+async function callAppointmentsApi<T>(url: string, method: 'POST' | 'PATCH', body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  const json = await res.json().catch(() => null)
+  if (!res.ok || !json?.success) throw new Error(json?.error || `Error del servidor (${res.status}). Intenta de nuevo.`)
+  return json as T
 }

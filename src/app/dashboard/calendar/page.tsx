@@ -14,6 +14,8 @@ import {
   Sparkles, TrendingUp, Zap, ChevronsRight, Eye, EyeOff, ExternalLink, Info
 } from 'lucide-react'
 import BookingModal from '../../../components/BookingModal'
+import GoogleSyncBadge from '../../../components/GoogleSyncBadge'
+import { eventFromAppointment, mapEvents, updateCalendarEvents, type CalendarEvent } from '../../../lib/calendarCache'
 import CancelDialog from '../../../components/CancelDialog'
 import PageHeader from '../../../components/PageHeader'
 import { usePlanFeatures } from '../../../hooks/usePlanFeatures'
@@ -25,22 +27,6 @@ type Agenda = {
   google_calendar_id: string
 }
 
-type CalendarEvent = {
-  id: string
-  date: string
-  time: string
-  rawTime: string
-  startMins: number
-  endMins: number
-  title: string
-  status: string
-  motivo: string
-  appointmentId?: string
-  patientId?: string
-  patientPhone?: string
-  duration?: number
-  source?: 'google_only' | 'supabase' | 'both'
-}
 
 type WorkingHour = {
   day_of_week: number; start_time: string; end_time: string; has_break: boolean; break_start_time: string; break_end_time: string; slot_duration: number; is_active: boolean; agenda_id?: string
@@ -121,38 +107,14 @@ export default function CalendarPage() {
         supabase.from('working_hours').select('*').eq('agenda_id', selectedAgendaId).order('day_of_week'),
         supabase.from('disabled_slots').select('date, time').eq('company_id', companyId),
         supabase.from('appointments')
-          .select('id, patient_id, appointment_date, appointment_time, status, duration_minutes, notes, google_event_id, source, contacts(name, phone)')
+          .select('id, patient_id, appointment_date, appointment_time, status, duration_minutes, notes, google_event_id, google_sync, source, contacts(name, phone)')
           .eq('agenda_id', selectedAgendaId)
           .neq('status', 'cancelled')
           .gte('appointment_date', monthStart)
           .lte('appointment_date', monthEnd)
       ])
 
-      const supabaseEvents: CalendarEvent[] = (apptsRes.data || []).map((a: any) => {
-        const [h, m] = (a.appointment_time || '00:00:00').split(':').map(Number)
-        const startMins = h * 60 + m
-        const dur = a.duration_minutes || 30
-        const patientName = a.contacts?.name || 'Paciente'
-        const patientPhone = a.contacts?.phone || a.patient_id
-        const endH = Math.floor((startMins + dur) / 60).toString().padStart(2, '0')
-        const endM = ((startMins + dur) % 60).toString().padStart(2, '0')
-        return {
-          id: a.id,
-          date: a.appointment_date,
-          time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
-          rawTime: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
-          startMins,
-          endMins: startMins + dur,
-          title: patientName,
-          status: a.status,
-          motivo: a.notes || '',
-          appointmentId: a.id,
-          patientId: a.patient_id,
-          patientPhone,
-          duration: dur,
-          source: a.google_event_id ? 'both' : 'supabase'
-        }
-      })
+      const supabaseEvents: CalendarEvent[] = (apptsRes.data || []).map((a: any) => eventFromAppointment(a, a.contacts ?? null))
 
       const googleEvents: CalendarEvent[] = []
       if (agendaObj?.google_calendar_id && baseData?.webhookUrl) {
@@ -229,6 +191,35 @@ export default function CalendarPage() {
       setEvents(specificData.events)
     }
   }, [specificData])
+
+  // Citas recién guardadas cuyo evento de Google se está creando en segundo
+  // plano: se consulta solo su estado hasta que n8n termine.
+  const pendingSyncIds = useMemo(
+    () => events.filter(e => e.googleSync === 'pending' && e.appointmentId && !e.optimistic).map(e => e.appointmentId!).sort(),
+    [events]
+  )
+  const { data: syncStatuses } = useQuery({
+    queryKey: ['googleSyncStatus', pendingSyncIds],
+    enabled: pendingSyncIds.length > 0,
+    refetchInterval: (query) => (query.state.dataUpdateCount >= 40 ? false : 3000),
+    queryFn: async () => {
+      const { data } = await supabase.from('appointments').select('id, google_sync, google_event_id').in('id', pendingSyncIds)
+      return data || []
+    }
+  })
+  useEffect(() => {
+    const settled = (syncStatuses || []).filter(r => r.google_sync !== 'pending')
+    if (settled.length === 0 || !selectedAgendaId) return
+    updateCalendarEvents(queryClient, selectedAgendaId, evs =>
+      settled.reduce((acc, r) => mapEvents(acc, r.id, ev => ({
+        ...ev, googleSync: r.google_sync, source: r.google_event_id ? 'both' : ev.source,
+      })), evs))
+  }, [syncStatuses, selectedAgendaId, queryClient])
+
+  const refreshCalendar = () => {
+    queryClient.invalidateQueries({ queryKey: ['calendarSpecifics'] })
+    queryClient.invalidateQueries({ queryKey: ['upcomingAppointments'] })
+  }
 
   // ============================================================================
   // Próximas Citas
@@ -682,7 +673,7 @@ export default function CalendarPage() {
                                 const endHH = Math.floor(ev.endMins / 60).toString().padStart(2, '0')
                                 const endMM = (ev.endMins % 60).toString().padStart(2, '0')
                                 return (
-                                  <div key={ev.appointmentId} className="px-5 py-4 hover:bg-slate-50 transition-colors flex items-center gap-4">
+                                  <div key={ev.id} className={`px-5 py-4 hover:bg-slate-50 transition-colors flex items-center gap-4 ${ev.optimistic ? 'opacity-70' : ''}`}>
                                     <div className="shrink-0 text-right">
                                       <p className="text-base font-black text-slate-900 tabular-nums">{ev.time}</p>
                                       <p className="text-[10px] font-bold text-slate-400 tabular-nums">a {endHH}:{endMM}</p>
@@ -694,7 +685,9 @@ export default function CalendarPage() {
                                       </p>
                                       {motivo && <p className="text-xs text-slate-500 mt-0.5 truncate">{motivo}</p>}
                                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{ev.duration || 30} min</p>
+                                      <GoogleSyncBadge event={ev} onRetried={refreshCalendar} />
                                     </div>
+                                    {ev.appointmentId && !ev.optimistic && (
                                     <div className="flex items-center gap-1.5 shrink-0">
                                       <button
                                         onClick={() => {
@@ -715,6 +708,7 @@ export default function CalendarPage() {
                                         <Trash2 size={14} />
                                       </button>
                                     </div>
+                                    )}
                                   </div>
                                 )
                               })}
@@ -786,7 +780,7 @@ export default function CalendarPage() {
                                           const endHH = Math.floor(ev.endMins / 60).toString().padStart(2, '0')
                                           const endMM = (ev.endMins % 60).toString().padStart(2, '0')
                                           return (
-                                            <div key={idx} className="bg-white/80 p-3 rounded-xl border border-rose-100 shadow-sm">
+                                            <div key={ev.id || idx} className={`bg-white/80 p-3 rounded-xl border border-rose-100 shadow-sm ${ev.optimistic ? 'opacity-70' : ''}`}>
                                               <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0 flex-1">
                                                   <p className="font-black text-rose-900 text-sm flex items-center gap-2 truncate"><User size={14}/> {paciente}</p>
@@ -795,8 +789,9 @@ export default function CalendarPage() {
                                                   {ev.source === 'google_only' && (
                                                     <p className="text-[10px] text-amber-700 font-bold mt-1.5 italic">⚠ Solo en Google Calendar (no en el sistema)</p>
                                                   )}
+                                                  <GoogleSyncBadge event={ev} onRetried={refreshCalendar} />
                                                 </div>
-                                                {ev.appointmentId && (
+                                                {ev.appointmentId && !ev.optimistic && (
                                                   <div className="flex items-center gap-1.5 shrink-0">
                                                     <button
                                                       onClick={() => setRescheduleSlot({ date: dateStr, time: slotTime, appointmentId: ev.appointmentId!, duration: ev.duration || 30, patientName: paciente, patientPhone: ev.patientPhone })}

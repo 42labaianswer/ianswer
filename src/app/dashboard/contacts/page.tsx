@@ -1298,7 +1298,6 @@ export default function ContactsPage() {
             onSuccess={() => {
               setBookingAgendaId(null)
               setBookingContact(null)
-              toast.success('Cita agendada')
               invalidateContacts()
             }}
           />
