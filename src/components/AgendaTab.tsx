@@ -302,8 +302,14 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
           {isAdding && createPortal(
             <div
               className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
-              onClick={(e) => { if (e.target === e.currentTarget) closeAddModal() }}
             >
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Cerrar"
+              onClick={closeAddModal}
+              className="absolute inset-0 w-full h-full cursor-default"
+            />
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -313,7 +319,7 @@ export default function AgendasTab({ companyId, planSlug }: { companyId: string,
               role="dialog"
               aria-modal="true"
               aria-labelledby="add-agenda-title"
-              className="bg-white text-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+              className="relative bg-white text-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
             >
               <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div className="min-w-0">
