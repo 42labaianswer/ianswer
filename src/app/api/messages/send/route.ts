@@ -14,13 +14,18 @@ import { GRAPH, postGraphMessage } from '../../../../lib/metaGraph'
 // (WhatsApp, Messenger o Instagram) y se envía por la Graph API
 // correspondiente.
 //
-// Entrada: { patient_id, content, message_type?, media_url?, media_caption? }
+// Entrada: { patient_id, channel?, content, message_type?, media_url?, media_caption? }
+// patient_id es el external_id del contacto (teléfono WA / PSID / IGSID), que es
+// como se identifican las conversaciones en messages.patient_id.
 // ============================================================================
 
 type Canal = 'whatsapp' | 'messenger' | 'instagram'
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 interface Payload {
   patient_id: string
+  channel?: Canal
   content: string
   message_type?: 'text' | 'image' | 'audio'
   media_url?: string | null
@@ -77,15 +82,21 @@ export async function POST(request: Request) {
     }
 
     // ── Contacto y canal ──────────────────────────────────────────────────
-    const { data: contacto } = await supabase
+    const { data: porExternalId } = await supabase
       .from('contacts')
       .select('id, external_id, platform')
       .eq('company_id', companyId)
-      .or(`id.eq.${patient_id},external_id.eq.${patient_id}`)
+      .eq('external_id', patient_id)
+      .limit(1)
       .maybeSingle()
+    // contacts.id es uuid: compararlo con un teléfono hace fallar la consulta.
+    const contacto = porExternalId || (UUID.test(patient_id)
+      ? (await supabase.from('contacts').select('id, external_id, platform')
+          .eq('company_id', companyId).eq('id', patient_id).maybeSingle()).data
+      : null)
 
-    const canal: Canal = ((contacto?.platform as Canal) || 'whatsapp')
-    const destinatario = contacto?.external_id || contacto?.id || patient_id
+    const canal: Canal = body.channel || (contacto?.platform as Canal) || 'whatsapp'
+    const destinatario = contacto?.external_id || patient_id
 
     // ── Credenciales del canal ────────────────────────────────────────────
     let endpoint = ''
@@ -151,7 +162,7 @@ export async function POST(request: Request) {
 
     if (!envio.ok) {
       const detalle = envio.error
-      const esVentana = /24|outside|window|re-engagement/i.test(detalle)
+      const esVentana = /re-engagement|131047|24 hours|24 horas|outside (the )?(allowed )?window/i.test(detalle)
       return NextResponse.json(
         {
           success: false,
@@ -164,9 +175,9 @@ export async function POST(request: Request) {
     }
 
     // ── Registrar en el historial ─────────────────────────────────────────
-    await supabase.from('messages').insert({
+    const { error: errorHistorial } = await supabase.from('messages').insert({
       company_id: companyId,
-      patient_id: contacto?.id || patient_id,
+      patient_id: destinatario,
       content: tipo === 'text' ? content : (mediaCaption || content),
       sender: 'admin',
       message_type: tipo,
@@ -174,14 +185,18 @@ export async function POST(request: Request) {
       media_caption: mediaCaption,
       channel: canal
     })
+    // El mensaje ya salió por Meta; si no se pudo guardar solo se registra.
+    if (errorHistorial) console.error('[messages/send] no se guardó en el historial:', errorHistorial.message)
 
-    await supabase
-      .from('contacts')
-      .update({ last_outbound_at: new Date().toISOString() })
-      .eq('company_id', companyId)
-      .eq('id', contacto?.id || patient_id)
+    if (contacto?.id) {
+      await supabase
+        .from('contacts')
+        .update({ last_outbound_at: new Date().toISOString() })
+        .eq('company_id', companyId)
+        .eq('id', contacto.id)
+    }
 
-    return NextResponse.json({ success: true, canal })
+    return NextResponse.json({ success: true, canal, message_id: envio.messageId })
   } catch (e: any) {
     return NextResponse.json(
       { success: false, error: e?.message || 'Error inesperado al enviar' },

@@ -335,7 +335,7 @@ export default function ContactsPage() {
 
   const toggleBotMutation = useMutation({
     mutationFn: async ({ id, ai_active }: { id: string, ai_active: boolean }) => {
-      const { error } = await supabase.from('contacts').update({ ai_active }).eq('id', id)
+      const { error } = await supabase.from('contacts').update(ai_active ? { ai_active } : { ai_active, ai_paused_by: 'human' }).eq('id', id)
       if (error) throw error
     },
     onSuccess: () => invalidateContacts()
@@ -379,7 +379,7 @@ export default function ContactsPage() {
 
   const bulkToggleBot = useMutation({
     mutationFn: async ({ ids, ai_active }: { ids: string[], ai_active: boolean }) => {
-      const { error } = await supabase.from('contacts').update({ ai_active }).in('id', ids)
+      const { error } = await supabase.from('contacts').update(ai_active ? { ai_active } : { ai_active, ai_paused_by: 'human' }).in('id', ids)
       if (error) throw error
     },
     onSuccess: (_, vars) => {

@@ -15,7 +15,7 @@ import {
   Sparkles, Flame, CreditCard, Heart, CheckCircle2,
   Clock, ChevronDown, Bot, UserCog, BellRing, X,
   Mic, Image as ImageIcon, Play, Maximize2,
-  Paperclip, Square, Trash2, UserPlus, ChevronLeft, AlertTriangle, Download, Loader2
+  Paperclip, Square, Trash2, UserPlus, ChevronLeft, AlertTriangle, Download, Loader2, PauseCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -23,7 +23,7 @@ import {
   type ChannelKey,
 } from '../../../components/ChannelBadge'
 import IAnswerLoader from '../../../components/IAnswerLoader'
-import { audioUrlToMp3, descargarBlob, nombreAudioMp3 } from '../../../lib/audioToMp3'
+import { audioAMp3, audioUrlToMp3, descargarBlob, nombreAudioMp3 } from '../../../lib/audioToMp3'
 
 type ActiveChat = { ids: Set<string>; channels: Record<string, ChannelKey>; lastAt: Record<string, string> }
 
@@ -37,6 +37,8 @@ type Contact = {
   chat_status: 'open' | 'closed'
   unread_count: number
   ai_active: boolean
+  /** Quién pausó el bot: 'human' desde iAnswer o 'bot' (pidió un asesor / límite del plan). */
+  ai_paused_by?: 'human' | 'bot' | null
   stage_updated_by?: 'system' | 'ai' | 'human'
   // Multicanal: el destinatario real (teléfono WA / PSID de Messenger / IGSID)
   // y el canal + avatar. n8n crea/actualiza estos campos.
@@ -122,15 +124,6 @@ export default function InboxPage() {
 
   const userCompanyId = userProfile?.company_id
 
-  // 2. TANSTACK QUERY: Obtener Webhook
-  const { data: webhookUrl } = useQuery({
-    queryKey: ['webhookAdminWhatsApp', userCompanyId],
-    enabled: !!userCompanyId,
-    queryFn: async () => {
-      const { data } = await supabase.from('platform_settings').select('n8n_webhook_whatsapp_admin').single()
-      return data?.n8n_webhook_whatsapp_admin || null
-    }
-  })
 
   // 3. TANSTACK QUERY: Obtener TODOS los Contactos (Para el modal de Nuevo Chat)
   const { data: allContacts = [], isLoading: isLoadingContacts, isSuccess: contactsLoaded } = useQuery({
@@ -276,7 +269,7 @@ export default function InboxPage() {
           const newC = payload.new as Contact;
           const oldC = payload.old as Contact;
           
-          if (oldC && oldC.ai_active === true && newC.ai_active === false) {
+          if (oldC && oldC.ai_active === true && newC.ai_active === false && newC.ai_paused_by !== 'human') {
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('¡Atención Requerida!', {
                 body: `${contactName(newC)} necesita hablar con un humano.`,
@@ -360,14 +353,16 @@ export default function InboxPage() {
 
   const toggleAIMutation = useMutation({
     mutationFn: async (newAiStatus: boolean) => {
-      const { error } = await supabase.from('contacts').update({ ai_active: newAiStatus }).eq('id', selectedContact!.id);
+      const cambios = newAiStatus ? { ai_active: true } : { ai_active: false, ai_paused_by: 'human' as const }
+      const { error } = await supabase.from('contacts').update(cambios).eq('id', selectedContact!.id);
       if (error) throw error;
       return newAiStatus;
     },
     onMutate: async (newAiStatus) => {
       const prev = selectedContact;
-      setSelectedContact({ ...prev!, ai_active: newAiStatus });
-      queryClient.setQueryData(['contactsData', userCompanyId], (old: Contact[] = []) => old.map(c => c.id === prev?.id ? { ...c, ai_active: newAiStatus } : c));
+      const cambios = { ai_active: newAiStatus, ai_paused_by: newAiStatus ? null : 'human' as const }
+      setSelectedContact({ ...prev!, ...cambios });
+      queryClient.setQueryData(['contactsData', userCompanyId], (old: Contact[] = []) => old.map(c => c.id === prev?.id ? { ...c, ...cambios } : c));
       return { prev };
     },
     onError: (err, newAiStatus, context) => {
@@ -461,17 +456,16 @@ export default function InboxPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       recordingStreamRef.current = stream
-      // WhatsApp solo reproduce AAC dentro de MP4 (u Opus dentro de OGG). Chrome
-      // con 'audio/mp4' a secas graba Opus en MP4, que WhatsApp no reproduce,
-      // así que se pide el códec AAC (mp4a.40.2) explícitamente.
-      const candidatos = ['audio/mp4;codecs=mp4a.40.2', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
-      const mimeType = candidatos.find(m => MediaRecorder.isTypeSupported(m)) || 'audio/webm'
-      const recorder = new MediaRecorder(stream, { mimeType })
+      // Se graba en lo que soporte el navegador y al terminar se convierte a MP3:
+      // el MP4 fragmentado que genera Chrome no lo abren varios reproductores, y
+      // MP3 lo aceptan WhatsApp, Messenger, Instagram y cualquier equipo.
+      const candidatos = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm']
+      const mimeType = candidatos.find(m => MediaRecorder.isTypeSupported(m)) || ''
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       audioChunksRef.current = []
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-      const inicio = Date.now()
       recorder.onstop = async () => {
         recordingStreamRef.current?.getTracks().forEach(t => t.stop())
         recordingStreamRef.current = null
@@ -479,17 +473,19 @@ export default function InboxPage() {
           audioChunksRef.current = []
           return
         }
-        // Sin el parámetro codecs: es el Content-Type con el que se sube a
-        // Storage y Meta rechaza tipos que no estén en su lista exacta.
-        const blob = new Blob(audioChunksRef.current, { type: mimeType.split(';')[0] })
-        const preview = URL.createObjectURL(blob)
-        let duration = Math.round((Date.now() - inicio) / 1000)
+        const grabacion = new Blob(audioChunksRef.current, { type: recorder.mimeType })
+        let blob: Blob
+        let duration: number
         try {
-          const ctx = new AudioContext()
-          duration = Math.round((await ctx.decodeAudioData(await blob.arrayBuffer())).duration)
-          void ctx.close()
-        } catch { /* se queda la duración medida con el reloj */ }
-        setPendingAudio({ blob, duration: Math.max(1, duration), preview })
+          const { mp3, duracion } = await audioAMp3(await grabacion.arrayBuffer())
+          blob = mp3
+          duration = Math.round(duracion)
+        } catch (e) {
+          console.error(e)
+          toast.error('No se pudo procesar el audio. Intenta grabarlo de nuevo.')
+          return
+        }
+        setPendingAudio({ blob, duration: Math.max(1, duration), preview: URL.createObjectURL(blob) })
       }
       descartarGrabacionRef.current = false
       recorder.start()
@@ -544,11 +540,8 @@ export default function InboxPage() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (payload: SendPayload) => {
-      if (!webhookUrl) throw new Error('URL de Webhook no configurada en la Base de Datos');
-
-      // Multicanal: n8n identifica al destinatario por external_id y decide el
-      // canal (WhatsApp/Messenger/Instagram). Le mandamos también company_id y
-      // channel para que el ruteo sea determinista y no tenga que adivinar.
+      // /api/messages/send envía directo por la Graph API, guarda el mensaje solo
+      // si Meta lo acepta y devuelve el motivo real cuando lo rechaza.
       const recipientId = selectedContact!.external_id
       const canal = channelOf(selectedContact)
 
@@ -591,28 +584,18 @@ export default function InboxPage() {
         throw new Error('Tipo de mensaje no válido')
       }
 
-      const response = await fetch(webhookUrl, {
+      const response = await fetch('/api/messages/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!response.ok) {
-        // Surfacear el motivo REAL que devuelve n8n (ej. suscripción/trial) en
-        // vez de un genérico "Error de red". El flujo de admin responde
-        // { status:'error', message:'...', code:NNN } con el HTTP status real.
         let msg = ''
         try {
           const err = await response.json()
-          msg = err?.message || err?.error || ''
+          msg = err?.error || err?.message || ''
         } catch { /* respuesta sin cuerpo JSON */ }
-        if (!msg) {
-          msg = response.status === 402
-            ? 'Tu suscripción no está activa. Reactívala en Facturación para poder responder desde el buzón.'
-            : response.status === 404
-              ? 'No se encontró el contacto o la empresa para este chat.'
-              : `No se pudo enviar (error ${response.status}).`
-        }
-        throw new Error(msg)
+        throw new Error(msg || `No se pudo enviar (error ${response.status}).`)
       }
 
       return { optimisticContent, mediaUrl, messageType }
@@ -656,7 +639,7 @@ export default function InboxPage() {
   
   const handleSendMessage = () => {
     if (sendMessageMutation.isPending || !selectedContact) return;
-    // Sin el canal conectado n8n no puede enviar: se avisa antes de mandar nada
+    // Sin el canal conectado no se puede enviar: se avisa antes de mandar nada
     // (ni el mensaje optimista ni el apagado de la IA).
     const canal = channelOf(selectedContact)
     if (channelsLoaded && !connectedChannels.includes(canal)) {
@@ -682,7 +665,7 @@ export default function InboxPage() {
     if (pendingAudio) {
       // determinar extensión por mime type del blob
       const mime = pendingAudio.blob.type
-      const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
+      const ext = mime.includes('mpeg') ? 'mp3' : mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'
       sendMessageMutation.mutate({ type: 'audio', file: pendingAudio.blob, ext })
       return
     }
@@ -1156,11 +1139,21 @@ export default function InboxPage() {
               </div>
             </div>
 
-            {/* Aviso Flotante si la IA está apagada */}
+            {/* Aviso si la IA está apagada: en rojo solo si la pausó el bot (el
+                cliente pidió a una persona); si la pausó alguien del equipo, neutro. */}
             {!selectedContact.ai_active && (
-              <div className="bg-rose-500 text-white text-xs font-bold text-center py-1.5 shadow-md z-10 flex items-center justify-center gap-2">
-                <BellRing size={14} /> El bot está pausado. El cliente espera tu respuesta.
-              </div>
+              selectedContact.ai_paused_by === 'human' ? (
+                <div
+                  className="text-white text-xs font-bold text-center py-1.5 shadow-md z-10 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: 'var(--ia-theme)' }}
+                >
+                  <PauseCircle size={14} /> El bot está pausado.
+                </div>
+              ) : (
+                <div className="bg-rose-500 text-white text-xs font-bold text-center py-1.5 shadow-md z-10 flex items-center justify-center gap-2">
+                  <BellRing size={14} /> El bot está pausado. El cliente espera tu respuesta.
+                </div>
+              )
             )}
 
             {/* Mensajes */}

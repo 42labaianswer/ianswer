@@ -35,11 +35,8 @@ export async function codificarMp3(mono: Int16Array, sampleRate: number): Promis
   return new Blob(partes, { type: 'audio/mpeg' })
 }
 
-export async function audioUrlToMp3(url: string): Promise<Blob> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`No se pudo leer el audio (${res.status})`)
-  const datos = await res.arrayBuffer()
-
+/** Decodifica cualquier audio que entienda el navegador y lo convierte a MP3. */
+export async function audioAMp3(datos: ArrayBuffer): Promise<{ mp3: Blob; duracion: number }> {
   const ctx = new AudioContext({ sampleRate: MP3_SAMPLE_RATE })
   let audio: AudioBuffer
   try {
@@ -47,9 +44,15 @@ export async function audioUrlToMp3(url: string): Promise<Blob> {
   } finally {
     void ctx.close()
   }
-
   const canales = Array.from({ length: audio.numberOfChannels }, (_, i) => audio.getChannelData(i))
-  return codificarMp3(mezclarAMonoInt16(canales), audio.sampleRate)
+  const mp3 = await codificarMp3(mezclarAMonoInt16(canales), audio.sampleRate)
+  return { mp3, duracion: audio.length / audio.sampleRate }
+}
+
+export async function audioUrlToMp3(url: string): Promise<Blob> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`No se pudo leer el audio (${res.status})`)
+  return (await audioAMp3(await res.arrayBuffer())).mp3
 }
 
 /** Nombre del archivo descargado: audio-AAAAMMDD-HHMM.mp3 con la fecha del mensaje. */
