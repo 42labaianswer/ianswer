@@ -21,6 +21,10 @@ type Notification = {
   created_at: string
 }
 
+// Tipos de los que la BD guarda solo el aviso más reciente por contacto
+// (database/notificacion_mensaje_una_por_contacto.sql).
+const UNO_POR_CONTACTO = new Set(['new_message', 'human_request'])
+
 export default function NotificationsWidget() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -93,10 +97,16 @@ export default function NotificationsWidget() {
           </div>
         ), { duration: 4000 })
 
-        // Actualizamos Caché
-        queryClient.setQueryData(['notifications', companyId], (old: Notification[] = []) => [newNotif, ...old])
+        // Para estos tipos el trigger ya borró en la BD los avisos anteriores
+        // del mismo contacto; se quitan también de la lista en caché.
+        const unoPorContacto = UNO_POR_CONTACTO.has(newNotif.type) && !!newNotif.link
+        queryClient.setQueryData(['notifications', companyId], (old: Notification[] = []) => [
+          newNotif,
+          ...old.filter(n => !(unoPorContacto && n.type === newNotif.type && n.link === newNotif.link)),
+        ])
       })
-      // notify_new_message actualiza el aviso sin leer de un chat con el último mensaje.
+      // notify_new_message deja un solo aviso por chat: borra los demás y
+      // actualiza ese con el último mensaje. Recargar la lista refleja ambos.
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
