@@ -129,21 +129,21 @@ export default function ConnectWhatsAppButton({
 
   // ─── Procesar la respuesta del popup (async, fuera del callback de FB) ──
   async function procesarRespuesta(response: any) {
+    setErrorMsg(null)
     try {
-      if (response?.status !== 'connected' || !response?.authResponse) {
-        setWorking(false)
-        const reason = response?.status === 'not_authorized'
-          ? 'No autorizaste el acceso a WhatsApp Business'
-          : 'Conexión interrumpida'
-        setErrorMsg(reason)
-        onError?.(reason)
-        return
-      }
-
-      const code = response.authResponse.code
+      // Con response_type 'code' Meta puede devolver el código aunque `status`
+      // no venga como 'connected'; lo que importa es que llegue el código.
+      const code = response?.authResponse?.code
       if (!code) {
         setWorking(false)
-        setErrorMsg('No recibimos el código de autorización de Meta')
+        const signupRaw = sessionStorage.getItem('wa_embedded_signup_data')
+        const reason = response?.status === 'not_authorized'
+          ? 'No autorizaste el acceso a WhatsApp Business'
+          : signupRaw
+            ? 'Meta terminó el registro, pero la ventana se cerró antes de enviarnos la autorización. Vuelve a dar clic en conectar y elige el mismo portfolio y la misma cuenta de WhatsApp para terminar.'
+            : 'Conexión interrumpida: la ventana de Meta se cerró antes de terminar.'
+        setErrorMsg(reason)
+        onError?.(reason)
         return
       }
 
@@ -229,14 +229,16 @@ export default function ConnectWhatsAppButton({
 
     // Red de seguridad: si el popup se cierra sin devolver el callback (bloqueo
     // de ventanas, dominio no autorizado, o el usuario lo cierra con la X), el
-    // botón no puede quedarse girando indefinidamente.
+    // botón no puede quedarse girando indefinidamente. El registro completo
+    // (crear portfolio, verificar número, aprobar en el celular) puede tardar
+    // bastante, así que el margen es amplio.
     let settled = false
     const safety = setTimeout(() => {
       if (!settled) {
         setWorking(false)
         setErrorMsg('No se recibió respuesta de Meta. Revisa que el popup no esté bloqueado y que tu dominio esté autorizado en la app de Meta.')
       }
-    }, 120000)
+    }, 30 * 60 * 1000)
 
     // ⚠️ FB.login NO acepta un callback `async`: el SDK lo rechaza ("Expression
     // is of type asyncfunction, not function") y el popup nunca abre — el botón
