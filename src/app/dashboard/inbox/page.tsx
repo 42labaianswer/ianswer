@@ -23,7 +23,9 @@ import {
   type ChannelKey,
 } from '../../../components/ChannelBadge'
 import IAnswerLoader from '../../../components/IAnswerLoader'
-import { audioUrlToMp3, descargarBlob } from '../../../lib/audioToMp3'
+import { audioUrlToMp3, descargarBlob, nombreAudioMp3 } from '../../../lib/audioToMp3'
+
+type ActiveChat = { ids: Set<string>; channels: Record<string, ChannelKey>; lastAt: Record<string, string> }
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer' | string
 
@@ -299,7 +301,8 @@ export default function InboxPage() {
         // 1. Agregar la conversación a los "Chats Activos" y registrar su canal
         queryClient.setQueryData(
           ['activeChat', userCompanyId],
-          (old: { ids: Set<string>; channels: Record<string, ChannelKey>; lastAt: Record<string, string> } = { ids: new Set(), channels: {}, lastAt: {} }) => {
+          (prev: ActiveChat | undefined) => {
+            const old = prev ?? { ids: new Set<string>(), channels: {}, lastAt: {} }
             const ids = new Set(old.ids)
             ids.add(newMsg.patient_id)
             const channels = { ...old.channels, [newMsg.patient_id]: normalizeChannel(newMsg.channel) }
@@ -484,7 +487,7 @@ export default function InboxPage() {
         try {
           const ctx = new AudioContext()
           duration = Math.round((await ctx.decodeAudioData(await blob.arrayBuffer())).duration)
-          ctx.close()
+          void ctx.close()
         } catch { /* se queda la duración medida con el reloj */ }
         setPendingAudio({ blob, duration: Math.max(1, duration), preview })
       }
@@ -1539,11 +1542,8 @@ function DescargarAudioMp3({ url, fecha, claro }: { url: string; fecha?: string;
 
   const descargar = async () => {
     setConvirtiendo(true)
-    const d = fecha ? new Date(fecha) : new Date()
-    const p = (n: number) => String(n).padStart(2, '0')
-    const nombre = `audio-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.mp3`
     try {
-      descargarBlob(await audioUrlToMp3(url), nombre)
+      descargarBlob(await audioUrlToMp3(url), nombreAudioMp3(fecha))
     } catch (e) {
       console.error(e)
       toast.error('No se pudo descargar el audio. Intenta de nuevo.')
