@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  MP3_SAMPLE_RATE, audioUrlToMp3, codificarMp3, descargarBlob, mezclarAMonoInt16, nombreAudioMp3,
+  MP3_SAMPLE_RATE, audioAMp3, audioUrlToMp3, codificarMp3, descargarBlob, mezclarAMonoInt16, nombreAudioMp3,
 } from './audioToMp3'
 
 afterEach(() => {
@@ -56,13 +56,14 @@ describe('codificarMp3', () => {
   })
 })
 
-describe('audioUrlToMp3', () => {
+describe('audioAMp3 y audioUrlToMp3', () => {
   const stubAudioContext = (canales: Float32Array[]) => {
     const close = vi.fn().mockResolvedValue(undefined)
     class FakeAudioContext {
       constructor(public opts: { sampleRate: number }) {}
       decodeAudioData = vi.fn().mockResolvedValue({
         numberOfChannels: canales.length,
+        length: canales[0].length,
         sampleRate: MP3_SAMPLE_RATE,
         getChannelData: (i: number) => canales[i],
       })
@@ -71,6 +72,14 @@ describe('audioUrlToMp3', () => {
     vi.stubGlobal('AudioContext', FakeAudioContext)
     return { close }
   }
+
+  it('convierte una grabación a MP3 y devuelve su duración', async () => {
+    const { close } = stubAudioContext([tono(2)])
+    const { mp3, duracion } = await audioAMp3(new ArrayBuffer(8))
+    expect(mp3.type).toBe('audio/mpeg')
+    expect(duracion).toBe(2)
+    expect(close).toHaveBeenCalled()
+  })
 
   it('descarga, decodifica y devuelve un MP3', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }))
