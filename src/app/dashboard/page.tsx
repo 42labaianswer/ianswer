@@ -106,6 +106,14 @@ export default function DashboardPage() {
           value={n(data.totalClients)}
           icon={<Users size={18} />}
           href="/dashboard/crm"
+          shortcuts={{
+            empty: `Aún no hay ${clients.toLowerCase()}.`,
+            items: data.recentClients.map(c => ({
+              key: c.id,
+              label: c.name?.trim() || c.phone || 'Sin nombre',
+              href: `/dashboard/crm/clientes?contactId=${c.id}`,
+            })),
+          }}
         />
         {modules.menu ? (
           <StatCard
@@ -139,6 +147,15 @@ export default function DashboardPage() {
             value={n(data.teamCount)}
             icon={<UserCog size={18} />}
             href="/dashboard/team"
+            shortcuts={{
+              empty: 'Aún no hay nadie en tu equipo.',
+              items: data.recentTeam.map(m => ({
+                key: m.id,
+                label: m.full_name?.trim() || 'Sin nombre',
+                href: `/dashboard/team?memberId=${m.id}`,
+                avatarUrl: m.avatar_url,
+              })),
+            }}
           />
         ) : (
           <StatCard
@@ -366,6 +383,13 @@ function Upcoming({ appointments, appointmentLabel, appointmentsLabel, calendarC
   }
   const [first, ...rest] = next
   const hhmm = (d: Date) => d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })
+  const now = new Date()
+  const today = ymd(now)
+  const tomorrow = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+  const dayLabel = (d: Date) =>
+    ymd(d) === today ? 'Hoy'
+      : ymd(d) === tomorrow ? 'Mañana'
+        : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }).replace('.', '')
   const end = (a: typeof first) => new Date(a.start.getTime() + (a.duration_minutes || 30) * 60_000)
   return (
     <div className="space-y-3">
@@ -382,23 +406,23 @@ function Upcoming({ appointments, appointmentLabel, appointmentsLabel, calendarC
           </div>
         </div>
       </div>
-      <ul className="divide-y divide-slate-200">
-        {rest.map(a => (
-          <li key={a.id} className="flex items-center gap-3 py-3">
-            <div className="w-14 shrink-0 text-slate-700">
-              <p className="text-sm font-semibold tabular-nums">{a.start.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</p>
-              <p className="text-[10px] text-slate-400">
-                {ymd(a.start) === ymd(new Date()) ? 'Hoy' : a.start.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' })}
-              </p>
-            </div>
-            <Avatar name={a.patient_name} size={32} />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">{a.patient_name || 'Sin nombre'}</p>
-              <p className="text-xs text-slate-500 truncate">{a.notes || appointmentLabel}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {rest.length > 0 && (
+        <ul className="divide-y divide-slate-200">
+          {rest.map(a => (
+            <li key={a.id} className="flex items-center gap-3 py-3">
+              <Avatar name={a.patient_name} size={36} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 truncate">{a.patient_name || 'Sin nombre'}</p>
+                <p className="text-xs text-slate-500 truncate">{a.notes || appointmentLabel}</p>
+              </div>
+              <div className="shrink-0 text-right whitespace-nowrap">
+                <p className="text-xs font-semibold text-slate-700 tabular-nums">{hhmm(a.start)}</p>
+                <p className="text-[11px] text-slate-400 capitalize">{dayLabel(a.start)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
