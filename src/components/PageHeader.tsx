@@ -2,6 +2,9 @@
 
 'use client'
 
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+
 // ============================================================================
 // src/components/PageHeader.tsx
 // ----------------------------------------------------------------------------
@@ -25,13 +28,23 @@ interface PageHeaderProps {
   title: React.ReactNode
   description?: React.ReactNode
   actions?: React.ReactNode
+  /** Enlace "volver" pequeño encima del título. */
+  back?: { href: string; label: string }
 }
 
-export default function PageHeader({ eyebrow, title, description, actions }: PageHeaderProps) {
+export default function PageHeader({ eyebrow, title, description, actions, back }: PageHeaderProps) {
   return (
     <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-6 mb-4 md:mb-6 px-4 md:px-8 py-4 md:py-5 bg-white border-b border-slate-200">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1 sm:min-w-[14rem]">
+          {back && (
+            <Link
+              href={back.href}
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1.5 mb-1.5"
+            >
+              <ArrowLeft size={14} /> {back.label}
+            </Link>
+          )}
           {eyebrow && (
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
               {eyebrow}

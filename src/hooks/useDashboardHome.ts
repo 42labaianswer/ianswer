@@ -27,6 +27,9 @@ export type DashboardHomeData = {
   pendingChats: number
   teamCount: number
   activeOrders: number
+  /** Últimos 3 clientes y miembros del equipo dados de alta, como atajos. */
+  recentClients: { id: string; name: string | null; phone: string | null }[]
+  recentTeam: { id: string; full_name: string | null; avatar_url: string | null }[]
   conversations: (Conversation & { name: string | null })[]
   notifications: DashboardNotification[]
   unreadNotifications: number
@@ -56,6 +59,7 @@ export function useDashboardHome() {
       const apptFields = 'id, appointment_date, appointment_time, status, patient_name, notes, duration_minutes'
       const [
         companyRes, contactsRes, pendingRes, teamRes, ordersRes, msgsRes, notifRes, unreadRes, apptCompanyRes, apptAgendaRes,
+        recentClientsRes, recentTeamRes,
       ] = await Promise.all([
         supabase.from('companies').select('doctor_name, name, business_phone_id').eq('id', companyId).single(),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
@@ -74,6 +78,10 @@ export function useDashboardHome() {
           ? supabase.from('appointments').select(apptFields)
             .in('agenda_id', agendaIds).gte('appointment_date', from).lte('appointment_date', to)
           : Promise.resolve({ data: [] as AppointmentRow[] }),
+        supabase.from('contacts').select('id, name, phone')
+          .eq('company_id', companyId).order('created_at', { ascending: false }).limit(3),
+        supabase.from('team').select('id, full_name, avatar_url')
+          .eq('company_id', companyId).order('created_at', { ascending: false }).limit(3),
       ])
 
       const conversations = recentConversations(msgsRes.data || [], 3)
@@ -102,6 +110,8 @@ export function useDashboardHome() {
         pendingChats: pendingRes.count || 0,
         teamCount: teamRes.count || 0,
         activeOrders: ordersRes.count || 0,
+        recentClients: recentClientsRes.data || [],
+        recentTeam: recentTeamRes.data || [],
         conversations: conversations.map(c => ({ ...c, name: nameById.get(c.patientId) ?? null })),
         notifications: (notifRes.data || []) as DashboardNotification[],
         unreadNotifications: unreadRes.count || 0,

@@ -7,7 +7,8 @@
 // Directorio CRM de miembros del equipo, adaptable por plantilla.
 // ============================================================================
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useWorkspace } from '../../../components/WorkspaceContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +31,9 @@ export default function TeamPage() {
   const templateId = primaryTemplate?.id || 'generic'
   const tplConfig = getTemplateConfig(templateId)
   const { data: entitlements } = useEntitlements()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<TeamMember | null>(null)
@@ -145,6 +149,19 @@ export default function TeamPage() {
 
   const openNew = () => { setEditing(null); setDrawerOpen(true) }
   const openEdit = (m: TeamMember) => { setEditing(m); setDrawerOpen(true) }
+
+  // ?memberId=<team.id> abre esa ficha (atajos del inicio); luego se limpia la URL.
+  const memberIdParam = searchParams.get('memberId')
+  const [openedFromUrl, setOpenedFromUrl] = useState<string | null>(null)
+  if (memberIdParam && members.length > 0 && openedFromUrl !== memberIdParam) {
+    setOpenedFromUrl(memberIdParam)
+    const target = members.find(m => m.id === memberIdParam)
+    if (target) openEdit(target)
+  }
+  useEffect(() => {
+    if (openedFromUrl) router.replace(pathname, { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedFromUrl])
 
   if (isLoadingWorkspace || isLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><IAnswerLoader size={40} /></div>

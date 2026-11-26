@@ -6,12 +6,17 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronRight } from 'lucide-react'
 
 /** Fondo suave del color de la marca. */
 export const accentTint = (percent = 10) => `color-mix(in srgb, var(--ia-accent) ${percent}%, transparent)`
 
-export function StatCard({ title, subtitle, value, suffix, icon, href, footer }: {
+export type StatShortcut = { key: string; label: string; href: string; avatarUrl?: string | null }
+
+const initialsOf = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase() || '').join('') || '?'
+
+export function StatCard({ title, subtitle, value, suffix, icon, href, footer, shortcuts }: {
   title: string
   subtitle?: string
   value: ReactNode
@@ -19,6 +24,8 @@ export function StatCard({ title, subtitle, value, suffix, icon, href, footer }:
   icon: ReactNode
   href?: string
   footer?: ReactNode
+  /** Lista corta de enlaces debajo del número (p. ej. los últimos 3 clientes). */
+  shortcuts?: { items: StatShortcut[]; empty: string }
 }) {
   const body = (
     <>
@@ -40,6 +47,42 @@ export function StatCard({ title, subtitle, value, suffix, icon, href, footer }:
     </>
   )
   const cls = 'bg-white border border-slate-200 rounded-2xl shadow-sm p-5 flex items-start justify-between gap-3'
+  if (shortcuts) {
+    // Los atajos son enlaces propios, así que la tarjeta no puede ser un <a>.
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col hover:border-(--ia-accent)/40 transition-all">
+        {href
+          ? <Link href={href} className="p-5 pb-3 flex items-start justify-between gap-3 group">{body}</Link>
+          : <div className="p-5 pb-3 flex items-start justify-between gap-3">{body}</div>}
+        <div className="px-3 pb-3 mt-auto">
+          {shortcuts.items.length === 0 ? (
+            <p className="px-2 py-1.5 text-xs text-slate-400">{shortcuts.empty}</p>
+          ) : (
+            <ul className="border-t border-slate-100 pt-2 space-y-0.5">
+              {shortcuts.items.map(s => (
+                <li key={s.key}>
+                  <Link href={s.href} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 group/s">
+                    {s.avatarUrl
+                      ? <img src={s.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
+                      : (
+                        <span
+                          className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-(--ia-accent)"
+                          style={{ backgroundColor: accentTint(14) }}
+                        >
+                          {initialsOf(s.label)}
+                        </span>
+                      )}
+                    <span className="flex-1 min-w-0 truncate text-sm text-slate-700 group-hover/s:text-slate-900">{s.label}</span>
+                    <ChevronRight size={14} className="text-slate-300 group-hover/s:text-slate-500 shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    )
+  }
   return href
     ? <Link href={href} className={`${cls} hover:border-(--ia-accent)/40 hover:shadow-md transition-all`}>{body}</Link>
     : <div className={cls}>{body}</div>
