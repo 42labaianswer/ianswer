@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { debeAvisar, vistaPreviaMensaje } from '../lib/mensajeEntrante'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Bell, Check, MessageSquare, UserCog, CheckCircle2, Trash2, Gauge } from 'lucide-react'
@@ -78,9 +79,9 @@ export default function NotificationsWidget() {
         filter: `company_id=eq.${companyId}`
       }, (payload) => {
         const newNotif = payload.new as Notification
-        
-        // Lanzamos un Toast bonito
-        toast.custom((t) => (
+
+        // Los mensajes nuevos ya tienen su propio aviso (ver abajo).
+        if (newNotif.type !== 'new_message') toast.custom(() => (
           <div className="flex items-start gap-3 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 animate-in slide-in-from-top-2">
             <div className={`p-2 rounded-full mt-0.5 ${notifTone(newNotif.type)}`}>
               <NotifIcon type={newNotif.type} size={16} />
@@ -95,10 +96,64 @@ export default function NotificationsWidget() {
         // Actualizamos Caché
         queryClient.setQueryData(['notifications', companyId], (old: Notification[] = []) => [newNotif, ...old])
       })
+      // notify_new_message actualiza el aviso sin leer de un chat con el último mensaje.
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `company_id=eq.${companyId}`
+      }, () => queryClient.invalidateQueries({ queryKey: ['notifications', companyId] }))
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [companyId, queryClient])
+    // Aviso de cada mensaje que escribe un cliente, como WhatsApp Web: toast con
+    // quién y qué dijo (abre el chat) y, con la pestaña en segundo plano, la
+    // notificación del sistema.
+    const mensajes = supabase
+      .channel(`mensajes_entrantes_${companyId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `company_id=eq.${companyId}`
+      }, async (payload) => {
+        const msg = payload.new as { patient_id: string; sender: string; content: string | null; message_type: string | null; media_caption: string | null }
+        if (!debeAvisar(msg)) return
+        const { data: contacto } = await supabase
+          .from('contacts').select('id, name')
+          .eq('company_id', companyId).eq('external_id', msg.patient_id)
+          .limit(1).maybeSingle()
+        const nombre = contacto?.name?.trim() || msg.patient_id
+        const texto = vistaPreviaMensaje(msg)
+        const destino = contacto?.id ? `/dashboard/inbox?contactId=${contacto.id}` : '/dashboard/inbox'
+
+        toast.custom((t) => (
+          <button
+            type="button"
+            onClick={() => { toast.dismiss(t.id); router.push(destino) }}
+            className="flex items-start gap-3 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 animate-in slide-in-from-top-2 text-left max-w-sm w-full hover:bg-slate-50"
+          >
+            <div className="p-2 rounded-full mt-0.5 bg-emerald-100 text-emerald-600 shrink-0">
+              <MessageSquare size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900 truncate">{nombre}</p>
+              <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{texto}</p>
+            </div>
+          </button>
+        ), { duration: 6000, id: `msg-${msg.patient_id}` })
+
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          const aviso = new Notification(nombre, { body: texto, icon: '/icon.png', tag: `msg-${msg.patient_id}` })
+          aviso.onclick = () => { window.focus(); router.push(destino); aviso.close() }
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      supabase.removeChannel(mensajes)
+    }
+  }, [companyId, queryClient, router])
 
   // 4. Mutaciones: Marcar como leída y Marcar todas
   const markAsReadMutation = useMutation({
@@ -137,7 +192,11 @@ export default function NotificationsWidget() {
   return (
     <div className="relative" ref={popoverRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          // El navegador solo deja pedir permiso tras un clic del usuario.
+          if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission()
+          setIsOpen(!isOpen)
+        }}
         className="text-slate-400 hover:text-blue-600 transition-colors relative p-2 rounded-full hover:bg-slate-100"
         aria-label="Notificaciones"
       >
