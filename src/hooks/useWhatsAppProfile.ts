@@ -48,7 +48,7 @@ export function useSaveWhatsAppProfile() {
         body: JSON.stringify(profile),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Error al guardar')
+      if (!res.ok) throw new WhatsAppProfileError(data?.error || 'Error al guardar', data?.code)
       return data
     },
     onSuccess: () => {
@@ -75,7 +75,7 @@ export function useUploadWhatsAppPhoto() {
         body: JSON.stringify({ image_base64: base64, mime_type: file.type }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Error al subir la foto')
+      if (!res.ok) throw new WhatsAppProfileError(data?.error || 'Error al subir la foto', data?.code)
       return data
     },
     onSuccess: () => {

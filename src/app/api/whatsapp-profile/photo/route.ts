@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { whatsappProfileError } from '../../../../lib/whatsappProfileErrors'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
     const startData = await startRes.json()
     if (!startRes.ok || !startData.id) {
       return NextResponse.json(
-        { error: startData?.error?.message || 'No se pudo iniciar la subida' },
+        whatsappProfileError(startData, 'No se pudo iniciar la subida', 'photo-upload-start'),
         { status: 400 }
       )
     }
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
     const uploadData = await uploadRes.json()
     if (!uploadRes.ok || !uploadData.h) {
       return NextResponse.json(
-        { error: uploadData?.error?.message || 'No se pudo subir la imagen' },
+        whatsappProfileError(uploadData, 'No se pudo subir la imagen', 'photo-upload-bytes'),
         { status: 400 }
       )
     }
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
     const assignData = await assignRes.json()
     if (!assignRes.ok) {
       return NextResponse.json(
-        { error: assignData?.error?.message || 'No se pudo asignar la foto' },
+        whatsappProfileError(assignData, 'No se pudo asignar la foto', 'photo-assign'),
         { status: 400 }
       )
     }

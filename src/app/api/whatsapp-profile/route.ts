@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { normalizeVertical, WHATSAPP_VERTICALS } from '../../../lib/whatsappVerticals'
+import { whatsappProfileError } from '../../../lib/whatsappProfileErrors'
 
 export const runtime = 'nodejs'
 
@@ -94,7 +95,7 @@ export async function GET() {
     const data = await res.json()
     if (!res.ok) {
       return NextResponse.json(
-        { error: data?.error?.message || 'Error al leer el perfil' },
+        whatsappProfileError(data, 'Error al leer el perfil', 'read'),
         { status: res.status }
       )
     }
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
     const data = await res.json()
     if (!res.ok) {
       return NextResponse.json(
-        { error: data?.error?.message || 'Error al actualizar el perfil' },
+        whatsappProfileError(data, 'Error al actualizar el perfil', 'update'),
         { status: res.status }
       )
     }
