@@ -30,7 +30,7 @@ export type DashboardHomeData = {
   /** Últimos 3 clientes y miembros del equipo dados de alta, como atajos. */
   recentClients: { id: string; name: string | null; phone: string | null }[]
   recentTeam: { id: string; full_name: string | null; avatar_url: string | null }[]
-  conversations: (Conversation & { name: string | null })[]
+  conversations: (Conversation & { name: string | null; contactId: string | null })[]
   notifications: DashboardNotification[]
   unreadNotifications: number
   /** Citas de la semana en curso y de los próximos 14 días. */
@@ -87,9 +87,9 @@ export function useDashboardHome() {
       const conversations = recentConversations(msgsRes.data || [], 3)
       const ids = conversations.map(c => c.patientId)
       const { data: contacts } = ids.length
-        ? await supabase.from('contacts').select('external_id, name').eq('company_id', companyId).in('external_id', ids)
-        : { data: [] as { external_id: string, name: string | null }[] }
-      const nameById = new Map((contacts || []).map(c => [c.external_id, c.name]))
+        ? await supabase.from('contacts').select('id, external_id, name').eq('company_id', companyId).in('external_id', ids)
+        : { data: [] as { id: string, external_id: string, name: string | null }[] }
+      const contactByExternalId = new Map((contacts || []).map(c => [c.external_id, c]))
 
       // Las citas pueden colgar de la empresa o de una agenda; se juntan sin repetir.
       const byId = new Map<string, AppointmentRow>()
@@ -112,7 +112,10 @@ export function useDashboardHome() {
         activeOrders: ordersRes.count || 0,
         recentClients: recentClientsRes.data || [],
         recentTeam: recentTeamRes.data || [],
-        conversations: conversations.map(c => ({ ...c, name: nameById.get(c.patientId) ?? null })),
+        conversations: conversations.map(c => {
+          const contacto = contactByExternalId.get(c.patientId)
+          return { ...c, name: contacto?.name ?? null, contactId: contacto?.id ?? null }
+        }),
         notifications: (notifRes.data || []) as DashboardNotification[],
         unreadNotifications: unreadRes.count || 0,
         appointments: [...byId.values()],

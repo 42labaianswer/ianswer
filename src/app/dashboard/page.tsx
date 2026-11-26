@@ -251,7 +251,7 @@ function MessagesList({ data }: { data: DashboardHomeData }) {
         const name = c.name || c.patientId
         return (
           <li key={c.patientId}>
-            <Link href="/dashboard/inbox" className="flex items-start gap-3 py-3.5 group">
+            <Link href={c.contactId ? `/dashboard/inbox?contactId=${c.contactId}` : '/dashboard/inbox'} className="flex items-start gap-3 py-3.5 group">
               <Avatar name={name} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">

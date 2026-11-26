@@ -24,6 +24,8 @@ import {
 } from '../../../components/ChannelBadge'
 import IAnswerLoader from '../../../components/IAnswerLoader'
 import { audioAMp3, audioUrlToMp3, descargarBlob, nombreAudioMp3 } from '../../../lib/audioToMp3'
+import { setChatAbierto } from '../../../lib/mensajeEntrante'
+import { estadoVentana, ultimoMensajeDelCliente } from '../../../lib/ventana24h'
 
 type ActiveChat = { ids: Set<string>; channels: Record<string, ChannelKey>; lastAt: Record<string, string> }
 
@@ -39,6 +41,7 @@ type Contact = {
   ai_active: boolean
   /** Quién pausó el bot: 'human' desde iAnswer o 'bot' (pidió un asesor / límite del plan). */
   ai_paused_by?: 'human' | 'bot' | null
+  last_inbound_at?: string | null
   stage_updated_by?: 'system' | 'ai' | 'human'
   // Multicanal: el destinatario real (teléfono WA / PSID de Messenger / IGSID)
   // y el canal + avatar. n8n crea/actualiza estos campos.
@@ -244,7 +247,7 @@ export default function InboxPage() {
   })
 
   // 5. TANSTACK QUERY: Obtener Mensajes del chat seleccionado (por external_id)
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isSuccess: messagesLoaded } = useQuery({
     queryKey: ['messagesData', selectedContact?.external_id],
     enabled: !!selectedContact?.external_id,
     queryFn: async () => {
@@ -256,6 +259,13 @@ export default function InboxPage() {
       return (data as Message[]) || []
     }
   })
+
+  // El chat abierto no genera aviso de mensaje nuevo (ya se está viendo).
+  const chatAbiertoId = selectedContact?.external_id ?? null
+  useEffect(() => {
+    setChatAbierto(chatAbiertoId)
+    return () => setChatAbierto(null)
+  }, [chatAbiertoId])
 
   // 6. SUSCRIPCIONES REALTIME (Optimizadas para Multi-tenant)
   useEffect(() => {
@@ -637,8 +647,16 @@ export default function InboxPage() {
   const handleLeadStatusChange = (newStatus: LifecycleStage) => updateStageMutation.mutate(newStatus)
   const handleToggleAI = () => toggleAIMutation.mutate(!selectedContact!.ai_active)
   
+  // Ventana de 24 h de Meta: fuera de ella el mensaje se ve enviado pero no llega.
+  const ventana = estadoVentana(ultimoMensajeDelCliente(messages, selectedContact?.last_inbound_at))
+  const ventanaCerrada = !!selectedContact && messagesLoaded && !ventana.abierta
+
   const handleSendMessage = () => {
     if (sendMessageMutation.isPending || !selectedContact) return;
+    if (ventanaCerrada) {
+      toast.error('Pasaron más de 24 h desde el último mensaje del cliente. No le llegaría: usa una plantilla en Campañas.', { id: 'ventana-24h' })
+      return
+    }
     // Sin el canal conectado no se puede enviar: se avisa antes de mandar nada
     // (ni el mensaje optimista ni el apagado de la IA).
     const canal = channelOf(selectedContact)
@@ -1295,6 +1313,19 @@ export default function InboxPage() {
                 onChange={handleAttachImage}
                 className="hidden"
               />
+
+              {ventanaCerrada && (
+                <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                  <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                  <p>
+                    <strong>Este cliente no ha escrito en las últimas 24 h.</strong>{' '}
+                    {CHANNELS[channelOf(selectedContact)].label} no entrega mensajes normales fuera de esa ventana: el
+                    mensaje se vería enviado pero no le llegaría. Para retomar la conversación usa una{' '}
+                    <Link href="/dashboard/campaigns" className="font-bold underline hover:no-underline">plantilla en Campañas</Link>,
+                    o espera a que te vuelva a escribir.
+                  </p>
+                </div>
+              )}
 
               {/* === PREVIEW DE IMAGEN PENDIENTE === */}
               {pendingImage && (
