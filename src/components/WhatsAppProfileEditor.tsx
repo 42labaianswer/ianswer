@@ -17,6 +17,8 @@ import {
   AlertCircle, Check, RefreshCw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
+import { META_PERMISSIONS_CODE, META_PERMISSIONS_HELP_SLUG } from '../lib/whatsappProfileErrors'
 import {
   useWhatsAppProfile,
   useSaveWhatsAppProfile,
@@ -31,6 +33,26 @@ import IAnswerLoader from './IAnswerLoader'
 // La lista de categorías vive en src/lib/whatsappVerticals.ts,
 // compartida con la ruta de API que valida antes de llamar a Meta.
 const ABOUT_MAX = 139
+
+function showSaveError(err: unknown, fallback: string) {
+  const message = err instanceof Error ? err.message : fallback
+  if (err instanceof WhatsAppProfileError && err.code === META_PERMISSIONS_CODE) {
+    toast.error(
+      <span className="text-sm">
+        {message}{' '}
+        <Link
+          href={`/dashboard/help?article=${META_PERMISSIONS_HELP_SLUG}`}
+          className="font-bold underline"
+        >
+          Ver cómo arreglarlo
+        </Link>
+      </span>,
+      { duration: 8000 }
+    )
+    return
+  }
+  toast.error(message)
+}
 
 export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { accentColor?: string }) {
   const { data: profile, isLoading, error, refetch, isFetching } = useWhatsAppProfile()
@@ -59,7 +81,7 @@ export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { acc
       await photoMut.mutateAsync(file)
       toast.success('Foto de perfil actualizada')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al subir la foto')
+      showSaveError(err, 'Error al subir la foto')
     }
   }
 
@@ -77,7 +99,7 @@ export default function WhatsAppProfileEditor({ accentColor = '#25D366' }: { acc
       })
       toast.success('Perfil de WhatsApp actualizado')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al guardar')
+      showSaveError(err, 'Error al guardar')
     }
   }
 

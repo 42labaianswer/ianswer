@@ -18,6 +18,7 @@ type HelpArticle = {
   category: string
   category_icon: string
   media_url: string | null
+  slug: string | null
 }
 
 const ICON_MAP: Record<string, any> = {
@@ -40,6 +41,7 @@ export default function HelpCenterPage() {
 
   // Auto-abrir chat al cargar
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('article')) return
     const timer = setTimeout(() => setIsChatOpen(true), 1500)
     return () => clearTimeout(timer)
   }, [])
@@ -52,6 +54,16 @@ export default function HelpCenterPage() {
       return (data as HelpArticle[]) || []
     }
   })
+
+  // `?article=<slug>` abre ese artículo directo (los toasts de error enlazan aquí).
+  // Se lee de window.location para no exigir un Suspense con useSearchParams.
+  useEffect(() => {
+    if (articles.length === 0) return
+    const slug = new URLSearchParams(window.location.search).get('article')
+    if (!slug) return
+    const match = articles.find(a => a.slug === slug)
+    if (match) setSelectedArticle(match)
+  }, [articles])
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
