@@ -28,7 +28,7 @@ type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer' | string
 
 type Contact = {
   id: string
-  name: string
+  name: string | null
   phone: string
   lifecycle_stage: LifecycleStage
   chat_status: 'open' | 'closed'
@@ -43,6 +43,13 @@ type Contact = {
   // Conversación con mensajes pero sin fila en `contacts` (ver "huerfanos")
   _sinContacto?: boolean
 }
+
+// n8n puede crear contactos (sobre todo de Facebook/Instagram) sin nombre.
+const contactName = (c: Pick<Contact, 'name' | 'phone' | 'external_id'>) =>
+  c.name?.trim() || c.phone || c.external_id || 'Sin nombre'
+
+const contactInitial = (c: Pick<Contact, 'name' | 'phone' | 'external_id'>) =>
+  contactName(c).charAt(0).toUpperCase()
 
 type Message = {
   id: string
@@ -267,7 +274,7 @@ export default function InboxPage() {
           if (oldC && oldC.ai_active === true && newC.ai_active === false) {
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('¡Atención Requerida!', {
-                body: `${newC.name} necesita hablar con un humano.`,
+                body: `${contactName(newC)} necesita hablar con un humano.`,
                 icon: '/icon.png' 
               });
             }
@@ -745,7 +752,7 @@ export default function InboxPage() {
 
   // Filtrado para el Modal de Nuevo Chat
   const modalSearchResults = allContacts.filter(c => 
-    c.name?.toLowerCase().includes(newChatSearch.toLowerCase()) || 
+    contactName(c).toLowerCase().includes(newChatSearch.toLowerCase()) || 
     c.phone?.includes(newChatSearch)
   )
 
@@ -957,13 +964,13 @@ export default function InboxPage() {
                   <div className="relative">
                     {p.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.avatar_url} alt={p.name} className="h-10 w-10 rounded-full object-cover shadow-sm border border-slate-100" />
+                      <img src={p.avatar_url} alt={contactName(p)} className="h-10 w-10 rounded-full object-cover shadow-sm border border-slate-100" />
                     ) : (
                       <div
                         className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm border border-slate-100 ${!isSelected ? 'bg-slate-100 text-slate-600' : 'text-white'}`}
                         style={isSelected ? { backgroundColor: vertical?.accent_color } : {}}
                       >
-                        {p.name.charAt(0)}
+                        {contactInitial(p)}
                       </div>
                     )}
                     {/* Glyph del canal (WhatsApp/Facebook/Instagram) */}
@@ -982,7 +989,7 @@ export default function InboxPage() {
                         className={`text-sm truncate font-semibold`}
                         style={isSelected ? { color: vertical?.accent_color, fontWeight: 'bold' } : { color: '#1e293b' }}
                       >
-                        {p.name}
+                        {contactName(p)}
                       </p>
                       {!p.ai_active && (
                         <BellRing size={12} className="text-rose-500" />
@@ -1021,13 +1028,13 @@ export default function InboxPage() {
                 <div className="relative">
                   {selectedContact.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedContact.avatar_url} alt={selectedContact.name} className="h-10 w-10 rounded-full object-cover shadow-md border border-slate-100" />
+                    <img src={selectedContact.avatar_url} alt={contactName(selectedContact)} className="h-10 w-10 rounded-full object-cover shadow-md border border-slate-100" />
                   ) : (
                     <div
                       className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold shadow-md"
                       style={{ backgroundColor: vertical?.accent_color || '#4f46e5' }}
                     >
-                      {selectedContact.name.charAt(0)}
+                      {contactInitial(selectedContact)}
                     </div>
                   )}
                   <span className="absolute -bottom-1 -right-1">
@@ -1035,7 +1042,7 @@ export default function InboxPage() {
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-slate-900 leading-tight truncate">{selectedContact.name}</p>
+                  <p className="font-bold text-slate-900 leading-tight truncate">{contactName(selectedContact)}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <ChannelBadge channel={channelOf(selectedContact)} />
                     <span className="text-xs font-medium text-slate-500 truncate">
@@ -1156,7 +1163,7 @@ export default function InboxPage() {
                     <div key={msg.id} className={`flex flex-col ${isPatient ? 'items-start' : 'items-end'}`}>
                       <div className="flex items-center gap-2 mb-1 px-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          {(msg.sender === 'asistente' || msg.sender === 'ai') ? 'Bot IA' : isPatient ? selectedContact.name : 'Admin'}
+                          {(msg.sender === 'asistente' || msg.sender === 'ai') ? 'Bot IA' : isPatient ? contactName(selectedContact) : 'Admin'}
                         </span>
                         {msgType === 'audio' && (
                           <span className="text-[9px] font-black text-purple-500 uppercase tracking-wider flex items-center gap-0.5">
@@ -1477,10 +1484,10 @@ export default function InboxPage() {
                     <div className="relative shrink-0">
                       {contact.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={contact.avatar_url} alt={contact.name} className="h-10 w-10 rounded-full object-cover" />
+                        <img src={contact.avatar_url} alt={contactName(contact)} className="h-10 w-10 rounded-full object-cover" />
                       ) : (
                         <div className="h-10 w-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
-                          {contact.name.charAt(0)}
+                          {contactInitial(contact)}
                         </div>
                       )}
                       <span className="absolute -bottom-1 -right-1">
@@ -1488,7 +1495,7 @@ export default function InboxPage() {
                       </span>
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="font-bold text-slate-900 truncate">{contact.name}</p>
+                      <p className="font-bold text-slate-900 truncate">{contactName(contact)}</p>
                       <p className="text-xs text-slate-500 truncate">
                         {channelOf(contact) === 'whatsapp' ? (contact.phone || 'WhatsApp') : CHANNELS[channelOf(contact)].label}
                       </p>
