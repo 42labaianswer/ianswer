@@ -16,11 +16,10 @@
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import PageHeader from '../../../../components/PageHeader'
 import ChannelDiagnostics, { type CanalDiagnostico, type CanalKey } from '../../../../components/ChannelDiagnostics'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Loader2, RefreshCw, MessageSquare } from 'lucide-react'
+import { Loader2, RefreshCw, MessageSquare } from 'lucide-react'
 import IAnswerLoader from '../../../../components/IAnswerLoader'
 
 const CANALES: Array<{ canal: CanalKey; nombre: string }> = [
@@ -30,7 +29,6 @@ const CANALES: Array<{ canal: CanalKey; nombre: string }> = [
 ]
 
 export default function DiagnosticoCanalesPage() {
-  const router = useRouter()
   const [canales, setCanales] = useState<CanalDiagnostico[]>([])
   const [cargando, setCargando] = useState(true)
   const [revisando, setRevisando] = useState(false)
@@ -62,26 +60,24 @@ export default function DiagnosticoCanalesPage() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 max-w-6xl mx-auto">
-      <button onClick={() => router.push('/dashboard/connectivity')} className="text-sm font-bold text-slate-500 hover:text-slate-900 mb-4 flex items-center gap-2">
-        <ArrowLeft size={16} /> Conectividad
-      </button>
+    <div className="animate-in fade-in duration-500 pb-12">
+      <PageHeader
+        back={{ href: '/dashboard/connectivity', label: 'Conectividad' }}
+        title="Diagnóstico de canales"
+        description="Revisa si tus canales están realmente funcionando, antes de que un cliente se quede sin respuesta."
+        actions={
+          <button
+            onClick={() => cargar()}
+            disabled={revisando}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white font-bold text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 shrink-0"
+          >
+            {revisando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            Revisar de nuevo
+          </button>
+        }
+      />
 
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <PageHeader
-          title="Diagnóstico de canales"
-          description="Revisa si tus canales están realmente funcionando, antes de que un cliente se quede sin respuesta."
-        />
-        <button
-          onClick={() => cargar()}
-          disabled={revisando}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white font-bold text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-50 shrink-0"
-        >
-          {revisando ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-          Revisar de nuevo
-        </button>
-      </div>
-
+      <div className="max-w-6xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-2">
         {CANALES.map(({ canal, nombre }) => (
           <ChannelDiagnostics
@@ -108,6 +104,7 @@ export default function DiagnosticoCanalesPage() {
             <p><strong>Prueba en vivo:</strong> la única que verifica la cadena completa, desde que el cliente escribe hasta que el asistente responde.</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

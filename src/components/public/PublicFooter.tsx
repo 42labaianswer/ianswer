@@ -48,7 +48,8 @@ const COLUMNS = [
     links: [
       { label: 'Privacidad',       href: '/legal/privacidad' },
       { label: 'Términos',         href: '/legal/terminos' },
-      { label: 'Cookies',          href: '/legal/cookies' }
+      { label: 'Cookies',          href: '/legal/cookies' },
+      { label: 'Licencias',        href: '/legal/licencias' }
     ]
   }
 ]

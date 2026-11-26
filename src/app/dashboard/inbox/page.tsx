@@ -15,7 +15,7 @@ import {
   Sparkles, Flame, CreditCard, Heart, CheckCircle2,
   Clock, ChevronDown, Bot, UserCog, BellRing, X,
   Mic, Image as ImageIcon, Play, Maximize2,
-  Paperclip, Square, Trash2, UserPlus, ChevronLeft, AlertTriangle
+  Paperclip, Square, Trash2, UserPlus, ChevronLeft, AlertTriangle, Download, Loader2
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -23,6 +23,9 @@ import {
   type ChannelKey,
 } from '../../../components/ChannelBadge'
 import IAnswerLoader from '../../../components/IAnswerLoader'
+import { audioUrlToMp3, descargarBlob, nombreAudioMp3 } from '../../../lib/audioToMp3'
+
+type ActiveChat = { ids: Set<string>; channels: Record<string, ChannelKey>; lastAt: Record<string, string> }
 
 type LifecycleStage = 'new_lead' | 'hot_lead' | 'payment' | 'customer' | string
 
@@ -182,7 +185,7 @@ export default function InboxPage() {
   // La conversación se identifica por external_id (teléfono WA / PSID / IGSID),
   // que es lo que n8n guarda en messages.patient_id. El canal se toma del
   // último mensaje (messages.channel), fuente de verdad que escribe n8n.
-  const { data: activeChat = { ids: new Set<string>(), channels: {} as Record<string, ChannelKey> } } = useQuery({
+  const { data: activeChat = { ids: new Set<string>(), channels: {} as Record<string, ChannelKey>, lastAt: {} as Record<string, string> } } = useQuery({
     queryKey: ['activeChat', userCompanyId],
     enabled: !!userCompanyId,
     queryFn: async () => {
@@ -193,14 +196,16 @@ export default function InboxPage() {
         .order('created_at', { ascending: false })
       const ids = new Set<string>()
       const channels: Record<string, ChannelKey> = {}
+      const lastAt: Record<string, string> = {}
       for (const m of data || []) {
         const pid: string = m.patient_id
         if (!pid) continue
         ids.add(pid)
-        // primera ocurrencia = más reciente (orden desc) → canal actual
+        // primera ocurrencia = más reciente (orden desc) → canal y fecha actuales
         if (!channels[pid]) channels[pid] = normalizeChannel(m.channel)
+        if (!lastAt[pid]) lastAt[pid] = m.created_at
       }
-      return { ids, channels }
+      return { ids, channels, lastAt }
     }
   })
   const activeChatIds = activeChat.ids
@@ -296,11 +301,13 @@ export default function InboxPage() {
         // 1. Agregar la conversación a los "Chats Activos" y registrar su canal
         queryClient.setQueryData(
           ['activeChat', userCompanyId],
-          (old: { ids: Set<string>; channels: Record<string, ChannelKey> } = { ids: new Set(), channels: {} }) => {
+          (prev: ActiveChat | undefined) => {
+            const old = prev ?? { ids: new Set<string>(), channels: {}, lastAt: {} }
             const ids = new Set(old.ids)
             ids.add(newMsg.patient_id)
             const channels = { ...old.channels, [newMsg.patient_id]: normalizeChannel(newMsg.channel) }
-            return { ids, channels }
+            const lastAt = { ...old.lastAt, [newMsg.patient_id]: newMsg.created_at || new Date().toISOString() }
+            return { ids, channels, lastAt }
           }
         )
 
@@ -409,6 +416,7 @@ export default function InboxPage() {
   const audioChunksRef = useRef<Blob[]>([])
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recordingStreamRef = useRef<MediaStream | null>(null)
+  const descartarGrabacionRef = useRef(false)
 
   // Subir archivo a Supabase Storage (devuelve URL pública)
   const uploadToStorage = async (file: Blob, ext: string, folder: 'audio' | 'image'): Promise<string> => {
@@ -453,23 +461,37 @@ export default function InboxPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       recordingStreamRef.current = stream
-      // Intentar mp4 para compatibilidad WhatsApp, fallback a webm
-      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
-                      : MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
-                      : 'audio/webm'
+      // WhatsApp solo reproduce AAC dentro de MP4 (u Opus dentro de OGG). Chrome
+      // con 'audio/mp4' a secas graba Opus en MP4, que WhatsApp no reproduce,
+      // así que se pide el códec AAC (mp4a.40.2) explícitamente.
+      const candidatos = ['audio/mp4;codecs=mp4a.40.2', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+      const mimeType = candidatos.find(m => MediaRecorder.isTypeSupported(m)) || 'audio/webm'
       const recorder = new MediaRecorder(stream, { mimeType })
       audioChunksRef.current = []
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: mimeType })
-        const preview = URL.createObjectURL(blob)
-        setPendingAudio({ blob, duration: recordingDuration, preview })
-        // limpiar stream
+      const inicio = Date.now()
+      recorder.onstop = async () => {
         recordingStreamRef.current?.getTracks().forEach(t => t.stop())
         recordingStreamRef.current = null
+        if (descartarGrabacionRef.current) {
+          audioChunksRef.current = []
+          return
+        }
+        // Sin el parámetro codecs: es el Content-Type con el que se sube a
+        // Storage y Meta rechaza tipos que no estén en su lista exacta.
+        const blob = new Blob(audioChunksRef.current, { type: mimeType.split(';')[0] })
+        const preview = URL.createObjectURL(blob)
+        let duration = Math.round((Date.now() - inicio) / 1000)
+        try {
+          const ctx = new AudioContext()
+          duration = Math.round((await ctx.decodeAudioData(await blob.arrayBuffer())).duration)
+          void ctx.close()
+        } catch { /* se queda la duración medida con el reloj */ }
+        setPendingAudio({ blob, duration: Math.max(1, duration), preview })
       }
+      descartarGrabacionRef.current = false
       recorder.start()
       mediaRecorderRef.current = recorder
       setIsRecording(true)
@@ -495,12 +517,8 @@ export default function InboxPage() {
   }
 
   const cancelRecording = () => {
+    descartarGrabacionRef.current = true
     stopRecording()
-    // limpiar pendingAudio si se generó después del stop
-    setTimeout(() => {
-      setPendingAudio(null)
-      audioChunksRef.current = []
-    }, 100)
   }
 
   const cancelPendingAudio = () => {
@@ -721,7 +739,11 @@ export default function InboxPage() {
   // Modo Humano: misma regla que la tarjeta del dashboard (todos los contactos
   // con ai_active = false, tengan o no mensajes), para que el número coincida.
   const attentionContacts = allContacts.filter(c => !c.ai_active)
-  const baseContacts = attentionOnly ? attentionContacts : activeSidebarContacts
+  // Conversación más reciente primero (contactos sin mensajes al final).
+  const lastAtOf = (c: Contact) => Date.parse(activeChat.lastAt[c.external_id] || '') || 0
+  const baseContacts = (attentionOnly ? attentionContacts : activeSidebarContacts)
+    .slice()
+    .sort((a, b) => lastAtOf(b) - lastAtOf(a))
 
   // 2a. Filtro por canal (WhatsApp / Facebook / Instagram)
   const byChannelContacts = channelFilter === 'all'
@@ -1192,9 +1214,11 @@ export default function InboxPage() {
                             <audio
                               src={msg.media_url || undefined}
                               controls
+                              controlsList="nodownload"
                               className="w-full max-w-[260px] h-10"
                               style={{ accentColor: isPatient ? accentColor : 'white' }}
                             />
+                            <DescargarAudioMp3 url={msg.media_url!} fecha={msg.created_at} claro={!isPatient} />
                             {/* Transcripción debajo */}
                             {msg.content && (
                               <div className={`mt-2 pt-2 border-t ${isPatient ? 'border-slate-200' : 'border-white/20'}`}>
@@ -1418,7 +1442,7 @@ export default function InboxPage() {
                   {sendMessageMutation.isPending ? (
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    <Send size={18} className="ml-1" />
+                    <Send size={18} className="-translate-x-px translate-y-px" />
                   )}
                 </button>
               </div>
@@ -1509,5 +1533,36 @@ export default function InboxPage() {
       )}
 
     </div>
+  )
+}
+
+/** Descarga la nota de voz convertida a MP3 (WhatsApp la manda en .ogg). */
+function DescargarAudioMp3({ url, fecha, claro }: { url: string; fecha?: string; claro: boolean }) {
+  const [convirtiendo, setConvirtiendo] = useState(false)
+
+  const descargar = async () => {
+    setConvirtiendo(true)
+    try {
+      descargarBlob(await audioUrlToMp3(url), nombreAudioMp3(fecha))
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo descargar el audio. Intenta de nuevo.')
+    } finally {
+      setConvirtiendo(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={descargar}
+      disabled={convirtiendo}
+      className={`mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold rounded-lg px-2 py-1 transition-colors disabled:opacity-60 ${
+        claro ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+      }`}
+    >
+      {convirtiendo ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+      Descargar
+    </button>
   )
 }

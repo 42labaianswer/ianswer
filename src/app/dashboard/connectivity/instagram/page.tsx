@@ -246,36 +246,31 @@ export default function InstagramConnectPage() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 max-w-6xl mx-auto">
-      {/* Barra de navegación */}
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <button
-          onClick={() => router.push('/dashboard/connectivity')}
-          className="text-sm font-bold text-slate-500 hover:text-slate-900 inline-flex items-center gap-2"
-        >
-          <ArrowLeft size={16} /> Conectividad
-        </button>
-        <button
-          onClick={() => setShowDiag(v => !v)}
-          aria-expanded={showDiag}
-          className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3.5 py-2 hover:bg-slate-50 hover:border-slate-300 transition-colors inline-flex items-center gap-2 shrink-0"
-        >
-          <Activity size={16} /> Diagnóstico
-          <ChevronDown size={15} className={`transition-transform ${showDiag ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {/* Diagnóstico de este canal, inline */}
-      {showDiag && (
-        <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <ChannelDiagnostics canal="instagram" nombre="Instagram Direct" />
-        </div>
-      )}
-
+    <div className="animate-in fade-in duration-500 pb-12">
       <PageHeader
+        back={{ href: '/dashboard/connectivity', label: 'Conectividad' }}
         title="Conectar Instagram Direct"
         description="Permite que tu asistente de IA responda los mensajes directos de tu cuenta de Instagram."
+        actions={
+          <button
+            onClick={() => setShowDiag(v => !v)}
+            aria-expanded={showDiag}
+            className="text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3.5 py-2 hover:bg-slate-50 hover:border-slate-300 transition-colors inline-flex items-center gap-2 shrink-0"
+          >
+            <Activity size={16} /> Diagnóstico
+            <ChevronDown size={15} className={`transition-transform ${showDiag ? 'rotate-180' : ''}`} />
+          </button>
+        }
       />
+
+      <div className="max-w-6xl mx-auto">
+        {/* Diagnóstico de este canal, inline */}
+        {showDiag && (
+          <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            <ChannelDiagnostics canal="instagram" nombre="Instagram Direct" />
+          </div>
+        )}
+
 
       {connected && (
         <div className="mb-6 p-5 rounded-2xl border-2 border-fuchsia-200 bg-fuchsia-50 flex items-center gap-4">
@@ -437,6 +432,7 @@ export default function InstagramConnectPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
