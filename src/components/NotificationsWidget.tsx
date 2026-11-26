@@ -150,8 +150,8 @@ export default function NotificationsWidget() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
-      supabase.removeChannel(mensajes)
+      void supabase.removeChannel(channel)
+      void supabase.removeChannel(mensajes)
     }
   }, [companyId, queryClient, router])
 
