@@ -331,10 +331,6 @@ function CampaignsContent() {
               <p className="text-xs text-rose-600 flex items-center gap-1.5"><AlertCircle size={14} /> {templatesError}</p>
             ) : templatesLoading ? (
               <p className="text-xs text-slate-500 flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" /> Cargando plantillas de Meta…</p>
-            ) : whatsappConnected && templates.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                No tienes plantillas de marketing aprobadas. Créalas en el administrador de WhatsApp de Meta y espera a que las aprueben.
-              </p>
             ) : (
               <select
                 id="campaign-template"
@@ -351,6 +347,33 @@ function CampaignsContent() {
                 ))}
               </select>
             )}
+            {!templatesError && !templatesLoading && (whatsappConnected && templates.length === 0 ? (
+              <p className="mt-1.5 text-xs font-semibold text-amber-700">
+                No tienes plantillas de marketing aprobadas, por eso todavía no puedes mandar campañas. Créalas en{' '}
+                <a
+                  href="https://business.facebook.com/wa/manage/message-templates/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold underline"
+                >
+                  WhatsApp Manager de Meta
+                </a>
+                {' '}con la categoría Marketing y espera a que las aprueben.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Las plantillas se crean y aprueban en{' '}
+                <a
+                  href="https://business.facebook.com/wa/manage/message-templates/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-indigo-600 hover:underline"
+                >
+                  WhatsApp Manager de Meta
+                </a>
+                {whatsappConnected ? ', con la categoría Marketing.' : ', después de conectar tu número.'}
+              </p>
+            ))}
           </div>
 
           {template && (template.headerFormat && MEDIA_LABEL[template.headerFormat] || template.headerVars.length > 0 || template.bodyVars.length > 0) && (
